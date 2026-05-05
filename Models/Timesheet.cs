@@ -31,6 +31,8 @@ namespace HR_Management_System.Models
         [Range(0, 24)]
         public decimal TotalHours { get; set; }
 
+        public decimal HoursWorked { get; set; }
+
         [Range(0, 24)]
         public decimal OvertimeHours { get; set; }
 
@@ -39,6 +41,9 @@ namespace HR_Management_System.Models
 
         [MaxLength(500)]
         public string TaskDescription { get; set; }
+
+        [MaxLength(500)]
+        public string Description { get; set; }
 
         [MaxLength(100)]
         public string ProjectCode { get; set; }

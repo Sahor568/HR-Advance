@@ -83,6 +83,13 @@ namespace HR_Management_System.Models
         [StringLength(100)]
         public string Designation { get; set; } = string.Empty;
 
+        // Foreign key to Department
+        public int? DepartmentId { get; set; }
+
+        [ForeignKey("DepartmentId")]
+        public virtual Department? DepartmentEntity { get; set; }
+
+        // Keep string Department for backward compatibility (can be computed from DepartmentEntity)
         [Required]
         [StringLength(100)]
         public string Department { get; set; } = string.Empty;
@@ -122,6 +129,9 @@ namespace HR_Management_System.Models
 
         [StringLength(50)]
         public string? EmergencyContactRelation { get; set; }
+
+        [StringLength(50)]
+        public string? EmergencyContactRelationship { get; set; }
 
         // Marital Status
         public MaritalStatus MaritalStatus { get; set; }

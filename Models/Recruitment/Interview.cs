@@ -6,6 +6,11 @@ namespace HR_Management_System.Models.Recruitment
     [Table("Interviews")]
     public class Interview
     {
+        public Interview()
+        {
+            RoundValue = InterviewRound.First;
+        }
+
         [Key]
         public int Id { get; set; }
 
@@ -15,8 +20,7 @@ namespace HR_Management_System.Models.Recruitment
         [Required]
         public int JobPositionId { get; set; }
 
-        [Required]
-        public InterviewRound Round { get; set; } = InterviewRound.First;
+        public InterviewRound RoundValue { get; set; }
 
         [Required]
         [StringLength(200)]
@@ -106,8 +110,26 @@ namespace HR_Management_System.Models.Recruitment
         // Audit
         public int CreatedBy { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+        public DateTime? ModifiedDate { get; set; }
+        public DateTime? CompletedDate { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public int? UpdatedBy { get; set; }
+
+        [StringLength(200)]
+        public string InterviewerName { get; set; }
+
+        [StringLength(450)]
+        public string InterviewerId { get; set; }
+
+        [StringLength(500)]
+        public string MeetingLink { get; set; }
+
+        [StringLength(2000)]
+        public string Notes { get; set; }
+
+        [StringLength(2000)]
+        public string Feedback { get; set; }
 
         // Navigation
         [ForeignKey("CandidateId")]

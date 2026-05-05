@@ -9,6 +9,7 @@ namespace HR_Management_System.Services.Interfaces
         Task<EmployeeDetailViewModel?> GetEmployeeByIdAsync(int id);
         Task<Employee> CreateEmployeeAsync(EmployeeCreateViewModel model);
         Task<Employee> UpdateEmployeeAsync(EmployeeEditViewModel model);
+        Task<Employee> UpdateEmployeeAsync(int id, Employee employee);
         Task<bool> DeactivateEmployeeAsync(int id, string reason);
         Task<bool> ActivateEmployeeAsync(int id);
         Task<string> GenerateEmployeeIdAsync();
@@ -19,5 +20,6 @@ namespace HR_Management_System.Services.Interfaces
         Task<int> GetTotalActiveEmployeesCountAsync();
         Task<int> GetEmployeesOnProbationCountAsync();
         Task<IEnumerable<EmployeeListViewModel>> SearchEmployeesAsync(string searchTerm);
+        Task<Employee?> GetEmployeeByUserIdAsync(string userId);
     }
 }

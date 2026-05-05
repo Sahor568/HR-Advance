@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using System.Text.Json.Serialization;
 
-namespace Management.Models
+namespace HR_Management_System.Models
 {
     public class User
     {

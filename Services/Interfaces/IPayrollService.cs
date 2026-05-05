@@ -11,6 +11,9 @@ namespace HR_Management_System.Services.Interfaces
         Task<bool> MarkAsPaidAsync(int payrollId);
         Task<PayslipViewModel> GetPayslipAsync(int payrollId);
         Task<IEnumerable<PayslipViewModel>> GetEmployeePayslipsAsync(int employeeId);
+        Task<IEnumerable<PayslipViewModel>> GetEmployeePayslipsAsync(int employeeId, int? year, int? month);
+        Task<PayslipViewModel> GetPayslipByIdAsync(int payrollId);
+        Task<byte[]> GeneratePayslipPdfAsync(int payrollId);
         Task<decimal> CalculateTDSCalculationAsync(decimal annualTaxableIncome);
         Task<decimal> CalculateOvertimePayAsync(decimal baseSalary, decimal overtimeHours);
         Task<SSFRecord> GenerateSSFRecordAsync(int employeeId, int month, int year);

@@ -18,5 +18,9 @@ namespace HR_Management_System.Services.Interfaces
         Task<IEnumerable<PublicHoliday>> GetPublicHolidaysAsync(int year);
         Task<PublicHoliday> AddPublicHolidayAsync(PublicHoliday holiday);
         Task<int> GetPendingLeaveCountAsync();
+        Task<LeaveRequest> CreateLeaveRequestAsync(LeaveRequest leaveRequest);
+        Task<LeaveRequest?> GetLeaveRequestByIdAsync(int id);
+        Task<bool> CancelLeaveRequestAsync(int id);
+        Task<IEnumerable<LeaveRequest>> GetLeaveRequestsByEmployeeIdAsync(int employeeId);
     }
 }

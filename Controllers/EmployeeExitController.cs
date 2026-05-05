@@ -442,8 +442,8 @@ namespace HR_Management_System.Controllers
                     }
                     
                     resignation.EmployeeId = employee.Id;
-                    resignation.ExitType = ExitType.Resignation;
-                    resignation.Status = ExitStatus.Pending;
+                    resignation.Type = Models.ExitType.Resignation;
+                    resignation.Status = Models.ExitStatus.ResignationSubmitted;
                     
                     await _employeeExitService.CreateEmployeeExitAsync(resignation);
                     _logger.LogInformation("Employee {EmployeeId} submitted resignation", employee.Id);

@@ -54,6 +54,13 @@ namespace HR_Management_System.Models.Recruitment
         [MaxLength(500)]
         public string Remarks { get; set; }
 
+        public int? FiscalYear { get; set; }
+        public int? CurrentHeadcount { get; set; }
+        public int? RequiredHeadcount { get; set; }
+        public decimal? BudgetAllocation { get; set; }
+        public DateTime? TargetDate { get; set; }
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+        public DateTime? ModifiedDate { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime? ApprovedAt { get; set; }
         public DateTime? RejectedAt { get; set; }
@@ -115,6 +122,10 @@ namespace HR_Management_System.Models.Recruitment
         public decimal MinSalary { get; set; }
         public decimal MaxSalary { get; set; }
 
+        [MaxLength(50)]
+        public string UrgencyLevel { get; set; }
+        public DateTime? TargetDate { get; set; }
+
         [MaxLength(500)]
         public string Benefits { get; set; }
 
@@ -123,6 +134,20 @@ namespace HR_Management_System.Models.Recruitment
         [MaxLength(500)]
         public string Remarks { get; set; }
 
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+        public DateTime? ModifiedDate { get; set; }
+        public bool DepartmentHeadApproval { get; set; }
+        [MaxLength(450)]
+        public string DepartmentHeadApprovedBy { get; set; }
+        public DateTime? DepartmentHeadApprovedDate { get; set; }
+        public bool HRApproval { get; set; }
+        [MaxLength(450)]
+        public string HRApprovedBy { get; set; }
+        public DateTime? HRApprovedDate { get; set; }
+        public bool ManagementApproval { get; set; }
+        [MaxLength(450)]
+        public string ManagementApprovedBy { get; set; }
+        public DateTime? ManagementApprovedDate { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime? SubmittedAt { get; set; }
         public DateTime? ApprovedAt { get; set; }

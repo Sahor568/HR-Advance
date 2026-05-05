@@ -196,6 +196,52 @@ namespace HR_Management_System.Services.Implementations
             return employee;
         }
 
+        public async Task<Employee> UpdateEmployeeAsync(int id, Employee employee)
+        {
+            _logger.LogInformation("Updating employee ID: {EmployeeId}", id);
+
+            var existingEmployee = await _context.Employees.FindAsync(id);
+            if (existingEmployee == null)
+            {
+                throw new KeyNotFoundException($"Employee with ID {id} not found");
+            }
+
+            existingEmployee.FirstName = employee.FirstName;
+            existingEmployee.MiddleName = employee.MiddleName;
+            existingEmployee.LastName = employee.LastName;
+            existingEmployee.Gender = employee.Gender;
+            existingEmployee.DateOfBirth = employee.DateOfBirth;
+            existingEmployee.PermanentAddress = employee.PermanentAddress;
+            existingEmployee.TemporaryAddress = employee.TemporaryAddress;
+            existingEmployee.PhoneNumber = employee.PhoneNumber;
+            existingEmployee.AlternatePhone = employee.AlternatePhone;
+            existingEmployee.Email = employee.Email;
+            existingEmployee.CitizenshipNumber = employee.CitizenshipNumber;
+            existingEmployee.CitizenshipIssuedDistrict = employee.CitizenshipIssuedDistrict;
+            existingEmployee.CitizenshipIssuedDate = employee.CitizenshipIssuedDate;
+            existingEmployee.PAN_No = employee.PAN_No;
+            existingEmployee.EmploymentType = employee.EmploymentType;
+            existingEmployee.Designation = employee.Designation;
+            existingEmployee.Department = employee.Department;
+            existingEmployee.Grade = employee.Grade;
+            existingEmployee.BaseSalary = employee.BaseSalary;
+            existingEmployee.GradeAmount = employee.GradeAmount;
+            existingEmployee.BankName = employee.BankName;
+            existingEmployee.BankAccountNumber = employee.BankAccountNumber;
+            existingEmployee.EmergencyContactName = employee.EmergencyContactName;
+            existingEmployee.EmergencyContactPhone = employee.EmergencyContactPhone;
+            existingEmployee.EmergencyContactRelation = employee.EmergencyContactRelation;
+            existingEmployee.MaritalStatus = employee.MaritalStatus;
+            existingEmployee.FatherName = employee.FatherName;
+            existingEmployee.MotherName = employee.MotherName;
+            existingEmployee.SpouseName = employee.SpouseName;
+            existingEmployee.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Employee updated successfully: {EmpId}", existingEmployee.Emp_ID);
+            return existingEmployee;
+        }
+
         public async Task<bool> DeactivateEmployeeAsync(int id, string reason)
         {
             _logger.LogInformation("Deactivating employee ID: {EmployeeId}, Reason: {Reason}", id, reason);
@@ -393,6 +439,12 @@ namespace HR_Management_System.Services.Implementations
                 await _context.SaveChangesAsync();
                 _logger.LogInformation("Leave balance initialized for employee ID: {EmployeeId}, Year: {Year}", employeeId, year);
             }
+        }
+
+        public async Task<Employee?> GetEmployeeByUserIdAsync(string userId)
+        {
+            _logger.LogInformation("Fetching employee by user ID: {UserId}", userId);
+            return await _context.Employees.FirstOrDefaultAsync(e => e.Email == userId || e.Emp_ID == userId);
         }
     }
 }

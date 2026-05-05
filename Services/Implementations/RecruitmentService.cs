@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using HR_Management_System.Data;
 using HR_Management_System.Models.Recruitment;
+using HR_Management_System.Models.Enums;
 using HR_Management_System.Services.Interfaces;
 
 namespace HR_Management_System.Services.Implementations
@@ -23,7 +24,7 @@ namespace HR_Management_System.Services.Implementations
         {
             _logger.LogInformation("Creating workforce planning for department: {Department}", planning.Department);
             planning.CreatedDate = DateTime.UtcNow;
-            planning.Status = "Draft";
+            planning.Status = PlanningStatus.Draft;
             _context.WorkforcePlannings.Add(planning);
             await _context.SaveChangesAsync();
             _logger.LogInformation("Workforce planning created with ID: {Id}", planning.Id);
@@ -86,9 +87,9 @@ namespace HR_Management_System.Services.Implementations
             var planning = await _context.WorkforcePlannings.FindAsync(id);
             if (planning == null) return false;
 
-            planning.Status = "Approved";
+            planning.Status = PlanningStatus.Approved;
             planning.ApprovedBy = approvedBy;
-            planning.ApprovedDate = DateTime.UtcNow;
+            planning.ApprovedAt = DateTime.UtcNow;
             planning.ModifiedDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -104,7 +105,7 @@ namespace HR_Management_System.Services.Implementations
         {
             _logger.LogInformation("Creating employee requisition for position: {Position}", requisition.PositionTitle);
             requisition.CreatedDate = DateTime.UtcNow;
-            requisition.Status = "Pending";
+            requisition.Status = RequisitionStatus.Submitted;
             _context.EmployeeRequisitions.Add(requisition);
             await _context.SaveChangesAsync();
             _logger.LogInformation("Employee requisition created with ID: {Id}", requisition.Id);
@@ -133,15 +134,15 @@ namespace HR_Management_System.Services.Implementations
 
             existing.PositionTitle = requisition.PositionTitle;
             existing.Department = requisition.Department;
-            existing.NumberOfPositions = requisition.NumberOfPositions;
+            existing.NumberOfOpenings = requisition.NumberOfOpenings;
             existing.EmploymentType = requisition.EmploymentType;
-            existing.SalaryRangeMin = requisition.SalaryRangeMin;
-            existing.SalaryRangeMax = requisition.SalaryRangeMax;
+            existing.MinSalary = requisition.MinSalary;
+            existing.MaxSalary = requisition.MaxSalary;
             existing.JobDescription = requisition.JobDescription;
-            existing.RequiredQualifications = requisition.RequiredQualifications;
-            existing.RequiredExperience = requisition.RequiredExperience;
+            existing.Qualifications = requisition.Qualifications;
+            existing.ExperienceRequired = requisition.ExperienceRequired;
             existing.UrgencyLevel = requisition.UrgencyLevel;
-            existing.TargetDate = requisition.TargetDate;
+            existing.RequiredByDate = requisition.RequiredByDate;
             existing.ModifiedDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -170,21 +171,21 @@ namespace HR_Management_System.Services.Implementations
                 requisition.DepartmentHeadApproval = true;
                 requisition.DepartmentHeadApprovedBy = approvedBy;
                 requisition.DepartmentHeadApprovedDate = DateTime.UtcNow;
-                requisition.Status = "DepartmentApproved";
+                requisition.Status = RequisitionStatus.LineManagerApproved;
             }
             else if (level == "HR")
             {
                 requisition.HRApproval = true;
                 requisition.HRApprovedBy = approvedBy;
                 requisition.HRApprovedDate = DateTime.UtcNow;
-                requisition.Status = "HRApproved";
+                requisition.Status = RequisitionStatus.HRApproved;
             }
             else if (level == "Management")
             {
                 requisition.ManagementApproval = true;
                 requisition.ManagementApprovedBy = approvedBy;
                 requisition.ManagementApprovedDate = DateTime.UtcNow;
-                requisition.Status = "FullyApproved";
+                requisition.Status = RequisitionStatus.Approved;
             }
 
             requisition.ModifiedDate = DateTime.UtcNow;
@@ -198,9 +199,11 @@ namespace HR_Management_System.Services.Implementations
 
         public async Task<JobPosition> CreateJobPositionAsync(JobPosition position)
         {
-            _logger.LogInformation("Creating job position: {Title}", position.Title);
+            _logger.LogInformation("Creating job position: {Title}", position.Title ?? position.PositionTitle);
             position.CreatedDate = DateTime.UtcNow;
             position.Status = JobStatus.Draft;
+            if (string.IsNullOrEmpty(position.Title))
+                position.Title = position.PositionTitle;
             _context.JobPositions.Add(position);
             await _context.SaveChangesAsync();
             _logger.LogInformation("Job position created with ID: {Id}", position.Id);
@@ -228,6 +231,7 @@ namespace HR_Management_System.Services.Implementations
             if (existing == null) return null;
 
             existing.Title = position.Title;
+            existing.PositionTitle = position.PositionTitle;
             existing.Department = position.Department;
             existing.Description = position.Description;
             existing.Requirements = position.Requirements;
@@ -258,7 +262,7 @@ namespace HR_Management_System.Services.Implementations
         {
             _logger.LogInformation("Fetching job positions for requisition ID: {RequisitionId}", requisitionId);
             return await _context.JobPositions
-                .Where(j => j.EmployeeRequisitionId == requisitionId)
+                .Where(j => j.WorkforcePlanningId == requisitionId)
                 .ToListAsync();
         }
 
@@ -268,9 +272,11 @@ namespace HR_Management_System.Services.Implementations
 
         public async Task<Candidate> CreateCandidateAsync(Candidate candidate)
         {
-            _logger.LogInformation("Creating candidate: {Name} for position: {JobPositionId}", candidate.FullName, candidate.JobPositionId);
+            _logger.LogInformation("Creating candidate: {Name} for position: {JobPositionId}", candidate.FullName ?? candidate.FirstName, candidate.JobPositionId);
             candidate.AppliedDate = DateTime.UtcNow;
             candidate.Status = ApplicationStatus.Applied;
+            if (string.IsNullOrEmpty(candidate.FullName))
+                candidate.FullName = $"{candidate.FirstName} {candidate.LastName}";
             _context.Candidates.Add(candidate);
             await _context.SaveChangesAsync();
             _logger.LogInformation("Candidate created with ID: {Id}", candidate.Id);
@@ -298,16 +304,16 @@ namespace HR_Management_System.Services.Implementations
             if (existing == null) return null;
 
             existing.FullName = candidate.FullName;
+            existing.FirstName = candidate.FirstName;
+            existing.LastName = candidate.LastName;
             existing.Email = candidate.Email;
             existing.Phone = candidate.Phone;
             existing.Address = candidate.Address;
             existing.DateOfBirth = candidate.DateOfBirth;
             existing.Gender = candidate.Gender;
-            existing.Nationality = candidate.Nationality;
-            existing.Education = candidate.Education;
-            existing.Experience = candidate.Experience;
-            existing.Skills = candidate.Skills;
-            existing.CurrentEmployer = candidate.CurrentEmployer;
+            existing.HighestEducation = candidate.Education;
+            existing.YearsOfExperience = string.IsNullOrEmpty(candidate.Experience) ? 0 : decimal.TryParse(candidate.Experience, out var exp) ? exp : 0;
+            existing.CurrentCompany = candidate.CurrentEmployer;
             existing.CurrentSalary = candidate.CurrentSalary;
             existing.ExpectedSalary = candidate.ExpectedSalary;
             existing.NoticePeriod = candidate.NoticePeriod;
@@ -394,7 +400,7 @@ namespace HR_Management_System.Services.Implementations
 
             existing.ScheduledDate = interview.ScheduledDate;
             existing.ScheduledTime = interview.ScheduledTime;
-            existing.InterviewRound = interview.InterviewRound;
+            existing.RoundValue = interview.RoundValue;
             existing.InterviewType = interview.InterviewType;
             existing.InterviewerName = interview.InterviewerName;
             existing.InterviewerId = interview.InterviewerId;
@@ -423,7 +429,7 @@ namespace HR_Management_System.Services.Implementations
             _logger.LogInformation("Fetching interviews for candidate ID: {CandidateId}", candidateId);
             return await _context.Interviews
                 .Where(i => i.CandidateId == candidateId)
-                .OrderBy(i => i.InterviewRound)
+                .OrderBy(i => i.RoundValue)
                 .ToListAsync();
         }
 
@@ -457,6 +463,8 @@ namespace HR_Management_System.Services.Implementations
             offer.CreatedDate = DateTime.UtcNow;
             offer.Status = OfferStatus.Draft;
             offer.OfferLetterNumber = $"OL-{DateTime.UtcNow:yyyyMMdd}-{new Random().Next(1000, 9999)}";
+            if (string.IsNullOrEmpty(offer.Position))
+                offer.Position = offer.PositionTitle;
             _context.OfferLetters.Add(offer);
             await _context.SaveChangesAsync();
             _logger.LogInformation("Offer letter created with ID: {Id}", offer.Id);
@@ -484,12 +492,17 @@ namespace HR_Management_System.Services.Implementations
             if (existing == null) return null;
 
             existing.Position = offer.Position;
+            existing.PositionTitle = offer.PositionTitle;
             existing.Department = offer.Department;
             existing.OfferedSalary = offer.OfferedSalary;
+            existing.GrossSalary = offer.OfferedSalary;
             existing.ProbationPeriod = offer.ProbationPeriod;
+            existing.ProbationPeriodMonths = string.IsNullOrEmpty(offer.ProbationPeriod) ? 6 : int.TryParse(offer.ProbationPeriod, out var months) ? months : 6;
             existing.StartDate = offer.StartDate;
+            existing.JoiningDate = offer.StartDate ?? DateTime.UtcNow;
             existing.EmploymentType = offer.EmploymentType;
             existing.TermsAndConditions = offer.TermsAndConditions;
+            existing.BenefitsDescription = offer.Benefits;
             existing.Benefits = offer.Benefits;
             existing.ModifiedDate = DateTime.UtcNow;
 
@@ -544,9 +557,9 @@ namespace HR_Management_System.Services.Implementations
             var offer = await _context.OfferLetters.FindAsync(offerId);
             if (offer == null) return false;
 
-            offer.Status = OfferStatus.Rejected;
+            offer.Status = OfferStatus.Declined;
             offer.RejectionReason = reason;
-            offer.RejectedDate = DateTime.UtcNow;
+            offer.DeclinedDate = DateTime.UtcNow;
             offer.ModifiedDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -576,13 +589,13 @@ namespace HR_Management_System.Services.Implementations
                 .CountAsync(c => c.Status == ApplicationStatus.Rejected && c.AppliedDate.Year == targetYear);
 
             var offersSent = await _context.OfferLetters
-                .CountAsync(o => o.CreatedDate.Year == targetYear);
+                .CountAsync(o => o.CreatedAt.Year == targetYear);
 
             var offersAccepted = await _context.OfferLetters
-                .CountAsync(o => o.Status == OfferStatus.Accepted && o.CreatedDate.Year == targetYear);
+                .CountAsync(o => o.Status == OfferStatus.Accepted && o.CreatedAt.Year == targetYear);
 
             var offersRejected = await _context.OfferLetters
-                .CountAsync(o => o.Status == OfferStatus.Rejected && o.CreatedDate.Year == targetYear);
+                .CountAsync(o => o.Status == OfferStatus.Declined && o.CreatedAt.Year == targetYear);
 
             var candidatesBySource = await _context.Candidates
                 .Where(c => c.AppliedDate.Year == targetYear)
@@ -637,8 +650,8 @@ namespace HR_Management_System.Services.Implementations
                 : 0;
 
             var positions = await _context.JobPositions.ToListAsync();
-            var openPositions = positions.Count(p => p.Status == JobStatus.Open || p.Status == JobStatus.Published);
-            var closedPositions = positions.Count(p => p.Status == JobStatus.Closed || p.Status == JobStatus.Filled);
+            var openPositions = positions.Count(p => p.Status == JobStatus.Open);
+            var closedPositions = positions.Count(p => p.Status == JobStatus.Closed);
 
             return new
             {
@@ -690,10 +703,10 @@ namespace HR_Management_System.Services.Implementations
                 .CountAsync(c => c.Status == ApplicationStatus.Hired && c.AppliedDate.Year == targetYear);
 
             var totalInterviews = await _context.Interviews
-                .CountAsync(i => i.CreatedDate.Year == targetYear);
+                .CountAsync(i => i.CreatedAt.Year == targetYear);
 
             var totalOffers = await _context.OfferLetters
-                .CountAsync(o => o.CreatedDate.Year == targetYear);
+                .CountAsync(o => o.CreatedAt.Year == targetYear);
 
             return new
             {

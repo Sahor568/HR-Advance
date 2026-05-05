@@ -17,14 +17,22 @@ namespace HR_Management_System.Models.Recruitment
         [StringLength(200)]
         public string PositionTitle { get; set; } = string.Empty;
 
+        [StringLength(200)]
+        public string Title { get; set; }
+
         [Required]
         public int DepartmentId { get; set; }
+
+        [StringLength(100)]
+        public string Department { get; set; }
 
         [Required]
         public PositionType PositionType { get; set; } = PositionType.Fixed;
 
         [Required]
         public int NumberOfVacancies { get; set; } = 1;
+
+        public int NoOfVacancies { get; set; }
 
         [Required]
         [Column(TypeName = "decimal(18,2)")]
@@ -41,6 +49,9 @@ namespace HR_Management_System.Models.Recruitment
         public string JobDescription { get; set; } = string.Empty;
 
         [StringLength(2000)]
+        public string Description { get; set; }
+
+        [StringLength(2000)]
         public string Requirements { get; set; } = string.Empty;
 
         [StringLength(2000)]
@@ -51,28 +62,14 @@ namespace HR_Management_System.Models.Recruitment
 
         public DateTime? ApplicationDeadline { get; set; }
 
-        public DateTime? ExpectedStartDate { get; set; }
+        public DateTime? ClosingDate { get; set; }
 
-        public int? ExperienceRequired { get; set; } // In years
+public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+        public DateTime? CreatedAt { get; set; }
+        public DateTime? ModifiedDate { get; set; }
 
-        [StringLength(100)]
-        public string EducationRequired { get; set; } = string.Empty;
-
-        public bool IsPublished { get; set; } = false;
-
-        public DateTime? PublishedDate { get; set; }
-
-        // Approval workflow
-        public int? ApprovedBy { get; set; }
-        public DateTime? ApprovedDate { get; set; }
-
-        [StringLength(500)]
-        public string ApprovalRemarks { get; set; } = string.Empty;
-
-        // Audit
-        public int CreatedBy { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? UpdatedAt { get; set; }
+        public int? EmployeeRequisitionId { get; set; }
+        public int? WorkforcePlanningId { get; set; }
     }
 
     public enum PositionType

@@ -1,4 +1,5 @@
 using HR_Management_System.Models;
+using HR_Management_System.Models.Enums;
 using HR_Management_System.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -517,7 +518,13 @@ namespace HR_Management_System.Controllers
                     return View();
                 }
 
-                var result = await _employeeSelfService.ChangePasswordAsync(User.Identity.Name, currentPassword, newPassword);
+                var employee = await _employeeService.GetEmployeeByUserIdAsync(User.Identity.Name);
+                if (employee == null)
+                {
+                    return NotFound();
+                }
+
+                var result = await _employeeSelfService.ChangePasswordAsync(employee.Id, currentPassword, newPassword);
                 if (result)
                 {
                     _logger.LogInformation("Employee changed password successfully");

@@ -70,7 +70,9 @@ builder.Services.AddScoped<IPerformanceService, PerformanceService>();
 builder.Services.AddScoped<IRecruitmentService, RecruitmentService>();
 builder.Services.AddScoped<IEmployeeExitService, EmployeeExitService>();
 builder.Services.AddScoped<IDynamicPayrollService, DynamicPayrollService>();
-builder.Services.AddScoped<IEmployeeSelfService, HR_Management_System.Services.Implementations.EmployeeSelfService>();
+builder.Services.AddScoped<IEmployeeSelfService, EmployeeSelfService>();
+builder.Services.AddScoped<IHRISService, HRISService>();
+builder.Services.AddScoped<IDepartmentService, DepartmentService>();
 
 // Add authorization policies
 builder.Services.AddAuthorization(options =>
@@ -133,17 +135,17 @@ using (var scope = app.Services.CreateScope())
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         
-        // Apply migrations
-        context.Database.Migrate();
+        // Auto-create database if not exists
+        context.Database.EnsureCreated();
         
         // Seed roles and admin user
         await ApplicationDbContext.SeedRolesAndAdminAsync(roleManager, userManager);
         
-        Log.Information("Database migrated and seeded successfully");
+        Log.Information("Database initialized and seeded successfully");
     }
     catch (Exception ex)
     {
-        Log.Error(ex, "An error occurred while migrating or seeding the database");
+        Log.Error(ex, "An error occurred while initializing the database");
     }
 }
 

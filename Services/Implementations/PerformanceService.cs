@@ -54,7 +54,8 @@ namespace HR_Management_System.Services.Implementations
             existing.ReviewPeriodEnd = review.ReviewPeriodEnd;
             existing.ReviewType = review.ReviewType;
             existing.OverallRating = review.OverallRating;
-            existing.Comments = review.Comments;
+            existing.ManagerFeedback = review.ManagerFeedback;
+            existing.EmployeeComments = review.EmployeeComments;
             existing.Strengths = review.Strengths;
             existing.AreasForImprovement = review.AreasForImprovement;
             existing.DevelopmentPlan = review.DevelopmentPlan;
@@ -99,8 +100,7 @@ namespace HR_Management_System.Services.Implementations
             var review = await _context.PerformanceReviews.FindAsync(reviewId);
             if (review == null) return false;
 
-            review.Status = ReviewStatus.InProgress;
-            review.ReviewStartDate = DateTime.UtcNow;
+            review.Status = ReviewStatus.SelfReviewPending;
             review.ModifiedDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -113,8 +113,7 @@ namespace HR_Management_System.Services.Implementations
             var review = await _context.PerformanceReviews.FindAsync(reviewId);
             if (review == null) return false;
 
-            review.Status = ReviewStatus.Completed;
-            review.ReviewEndDate = DateTime.UtcNow;
+            review.Status = ReviewStatus.Finalized;
             review.ModifiedDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -484,7 +483,7 @@ namespace HR_Management_System.Services.Implementations
                 }
             }
 
-            attempt.Score = totalScore;
+            attempt.Score = (int)totalScore;
             attempt.Percentage = maxScore > 0 ? Math.Round((totalScore / maxScore) * 100, 2) : 0;
             attempt.Status = AttemptStatus.Evaluated;
             attempt.IsPassed = attempt.Percentage >= exam.PassingScore;
@@ -520,8 +519,8 @@ namespace HR_Management_System.Services.Implementations
             {
                 Year = targetYear,
                 TotalReviews = reviewList.Count,
-                CompletedReviews = reviewList.Count(r => r.Status == ReviewStatus.Completed),
-                InProgressReviews = reviewList.Count(r => r.Status == ReviewStatus.InProgress),
+                CompletedReviews = reviewList.Count(r => r.Status == ReviewStatus.Finalized || r.Status == ReviewStatus.Approved),
+                InProgressReviews = reviewList.Count(r => r.Status == ReviewStatus.SelfReviewPending || r.Status == ReviewStatus.ManagerReviewPending || r.Status == ReviewStatus.HRReviewPending),
                 AverageRating = reviewList.Any(r => r.OverallRating > 0)
                     ? Math.Round(reviewList.Where(r => r.OverallRating > 0).Average(r => (decimal)r.OverallRating), 2)
                     : 0,
@@ -560,7 +559,7 @@ namespace HR_Management_System.Services.Implementations
                     ? Math.Round((decimal)goals.Count(g => g.Status == GoalStatus.Completed) / goals.Count * 100, 2)
                     : 0,
                 AverageProgress = goals.Count > 0
-                    ? Math.Round(goals.Average(g => g.Progress), 2)
+                    ? Math.Round(goals.Average(g => g.Progress) ?? 0, 2)
                     : 0
             };
         }
@@ -644,7 +643,7 @@ namespace HR_Management_System.Services.Implementations
                     r.ReviewType
                 }).ToList(),
                 RatingTrend = reviews.Any(r => r.OverallRating > 0)
-                    ? reviews.Where(r => r.OverallRating > 0).Select(r => new { Date = r.CreatedDate, Rating = r.OverallRating }).ToList()
+                    ? reviews.Where(r => r.OverallRating > 0).Select(r => new { Date = r.CreatedDate, Rating = (decimal)r.OverallRating }).ToList<object>()
                     : new List<object>()
             };
         }

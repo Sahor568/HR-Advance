@@ -1,4 +1,5 @@
 using HR_Management_System.Models;
+using HR_Management_System.Models.Performance;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -49,9 +50,9 @@ namespace HR_Management_System.Services.Interfaces
         Task<IEnumerable<Reimbursement>> GetMyReimbursementsAsync(int employeeId);
         
         // Performance (Self Service)
-        Task<IEnumerable<Performance.PerformanceReview>> GetMyPerformanceReviewsAsync(int employeeId);
-        Task<IEnumerable<Performance.PerformanceGoal>> GetMyPerformanceGoalsAsync(int employeeId);
-        Task<bool> SubmitSelfAppraisalAsync(int employeeId, int reviewId, Performance.PerformanceFeedback feedback);
+        Task<IEnumerable<PerformanceReview>> GetMyPerformanceReviewsAsync(int employeeId);
+        Task<IEnumerable<PerformanceGoal>> GetMyPerformanceGoalsAsync(int employeeId);
+        Task<bool> SubmitSelfAppraisalAsync(int employeeId, int reviewId, PerformanceFeedback feedback);
         
         // Notifications & Alerts
         Task<IEnumerable<Notification>> GetMyNotificationsAsync(int employeeId, bool unreadOnly = false);
@@ -80,5 +81,14 @@ namespace HR_Management_System.Services.Interfaces
         Task<bool> SubmitHelpTicketAsync(int employeeId, string category, string subject, string description);
         Task<IEnumerable<object>> GetMyHelpTicketsAsync(int employeeId);
         Task<object> GetKnowledgeBaseArticlesAsync(string category = null);
+
+        // Additional Methods
+        Task<object> GetEmployeeAttendanceAsync(int employeeId, int month, int year);
+        Task<object> GetEmployeeAttendanceAsync(int employeeId, DateTime fromDate, DateTime toDate);
+        Task<object> GetSSFBalanceAsync(int employeeId);
+        Task<IEnumerable<object>> GetTaxDocumentsAsync(int employeeId, int? taxYear = null);
+        Task<byte[]> GenerateTaxCertificateAsync(int employeeId, int year);
+        Task<IEnumerable<Notification>> GetNotificationsAsync(int employeeId, bool unreadOnly = false);
+        Task<bool> ChangePasswordAsync(int employeeId, string currentPassword, string newPassword);
     }
 }

@@ -406,5 +406,42 @@ namespace HR_Management_System.Services.Implementations
             }
             balance.UpdatedAt = DateTime.UtcNow;
         }
+
+        public async Task<IEnumerable<LeaveRequest>> GetLeaveRequestsByEmployeeIdAsync(int employeeId)
+        {
+            return await GetEmployeeLeaveRequestsAsync(employeeId);
+        }
+
+        public async Task<LeaveRequest?> GetLeaveRequestByIdAsync(int id)
+        {
+            return await _context.LeaveRequests.FindAsync(id);
+        }
+
+        public async Task<bool> CancelLeaveRequestAsync(int id)
+        {
+            var leaveRequest = await _context.LeaveRequests.FindAsync(id);
+            if (leaveRequest == null) return false;
+
+            if (leaveRequest.Status != LeaveStatus.Pending)
+            {
+                _logger.LogWarning("Cannot cancel leave request {RequestId} as it is not in pending status", id);
+                return false;
+            }
+
+            leaveRequest.Status = LeaveStatus.Cancelled;
+            leaveRequest.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Leave request {RequestId} cancelled successfully", id);
+            return true;
+        }
+
+        public async Task<LeaveRequest> CreateLeaveRequestAsync(LeaveRequest leaveRequest)
+        {
+            leaveRequest.CreatedAt = DateTime.UtcNow;
+            _context.LeaveRequests.Add(leaveRequest);
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Leave request created successfully. Request ID: {RequestId}", leaveRequest.Id);
+            return leaveRequest;
+        }
     }
 }

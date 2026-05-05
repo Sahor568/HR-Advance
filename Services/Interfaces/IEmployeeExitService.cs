@@ -15,6 +15,14 @@ namespace HR_Management_System.Services.Interfaces
         Task<bool> ApproveExitProcessAsync(int id, string approvedBy, string comments = null);
         Task<bool> RejectExitProcessAsync(int id, string rejectedBy, string reason);
         Task<bool> CancelExitProcessAsync(int id, string reason);
+
+        // Alias methods for controller compatibility
+        Task<EmployeeExit> CreateEmployeeExitAsync(EmployeeExit exit);
+        Task<EmployeeExit> GetEmployeeExitByIdAsync(int id);
+        Task<IEnumerable<EmployeeExit>> GetAllEmployeeExitsAsync(string status = null);
+        Task<EmployeeExit> UpdateEmployeeExitAsync(int id, EmployeeExit exit);
+        Task<bool> DeleteEmployeeExitAsync(int id);
+        Task<IEnumerable<EmployeeExit>> GetPendingResignationRequestsAsync();
         
         // Exit Clearance Management
         Task<ExitClearance> CreateExitClearanceAsync(ExitClearance clearance);
@@ -98,5 +106,13 @@ namespace HR_Management_System.Services.Interfaces
         Task<bool> TriggerExitWorkflowAsync(int exitId, string workflowStep);
         Task<object> GetExitWorkflowStatusAsync(int exitId);
         Task<bool> EscalateExitProcessAsync(int exitId, string escalationReason, string escalatedTo);
+
+        // Additional Methods
+        Task<bool> ApproveResignationAsync(int exitId, string approvedBy, string comments = null);
+        Task<bool> RejectResignationAsync(int exitId, string rejectedBy, string reason);
+        Task<IEnumerable<ExitSurvey>> GetAllExitSurveysAsync();
+        Task<ExitSurvey> GetExitSurveyByIdAsync(int id);
+        Task<object> CalculateFinalSettlementAsync(int exitId);
+        Task<IEnumerable<EmployeeExit>> GetEmployeeExitsByEmployeeIdAsync(int employeeId);
     }
 }

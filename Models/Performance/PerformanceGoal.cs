@@ -107,8 +107,28 @@ namespace HR_Management_System.Models.Performance
         // Audit
         public int CreatedBy { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+        public DateTime? ModifiedDate { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public int? UpdatedBy { get; set; }
+
+        [StringLength(200)]
+        public string Title { get; set; }
+
+        [StringLength(2000)]
+        public string Description { get; set; }
+
+        public DateTime? TargetDate { get; set; }
+
+        [StringLength(500)]
+        public string MeasurementCriteria { get; set; }
+
+        public decimal? Progress { get; set; }
+
+        [StringLength(500)]
+        public string Comments { get; set; }
+
+        public int? PerformanceReviewId { get; set; }
 
         // Navigation
         [ForeignKey("EmployeeId")]

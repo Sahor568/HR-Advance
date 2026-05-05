@@ -116,8 +116,35 @@ namespace HR_Management_System.Models.Recruitment
         // Audit
         public int CreatedBy { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+        public DateTime? ModifiedDate { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public int? UpdatedBy { get; set; }
+
+        [StringLength(50)]
+        public string OfferLetterNumber { get; set; }
+
+        [StringLength(100)]
+        public string Position { get; set; }
+
+        [StringLength(100)]
+        public string Department { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal OfferedSalary { get; set; }
+
+        [StringLength(50)]
+        public string ProbationPeriod { get; set; }
+
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? RejectedDate { get; set; }
+
+        [StringLength(500)]
+        public string RejectionReason { get; set; }
+
+        [StringLength(1000)]
+        public string Benefits { get; set; }
 
         // Navigation
         [ForeignKey("CandidateId")]

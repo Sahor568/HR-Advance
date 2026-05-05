@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using HR_Management_System.Models;
 using HR_Management_System.Models.Identity;
@@ -15,8 +16,18 @@ namespace HR_Management_System.Data
         {
         }
 
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            base.OnConfiguring(optionsBuilder);
+            
+            // Suppress the warning about pending model changes
+            optionsBuilder.ConfigureWarnings(warnings =>
+                warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+        }
+
         // Core HRMS Models
         public DbSet<Employee> Employees { get; set; }
+        public DbSet<Department> Departments { get; set; }
         public DbSet<Attendance> Attendances { get; set; }
         public DbSet<LeaveBalance> LeaveBalances { get; set; }
         public DbSet<LeaveRequest> LeaveRequests { get; set; }
@@ -86,6 +97,20 @@ namespace HR_Management_System.Data
                 entity.HasIndex(e => e.Email);
                 entity.Property(e => e.BaseSalary).HasDefaultValue(0);
                 entity.Property(e => e.GradeAmount).HasDefaultValue(0);
+                
+                // Department relationship
+                entity.HasOne(e => e.DepartmentEntity)
+                      .WithMany(d => d.Employees)
+                      .HasForeignKey(e => e.DepartmentId)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // Department configuration
+            modelBuilder.Entity<Department>(entity =>
+            {
+                entity.HasIndex(d => d.Name).IsUnique();
+                entity.HasIndex(d => d.Code).IsUnique();
+                entity.Property(d => d.CreatedDate).HasDefaultValueSql("GETUTCDATE()");
             });
 
             // Attendance configuration

@@ -33,6 +33,8 @@ namespace HR_Management_System.Models
         [Required]
         public LeaveStatus Status { get; set; } = LeaveStatus.Pending;
 
+        public DateTime? AppliedDate { get; set; }
+
         // Approval chain
         public int? ApprovedBy { get; set; }
         public DateTime? ApprovedDate { get; set; }

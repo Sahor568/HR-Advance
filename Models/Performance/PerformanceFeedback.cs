@@ -52,8 +52,14 @@ namespace HR_Management_System.Models.Performance
         public FeedbackStatus Status { get; set; } = FeedbackStatus.Draft;
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+        public DateTime? ModifiedDate { get; set; }
         public DateTime? SubmittedAt { get; set; }
+        public DateTime? SubmittedDate { get; set; }
         public DateTime? UpdatedAt { get; set; }
+
+        [Range(1, 5)]
+        public int Rating { get; set; }
 
         // Navigation properties
         public virtual ICollection<FeedbackCriteria> CriteriaRatings { get; set; }
@@ -109,11 +115,17 @@ namespace HR_Management_System.Models.Performance
         [MaxLength(200)]
         public string ExamTitle { get; set; }
 
+        [MaxLength(200)]
+        public string Title { get; set; }
+
         [MaxLength(500)]
         public string Description { get; set; }
 
         [Required]
         public ExamType Type { get; set; }
+
+        [MaxLength(100)]
+        public string ExamType { get; set; }
 
         public int TotalQuestions { get; set; }
         public int TotalMarks { get; set; }
@@ -143,6 +155,19 @@ namespace HR_Management_System.Models.Performance
         public string Remarks { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+        public DateTime? ModifiedDate { get; set; }
+
+        public int PassingScore { get; set; }
+
+        [DataType(DataType.DateTime)]
+        public DateTime? StartDate { get; set; }
+
+        [DataType(DataType.DateTime)]
+        public DateTime? EndDate { get; set; }
+
+        [MaxLength(1000)]
+        public string Instructions { get; set; }
 
         // Navigation properties
         public virtual ICollection<ExamQuestion> Questions { get; set; }
@@ -227,12 +252,17 @@ namespace HR_Management_System.Models.Performance
         public decimal Percentage { get; set; }
         public bool IsPassed { get; set; }
 
-        public AttemptStatus Status { get; set; } = AttemptStatus.InProgress;
+public AttemptStatus Status { get; set; } = AttemptStatus.InProgress;
 
         [MaxLength(500)]
         public string Remarks { get; set; }
 
-        // Navigation properties
+        [DataType(DataType.DateTime)]
+        public DateTime? StartTime { get; set; }
+
+        [DataType(DataType.DateTime)]
+        public DateTime? EndTime { get; set; }
+
         public virtual ICollection<ExamAnswer> Answers { get; set; }
     }
 
@@ -261,6 +291,9 @@ namespace HR_Management_System.Models.Performance
 
         [DataType(DataType.DateTime)]
         public DateTime AnsweredAt { get; set; }
+
+        public int QuestionId { get; set; }
+        public string Answer { get; set; }
     }
 
     public enum ReviewerType
@@ -294,6 +327,7 @@ namespace HR_Management_System.Models.Performance
 
     public enum ExamStatus
     {
+        Draft,
         Scheduled,
         InProgress,
         Completed,

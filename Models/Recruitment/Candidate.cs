@@ -152,7 +152,27 @@ namespace HR_Management_System.Models.Recruitment
         // Audit
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
+        public DateTime? ModifiedDate { get; set; }
         public bool IsActive { get; set; } = true;
+
+        [StringLength(200)]
+        public string FullName { get; set; }
+
+        public DateTime AppliedDate { get; set; } = DateTime.UtcNow;
+
+        [StringLength(200)]
+        public string Education { get; set; }
+
+        [StringLength(200)]
+        public string Experience { get; set; }
+
+        [StringLength(500)]
+        public string Skills { get; set; }
+
+        [StringLength(200)]
+        public string CurrentEmployer { get; set; }
+
+        public int? ReferralEmployeeId { get; set; }
 
         // Navigation
         [ForeignKey("JobPositionId")]

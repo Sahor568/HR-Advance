@@ -141,8 +141,19 @@ namespace HR_Management_System.Models.Performance
         // Audit
         public int CreatedBy { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+        public DateTime? ModifiedDate { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public int? UpdatedBy { get; set; }
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal? OverallRating { get; set; }
+
+        public DateTime? ReviewPeriodStart { get; set; }
+        public DateTime? ReviewPeriodEnd { get; set; }
+
+        [StringLength(1000)]
+        public string CalibrationNotes { get; set; }
 
         // Navigation
         [ForeignKey("EmployeeId")]

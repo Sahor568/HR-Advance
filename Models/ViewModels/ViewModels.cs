@@ -287,6 +287,7 @@ namespace HR_Management_System.Models.ViewModels
 
     public class PayslipViewModel
     {
+        public int EmployeeId { get; set; }
         public int PayrollId { get; set; }
         public string Emp_ID { get; set; } = string.Empty;
         public string EmployeeName { get; set; } = string.Empty;
@@ -525,6 +526,82 @@ namespace HR_Management_System.Models.ViewModels
         public int Page { get; set; }
         public int PageSize { get; set; }
         public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+    }
+
+    // ==================== Department ViewModels ====================
+
+    public class DepartmentCreateViewModel
+    {
+        [Required]
+        [StringLength(100)]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(20)]
+        public string? Code { get; set; }
+
+        [StringLength(500)]
+        public string? Description { get; set; }
+
+        [StringLength(100)]
+        public string? DepartmentHead { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class DepartmentEditViewModel
+    {
+        public int Id { get; set; }
+
+        [Required]
+        [StringLength(100)]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(20)]
+        public string? Code { get; set; }
+
+        [StringLength(500)]
+        public string? Description { get; set; }
+
+        [StringLength(100)]
+        public string? DepartmentHead { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class DepartmentListViewModel
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Code { get; set; }
+        public string? Description { get; set; }
+        public string? DepartmentHead { get; set; }
+        public int EmployeeCount { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime CreatedDate { get; set; }
+    }
+
+    public class DepartmentDetailViewModel
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Code { get; set; }
+        public string? Description { get; set; }
+        public string? DepartmentHead { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime CreatedDate { get; set; }
+        public DateTime? ModifiedDate { get; set; }
+        public List<DepartmentEmployeeViewModel> Employees { get; set; } = new();
+    }
+
+    public class DepartmentEmployeeViewModel
+    {
+        public int Id { get; set; }
+        public string Emp_ID { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public string Designation { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
     }
 }
 

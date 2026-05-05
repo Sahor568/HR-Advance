@@ -240,6 +240,96 @@ namespace HR_Management_System.Services.Implementations
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<PayslipViewModel>> GetEmployeePayslipsAsync(int employeeId, int? year, int? month)
+        {
+            _logger.LogInformation("Fetching payslips for employee ID: {EmployeeId}, {Year}/{Month}", employeeId, year, month);
+
+            var query = _context.Payrolls
+                .Include(p => p.Employee)
+                .Where(p => p.EmployeeId == employeeId);
+
+            if (year.HasValue && month.HasValue)
+            {
+                query = query.Where(p => p.Year == year && p.Month == month);
+            }
+
+            return await query
+                .OrderByDescending(p => p.Year)
+                .ThenByDescending(p => p.Month)
+                .Select(p => new PayslipViewModel
+                {
+                    PayrollId = p.Id,
+                    Emp_ID = p.Employee!.Emp_ID,
+                    EmployeeName = p.Employee.FullName,
+                    Designation = p.Employee.Designation,
+                    Department = p.Employee.Department,
+                    Month = p.Month,
+                    Year = p.Year,
+                    BaseSalary = p.Base_Salary,
+                    GradeAmount = p.Grade_Amount,
+                    OvertimeAmount = p.OvertimeAmount,
+                    FestivalAllowance = p.FestivalAllowance,
+                    OtherAllowances = p.OtherAllowances,
+                    GrossEarnings = p.GrossEarnings,
+                    SSFEmployeeContribution = p.SSF_Employee_Contribution,
+                    TaxDeduction = p.Tax_Deduction,
+                    OtherDeductions = p.OtherDeductions,
+                    TotalDeductions = p.TotalDeductions,
+                    NetPay = p.Net_Pay,
+                    WorkingDays = p.WorkingDays,
+                    DaysWorked = p.DaysWorked,
+                    OvertimeHours = p.OvertimeHours,
+                    HourlyRate = p.HourlyRate,
+                    PayrollStatus = p.Status.ToString()
+                })
+                .ToListAsync();
+        }
+
+        public async Task<PayslipViewModel> GetPayslipByIdAsync(int payrollId)
+        {
+            _logger.LogInformation("Fetching payslip by ID: {PayrollId}", payrollId);
+
+            var payroll = await _context.Payrolls
+                .Include(p => p.Employee)
+                .FirstOrDefaultAsync(p => p.Id == payrollId);
+
+            if (payroll == null)
+                throw new KeyNotFoundException("Payslip not found");
+
+            return new PayslipViewModel
+            {
+                PayrollId = payroll.Id,
+                Emp_ID = payroll.Employee!.Emp_ID,
+                EmployeeName = payroll.Employee.FullName,
+                Designation = payroll.Employee.Designation,
+                Department = payroll.Employee.Department,
+                Month = payroll.Month,
+                Year = payroll.Year,
+                BaseSalary = payroll.Base_Salary,
+                GradeAmount = payroll.Grade_Amount,
+                OvertimeAmount = payroll.OvertimeAmount,
+                FestivalAllowance = payroll.FestivalAllowance,
+                OtherAllowances = payroll.OtherAllowances,
+                GrossEarnings = payroll.GrossEarnings,
+                SSFEmployeeContribution = payroll.SSF_Employee_Contribution,
+                TaxDeduction = payroll.Tax_Deduction,
+                OtherDeductions = payroll.OtherDeductions,
+                TotalDeductions = payroll.TotalDeductions,
+                NetPay = payroll.Net_Pay,
+                WorkingDays = payroll.WorkingDays,
+                DaysWorked = payroll.DaysWorked,
+                OvertimeHours = payroll.OvertimeHours,
+                HourlyRate = payroll.HourlyRate,
+                PayrollStatus = payroll.Status.ToString()
+            };
+        }
+
+        public async Task<byte[]> GeneratePayslipPdfAsync(int payrollId)
+        {
+            _logger.LogInformation("Generating PDF for payslip ID: {PayrollId}", payrollId);
+            return await Task.FromResult(new byte[0]);
+        }
+
         public async Task<decimal> CalculateTDSCalculationAsync(decimal annualTaxableIncome)
         {
             // Nepal Income Tax Slabs (2024)
