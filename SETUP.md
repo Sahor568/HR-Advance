@@ -178,8 +178,82 @@ Logs are written to:
 2. Clean solution: `dotnet clean`
 3. Rebuild: `dotnet build`
 
+## Frontend Setup
+
+### Views and Navigation
+The frontend is built using ASP.NET Core Razor Views with modern Bootstrap styling and custom CSS. The system includes:
+
+1. **Authentication**: 
+   - Login page at `/Account/Login`
+   - Access denied page at `/Account/AccessDenied`
+
+2. **Dashboard**: 
+   - Role-based dashboard at `/Home/Dashboard`
+   - Shows KPIs and recent activities
+
+3. **Module Views**:
+   - **Employees**: `/Employee/Index` - Manage all employees with CRUD operations
+   - **Leaves**: `/Leave/Index` - Process and track leave requests
+   - **Attendance**: `/Attendance/Index` - Mark and view attendance records
+   - **Payroll**: `/Payroll/Index` - Manage salary and payment processing
+   - **Holidays**: `/Holiday/Index` - Manage national and company holidays
+
+4. **User Features**:
+   - **Profile**: `/Home/Profile` - View and edit personal profile
+   - **Settings**: `/Home/Settings` - User preferences and account settings
+
+### Frontend Features
+- **Responsive Design**: Mobile-friendly Bootstrap grid layout
+- **Role-Based Access**: Navigation changes based on user role (Admin, HRManager, Employee)
+- **Modal Forms**: Add/Edit functionality via modal dialogs
+- **Data Tables**: Searchable, filterable tables with pagination
+- **KPI Cards**: Dashboard statistics with trend indicators
+- **Status Badges**: Visual status indicators for records
+- **API Integration**: JavaScript functions to consume REST API endpoints
+
+### JavaScript Functions
+Key global functions in `wwwroot/js/site.js`:
+- `showNotification(title, message, type)` - Display notification alerts
+- `employees.loadEmployees()` - Load and render employee list
+- `leaves.loadLeaves()` - Load and render leave requests
+- `filterEmployees()` - Search and filter employees
+- `openAddModal()` - Open modal for adding new record
+- `submitLeave()` - Submit leave request to API
+
+### Demo Credentials
+Default login credentials for testing:
+- **Admin Account**
+  - Email: admin@hrms.com
+  - Password: Admin@123
+
+- **HR Manager Account**
+  - Email: hr@hrms.com
+  - Password: Hr@123
+
+- **Employee Account**
+  - Email: emp@hrms.com
+  - Password: Emp@123
+
+### Styling
+The system uses:
+- **Color System**: 5 primary colors (Blue, Green, Amber, Red, Purple)
+- **Typography**: Segoe UI font family for consistent appearance
+- **Layout**: CSS Grid and Flexbox for responsive layouts
+- **Icons**: Font Awesome 6.4.0 for UI icons
+
+### Custom CSS
+Global styles defined in `Views/Shared/_Layout.cshtml`:
+- CSS variables for consistent theming
+- KPI card animations on hover
+- Modal overlay with fade effects
+- Table styling with alternating row colors
+- Status badge styling with color schemes
+
 ## Next Steps
-1. Create frontend views after all the model controller is fully completed..
+1. Customize company branding in the layout and dashboard
+2. Configure SSF, leave policies, and payroll calculations in backend
+3. Set up email notifications for leave requests and payroll
+4. Implement Excel export for reports
 
 ## Support
 For issues or questions, check the code documentation or contact the development team.
