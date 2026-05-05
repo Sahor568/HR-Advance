@@ -1,6 +1,7 @@
 @{
     ViewData["Title"] = "Dashboard";
 }
+
 <div class="page-header">
     <h1 class="page-title">Dashboard</h1>
     <p class="page-subtitle">Welcome to HR Management System - Overview of your organization</p>
@@ -9,7 +10,7 @@
 <!-- Key Metrics -->
 <div class="dashboard-grid" id="dashboard-stats">
     <div class="kpi-card">
-        <div class="kpi-icon" style="background: linear-gradient(135deg, #2563eb15 0%, #0ea5e915 100%); color: var(--primary-color);">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #2563eb15 0%, #0ea5e915 100%); color: #2563eb;">
             <i class="fas fa-users"></i>
         </div>
         <h5 class="kpi-label">Total Employees</h5>
@@ -20,7 +21,7 @@
     </div>
 
     <div class="kpi-card">
-        <div class="kpi-icon" style="background: linear-gradient(135deg, #10b98115 0%, #059e0a15 100%); color: var(--success-color);">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #10b98115 0%, #059e0a15 100%); color: #16a34a;">
             <i class="fas fa-check-circle"></i>
         </div>
         <h5 class="kpi-label">Present Today</h5>
@@ -31,7 +32,7 @@
     </div>
 
     <div class="kpi-card">
-        <div class="kpi-icon" style="background: linear-gradient(135deg, #f59e0b15 0%, #d9790015 100%); color: var(--warning-color);">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #f59e0b15 0%, #d9790015 100%); color: #f59e0b;">
             <i class="fas fa-calendar-alt"></i>
         </div>
         <h5 class="kpi-label">Pending Leaves</h5>
@@ -41,38 +42,41 @@
         </div>
     </div>
 
-    <div class="kpi-card" id="payroll-card">
-        <div class="kpi-icon" style="background: linear-gradient(135deg, #ef444415 0%, #dc263015 100%); color: var(--danger-color);">
-            <i class="fas fa-money-bill-wave"></i>
+    @if (User.IsInRole("Admin") || User.IsInRole("HRManager"))
+    {
+        <div class="kpi-card" id="payroll-card">
+            <div class="kpi-icon" style="background: linear-gradient(135deg, #ef444415 0%, #dc263015 100%); color: #ef4444;">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <h5 class="kpi-label">Monthly Payroll</h5>
+            <div class="kpi-value" id="monthly-payroll">--</div>
+            <div class="stat-change" id="payroll-period">
+                <i class="fas fa-calendar"></i> Current Month
+            </div>
         </div>
-        <h5 class="kpi-label">Monthly Payroll</h5>
-        <div class="kpi-value" id="monthly-payroll">--</div>
-        <div class="stat-change" id="payroll-period">
-            <i class="fas fa-calendar"></i> Current Month
-        </div>
-    </div>
 
-    <div class="kpi-card">
-        <div class="kpi-icon" style="background: linear-gradient(135deg, #8b5cf615 0%, #7c3aed15 100%); color: #7c3aed;">
-            <i class="fas fa-sitemap"></i>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: linear-gradient(135deg, #8b5cf615 0%, #7c3aed15 100%); color: #7c3aed;">
+                <i class="fas fa-sitemap"></i>
+            </div>
+            <h5 class="kpi-label">Departments</h5>
+            <div class="kpi-value" id="total-departments">--</div>
+            <div class="stat-change">
+                <i class="fas fa-building"></i> Active
+            </div>
         </div>
-        <h5 class="kpi-label">Departments</h5>
-        <div class="kpi-value" id="total-departments">--</div>
-        <div class="stat-change">
-            <i class="fas fa-building"></i> Active
-        </div>
-    </div>
 
-    <div class="kpi-card" id="avg-salary-card">
-        <div class="kpi-icon" style="background: linear-gradient(135deg, #06b6d415 0%, #0891b215 100%); color: #0891b2;">
-            <i class="fas fa-chart-pie"></i>
+        <div class="kpi-card" id="avg-salary-card">
+            <div class="kpi-icon" style="background: linear-gradient(135deg, #06b6d415 0%, #0891b215 100%); color: #0891b2;">
+                <i class="fas fa-chart-pie"></i>
+            </div>
+            <h5 class="kpi-label">Avg. Salary</h5>
+            <div class="kpi-value" id="avg-salary">--</div>
+            <div class="stat-change">
+                <i class="fas fa-arrow-right"></i> Per Employee
+            </div>
         </div>
-        <h5 class="kpi-label">Avg. Salary</h5>
-        <div class="kpi-value" id="avg-salary">--</div>
-        <div class="stat-change">
-            <i class="fas fa-arrow-right"></i> Per Employee
-        </div>
-    </div>
+    }
 </div>
 
 <!-- Charts Section -->
@@ -100,15 +104,18 @@
         </div>
     </div>
 
-    <!-- Employee Distribution -->
-    <div class="chart-container">
-        <h5 class="chart-title">
-            <i class="fas fa-users"></i> Department Distribution
-        </h5>
-        <div id="dept-distribution-container">
-            <div class="text-center text-muted">Loading...</div>
+    @if (User.IsInRole("Admin") || User.IsInRole("HRManager"))
+    {
+        <!-- Employee Distribution -->
+        <div class="chart-container">
+            <h5 class="chart-title">
+                <i class="fas fa-users"></i> Department Distribution
+            </h5>
+            <div id="dept-distribution-container">
+                <div class="text-center text-muted">Loading...</div>
+            </div>
         </div>
-    </div>
+    }
 </div>
 
 <!-- Recent Activities -->
@@ -126,5 +133,100 @@
 </div>
 
 <!-- Quick Actions -->
-<div style="margin-top: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;" id="quick-actions">
-</div>
+@if (User.IsInRole("Admin") || User.IsInRole("HRManager"))
+{
+    <div style="margin-top: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+        <a href="@Url.Action("Index", "Employee")" class="card" style="text-decoration: none; color: inherit; transition: transform 0.3s;">
+            <div class="card-body text-center" style="padding: 1.5rem;">
+                <div style="font-size: 2.5rem; color: #2563eb; margin-bottom: 0.5rem;">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <h6 style="margin-bottom: 0; font-weight: 600;">Add New Employee</h6>
+                <small style="color: #6b7280;">Hire new team members</small>
+            </div>
+        </a>
+
+        <a href="@Url.Action("Index", "Leave")" class="card" style="text-decoration: none; color: inherit; transition: transform 0.3s;">
+            <div class="card-body text-center" style="padding: 1.5rem;">
+                <div style="font-size: 2.5rem; color: #f59e0b; margin-bottom: 0.5rem;">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <h6 style="margin-bottom: 0; font-weight: 600;">Manage Leaves</h6>
+                <small style="color: #6b7280;">Review leave requests</small>
+            </div>
+        </a>
+
+        <a href="@Url.Action("Index", "Attendance")" class="card" style="text-decoration: none; color: inherit; transition: transform 0.3s;">
+            <div class="card-body text-center" style="padding: 1.5rem;">
+                <div style="font-size: 2.5rem; color: #16a34a; margin-bottom: 0.5rem;">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <h6 style="margin-bottom: 0; font-weight: 600;">Attendance</h6>
+                <small style="color: #6b7280;">Track employee attendance</small>
+            </div>
+        </a>
+
+        <a href="@Url.Action("Index", "Payroll")" class="card" style="text-decoration: none; color: inherit; transition: transform 0.3s;">
+            <div class="card-body text-center" style="padding: 1.5rem;">
+                <div style="font-size: 2.5rem; color: #ef4444; margin-bottom: 0.5rem;">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <h6 style="margin-bottom: 0; font-weight: 600;">Payroll</h6>
+                <small style="color: #6b7280;">Manage salary and payments</small>
+            </div>
+        </a>
+    </div>
+}
+else if (User.IsInRole("Employee"))
+{
+    <div style="margin-top: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+        <a href="@Url.Action("Index", "Leave")" class="card" style="text-decoration: none; color: inherit; transition: transform 0.3s;">
+            <div class="card-body text-center" style="padding: 1.5rem;">
+                <div style="font-size: 2.5rem; color: #f59e0b; margin-bottom: 0.5rem;">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <h6 style="margin-bottom: 0; font-weight: 600;">Apply for Leave</h6>
+                <small style="color: #6b7280;">Request time off</small>
+            </div>
+        </a>
+
+        <a href="@Url.Action("Profile", "Home")" class="card" style="text-decoration: none; color: inherit; transition: transform 0.3s;">
+            <div class="card-body text-center" style="padding: 1.5rem;">
+                <div style="font-size: 2.5rem; color: #2563eb; margin-bottom: 0.5rem;">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <h6 style="margin-bottom: 0; font-weight: 600;">My Profile</h6>
+                <small style="color: #6b7280;">View your information</small>
+            </div>
+        </a>
+    </div>
+}
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    loadDashboardData();
+});
+
+function loadDashboardData() {
+    // Fetch dashboard stats
+    fetch('/api/Dashboard/stats')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('total-employees').textContent = data.totalEmployees || 0;
+            document.getElementById('pending-leaves').textContent = data.pendingLeaveRequests || 0;
+            
+            if (document.getElementById('payroll-card')) {
+                document.getElementById('monthly-payroll').textContent = 'Nu. ' + (data.totalMonthlyPayroll || 0);
+                document.getElementById('total-departments').textContent = data.departments || 0;
+                document.getElementById('avg-salary').textContent = 'Nu. ' + (data.averageSalary || 0);
+            }
+        })
+        .catch(error => console.log('Error loading dashboard stats:', error));
+
+    // Simulate attendance data
+    setTimeout(() => {
+        document.getElementById('present-today').textContent = Math.floor(Math.random() * 100);
+        document.getElementById('attendance-percent').textContent = '<i class="fas fa-arrow-up"></i> ' + Math.floor(Math.random() * 30 + 70) + '% attendance';
+    }, 500);
+}
+</script>

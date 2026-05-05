@@ -2,26 +2,22 @@
     ViewData["Title"] = "Employees Management";
 }
 
-<div class="page-header">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <h1 class="page-title">Employees Management</h1>
-            <p class="page-subtitle">Manage all employees in your organization</p>
-        </div>
-        <button class="btn btn-primary" onclick="openAddModal()">
-            <i class="fas fa-plus"></i> Add New Employee
-        </button>
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 class="page-title">Employees Management</h1>
+        <p class="page-subtitle">Manage all employees in your organization</p>
     </div>
+    <button class="btn btn-primary" onclick="openAddModal()" style="height: fit-content;">
+        <i class="fas fa-plus"></i> Add New Employee
+    </button>
 </div>
 
 <!-- Search & Filters -->
-<div class="search-filters">
-    <div class="filter-group">
-        <input type="text" class="form-control" id="searchInput" placeholder="Search by name or email..." oninput="filterEmployees()">
-        <select class="form-control" id="deptFilter" onchange="filterEmployees()">
-            <option value="">All Departments</option>
-        </select>
-    </div>
+<div class="search-filters" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+    <input type="text" class="form-control" id="searchInput" placeholder="Search by name or email..." oninput="filterEmployees()" style="border-radius: 6px;">
+    <select class="form-control" id="deptFilter" onchange="filterEmployees()" style="border-radius: 6px;">
+        <option value="">All Departments</option>
+    </select>
 </div>
 
 <!-- Table View -->
