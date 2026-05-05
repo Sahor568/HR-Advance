@@ -1,0 +1,309 @@
+@{
+    ViewData["Title"] = "Settings";
+}
+
+<div class="container-fluid">
+    <div class="page-header">
+        <h1 class="page-title"><i class="fas fa-cog me-2"></i>Settings</h1>
+        <p class="page-subtitle">Manage your account preferences and security settings</p>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <a href="#profile" class="list-group-item list-group-item-action active" data-bs-toggle="tab">
+                            <i class="fas fa-user me-2"></i>Profile Settings
+                        </a>
+                        <a href="#security" class="list-group-item list-group-item-action" data-bs-toggle="tab">
+                            <i class="fas fa-shield-alt me-2"></i>Security
+                        </a>
+                        <a href="#notifications" class="list-group-item list-group-item-action" data-bs-toggle="tab">
+                            <i class="fas fa-bell me-2"></i>Notifications
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-9">
+            <div class="tab-content">
+                <!-- Profile Settings Tab -->
+                <div class="tab-pane fade show active" id="profile">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-user me-2"></i>Profile Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="profileForm">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="profileFullName" class="form-label">Full Name</label>
+                                        <input type="text" class="form-control" id="profileFullName" disabled>
+                                        <div class="form-text">Contact HR to update your name.</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="profileEmail" class="form-label">Email Address</label>
+                                        <input type="email" class="form-control" id="profileEmail" readonly>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="profilePhone" class="form-label">Phone Number</label>
+                                        <input type="tel" class="form-control" id="profilePhone">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="profileRole" class="form-label">Role</label>
+                                        <input type="text" class="form-control" id="profileRole" readonly>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="profileAge" class="form-label">Age</label>
+                                        <input type="number" class="form-control" id="profileAge">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="profileDepartment" class="form-label">Department</label>
+                                        <input type="text" class="form-control" id="profileDepartment" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="profileAddress" class="form-label">Address</label>
+                                    <textarea class="form-control" id="profileAddress" rows="3"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary" id="saveProfileBtn">
+                                    <i class="fas fa-save me-2"></i>Save Changes
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Security Tab -->
+                <div class="tab-pane fade" id="security">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Change Password</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="passwordForm">
+                                <div class="mb-3">
+                                    <label for="currentPassword" class="form-label">Current Password</label>
+                                    <input type="password" class="form-control" id="currentPassword" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="newPassword" class="form-label">New Password</label>
+                                    <input type="password" class="form-control" id="newPassword" required>
+                                    <div class="form-text">Minimum 8 characters with at least one number and one special character</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="confirmNewPassword" class="form-label">Confirm New Password</label>
+                                    <input type="password" class="form-control" id="confirmNewPassword" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary" id="changePasswordBtn">
+                                    <i class="fas fa-key me-2"></i>Change Password
+                                </button>
+                            </form>
+                            
+                            <hr class="my-4">
+                            
+                            <h6 class="mb-3"><i class="fas fa-info-circle me-2"></i>Security Information</h6>
+                            <div class="alert alert-info">
+                                <ul class="mb-0">
+                                    <li>Password must be at least 8 characters long</li>
+                                    <li>Include at least one uppercase letter, one number, and one special character</li>
+                                    <li>Avoid using the same password as your email or other accounts</li>
+                                    <li>Change your password regularly for better security</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Notifications Tab -->
+                <div class="tab-pane fade" id="notifications">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-bell me-2"></i>Recent Notifications</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="notifications-list">
+                                <div class="text-center text-muted py-4">
+                                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                                    <span class="ms-2">Loading notifications...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let settingsEmployeeId = null;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadProfileSettings();
+            loadNotifications();
+        });
+
+        async function loadProfileSettings() {
+            try {
+                const data = await AuthAPI.getCurrentUser();
+                
+                const fullName = data.employee?.fullName || data.email || 'User';
+                document.getElementById('profileFullName').value = fullName;
+                document.getElementById('profileEmail').value = data.email || '';
+                document.getElementById('profilePhone').value = data.employee?.phone || '';
+                document.getElementById('profileRole').value = data.role || '';
+                document.getElementById('profileAge').value = data.employee?.age || '';
+                document.getElementById('profileDepartment').value = data.employee?.departmentName || '-';
+                document.getElementById('profileAddress').value = data.employee?.address || '';
+
+                settingsEmployeeId = data.employee?.id || null;
+            } catch (error) {
+                console.error('Failed to load profile settings:', error);
+                showNotification('Error', 'Failed to load profile data.', 'danger');
+            }
+        }
+
+        // Profile form submission
+        document.getElementById('profileForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('saveProfileBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+
+            try {
+                if (!settingsEmployeeId) {
+                    showNotification('Error', 'No employee record found. Contact HR to update your information.', 'danger');
+                    return;
+                }
+
+                // Get current employee data and merge only DTO-relevant fields
+                const currentEmp = await EmployeesAPI.getById(settingsEmployeeId);
+                const mergedData = {
+                    fullName: currentEmp.fullName || '',
+                    phone: document.getElementById('profilePhone').value,
+                    age: parseInt(document.getElementById('profileAge').value) || 0,
+                    address: document.getElementById('profileAddress').value,
+                    position: currentEmp.position || '',
+                    hireDate: currentEmp.hireDate,
+                    salary: currentEmp.salary || 0,
+                    departmentId: currentEmp.departmentId || 0,
+                    supervisorId: currentEmp.supervisorId || null,
+                    email: currentEmp.user?.email || '',
+                    userId: currentEmp.userId || null
+                };
+
+                await EmployeesAPI.update(settingsEmployeeId, mergedData);
+                showNotification('Success', 'Profile updated successfully!', 'success');
+            } catch (error) {
+                showNotification('Error', 'Failed to update profile: ' + error.message, 'danger');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save me-2"></i>Save Changes';
+            }
+        });
+
+        // Password form submission
+        document.getElementById('passwordForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmNewPassword').value;
+
+            if (newPassword !== confirmPassword) {
+                showNotification('Error', 'New passwords do not match', 'danger');
+                return;
+            }
+
+            if (newPassword.length < 8) {
+                showNotification('Error', 'Password must be at least 8 characters', 'danger');
+                return;
+            }
+
+            const btn = document.getElementById('changePasswordBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Changing...';
+
+            try {
+                await AuthAPI.changePassword(currentPassword, newPassword);
+                showNotification('Success', 'Password changed successfully!', 'success');
+                
+                // Clear form
+                document.getElementById('currentPassword').value = '';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmNewPassword').value = '';
+            } catch (error) {
+                showNotification('Error', 'Failed to change password: ' + (error.message || 'Please check your current password.'), 'danger');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-key me-2"></i>Change Password';
+            }
+        });
+
+        // Load notifications
+        async function loadNotifications() {
+            const container = document.getElementById('notifications-list');
+            try {
+                const response = await NotificationsAPI.getAll();
+                const notifications = response.notifications || response;
+                if (!Array.isArray(notifications) || notifications.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-bell-slash fa-2x mb-2"></i>
+                            <p>No notifications found.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '<div class="list-group">';
+                notifications.slice(0, 20).forEach(n => {
+                    const isUnread = !n.isRead;
+                    const bgClass = isUnread ? 'bg-light' : '';
+                    const boldClass = isUnread ? 'fw-bold' : '';
+                    html += `
+                        <div class="list-group-item list-group-item-action ${bgClass}">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1 ${boldClass}">${n.title || 'Notification'}</h6>
+                                <small class="text-muted">${formatDate(n.createdAt)}</small>
+                            </div>
+                            <p class="mb-1 text-muted">${n.message || ''}</p>
+                            ${isUnread ? `<button class="btn btn-sm btn-outline-primary mt-1" onclick="markAsRead(${n.id}, this)">Mark as Read</button>` : ''}
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = '<p class="text-danger text-center">Failed to load notifications.</p>';
+            }
+        }
+
+        async function markAsRead(notificationId, btn) {
+            try {
+                await NotificationsAPI.markRead(notificationId);
+                btn.closest('.list-group-item').classList.remove('bg-light');
+                btn.closest('.list-group-item').querySelector('.fw-bold')?.classList.remove('fw-bold');
+                btn.remove();
+                updateNotificationCount();
+            } catch (error) {
+                showNotification('Error', 'Failed to mark notification as read.', 'danger');
+            }
+        }
+
+        // Tab switching - update active state
+        document.querySelectorAll('.list-group-item-action').forEach(item => {
+            item.addEventListener('click', function(e) {
+                document.querySelectorAll('.list-group-item-action').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+}

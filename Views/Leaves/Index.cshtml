@@ -1,0 +1,115 @@
+@{
+    ViewData["Title"] = "Leave Requests";
+}
+
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 class="page-title">Leave Requests</h1>
+            <p class="page-subtitle">Manage and track employee leave requests</p>
+        </div>
+        <button class="btn btn-primary" onclick="openAddLeaveModal()">
+            <i class="fas fa-plus"></i> New Leave Request
+        </button>
+    </div>
+</div>
+
+<!-- Leave Statistics -->
+<div class="leave-stats">
+    <div class="leave-stat-card">
+        <div class="leave-stat-icon" style="background: linear-gradient(135deg, #10b98115 0%, #059e0a15 100%); color: var(--success-color);">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="leave-stat-content">
+            <h6>Approved</h6>
+            <div class="value" id="stat-approved">--</div>
+        </div>
+    </div>
+    <div class="leave-stat-card">
+        <div class="leave-stat-icon" style="background: linear-gradient(135deg, #f59e0b15 0%, #d9790015 100%); color: var(--warning-color);">
+            <i class="fas fa-hourglass-half"></i>
+        </div>
+        <div class="leave-stat-content">
+            <h6>Pending</h6>
+            <div class="value" id="stat-pending">--</div>
+        </div>
+    </div>
+    <div class="leave-stat-card">
+        <div class="leave-stat-icon" style="background: linear-gradient(135deg, #ef444415 0%, #dc263015 100%); color: var(--danger-color);">
+            <i class="fas fa-times-circle"></i>
+        </div>
+        <div class="leave-stat-content">
+            <h6>Rejected</h6>
+            <div class="value" id="stat-rejected">--</div>
+        </div>
+    </div>
+    <div class="leave-stat-card">
+        <div class="leave-stat-icon" style="background: linear-gradient(135deg, #2563eb15 0%, #0ea5e915 100%); color: var(--primary-color);">
+            <i class="fas fa-calendar-alt"></i>
+        </div>
+        <div class="leave-stat-content">
+            <h6>Total</h6>
+            <div class="value" id="stat-total">--</div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs for Different Views -->
+<div class="tabs-container">
+    <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" onclick="filterLeaves('all')" style="cursor:pointer;">All Requests</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" onclick="filterLeaves('Pending')" style="cursor:pointer;">Pending (<span id="tab-pending">0</span>)</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" onclick="filterLeaves('Approved')" style="cursor:pointer;">Approved (<span id="tab-approved">0</span>)</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" onclick="filterLeaves('Rejected')" style="cursor:pointer;">Rejected (<span id="tab-rejected">0</span>)</a>
+        </li>
+    </ul>
+
+    <div id="leaves-container">
+        <div style="text-align:center;padding:3rem;color:var(--text-light);">
+            <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+            <p style="margin-top:1rem;">Loading leave requests...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Add Leave Request Modal -->
+<div class="modal-overlay" id="leaveModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h5 style="margin:0;">New Leave Request</h5>
+            <button onclick="closeLeaveModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group" style="margin-bottom:1rem;" id="employee-select-group">
+                <label>Employee <span style="color:red;">*</span></label>
+                <select class="form-control" id="leaveEmployeeId">
+                    <option value="">Select Employee</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom:1rem;">
+                <label>From Date <span style="color:red;">*</span></label>
+                <input type="date" class="form-control" id="leaveFromDate" required>
+            </div>
+            <div class="form-group" style="margin-bottom:1rem;">
+                <label>To Date <span style="color:red;">*</span></label>
+                <input type="date" class="form-control" id="leaveToDate" required>
+            </div>
+            <div class="form-group" style="margin-bottom:1rem;">
+                <label>Reason <span style="color:red;">*</span></label>
+                <textarea class="form-control" id="leaveReason" rows="3" placeholder="Enter reason for leave" required></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline-secondary" onclick="closeLeaveModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitLeave()">Submit Request</button>
+        </div>
+    </div>
+</div>
+

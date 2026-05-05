@@ -1,0 +1,221 @@
+@{
+    ViewData["Title"] = "Payroll Management";
+}
+
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 class="page-title">Payroll Management</h1>
+            <p class="page-subtitle">Manage employee salaries and payroll processing</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-outline-primary" id="btn-create-payroll">
+                <i class="fas fa-plus"></i> Add Payroll
+            </button>
+            <button class="btn generate-payroll-btn" id="btn-generate-payroll">
+                <i class="fas fa-cog"></i> Generate Payroll
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Payroll Period Selection -->
+<div class="payroll-filter">
+    <select class="form-control" id="filter-month" style="max-width: 150px;">
+        <option value="1">January</option>
+        <option value="2">February</option>
+        <option value="3">March</option>
+        <option value="4">April</option>
+        <option value="5">May</option>
+        <option value="6">June</option>
+        <option value="7">July</option>
+        <option value="8">August</option>
+        <option value="9">September</option>
+        <option value="10">October</option>
+        <option value="11">November</option>
+        <option value="12">December</option>
+    </select>
+    <select class="form-control" id="filter-year" style="max-width: 150px;"></select>
+    <button class="btn btn-primary" id="btn-filter">
+        <i class="fas fa-search"></i> Filter
+    </button>
+    <button class="btn btn-outline-secondary" id="btn-clear-filter">
+        <i class="fas fa-times"></i> Clear
+    </button>
+</div>
+
+<!-- Payroll Summary -->
+<div class="payroll-summary" id="payroll-summary">
+    <div class="summary-card">
+        <div class="summary-icon"><i class="fas fa-users"></i></div>
+        <div class="summary-label">Total Employees</div>
+        <div class="summary-value" id="stat-employees">0</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-icon"><i class="fas fa-wallet"></i></div>
+        <div class="summary-label">Total Basic Salary</div>
+        <div class="summary-value" id="stat-basic">$0</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-icon"><i class="fas fa-gift"></i></div>
+        <div class="summary-label">Total Bonus</div>
+        <div class="summary-value" id="stat-bonus">$0</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-icon"><i class="fas fa-scissors"></i></div>
+        <div class="summary-label">Total Deductions</div>
+        <div class="summary-value" id="stat-deductions">$0</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-icon"><i class="fas fa-money-bill-wave"></i></div>
+        <div class="summary-label">Net Payroll</div>
+        <div class="summary-value" style="color: var(--success-color);" id="stat-net">$0</div>
+    </div>
+</div>
+
+<!-- Employee Payroll List -->
+<h5 style="margin-bottom: 1.5rem;">
+    <i class="fas fa-list"></i> Employee Payroll Details
+</h5>
+
+<div id="payroll-list">
+    <div class="text-center" style="padding: 3rem;">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">Loading payroll data...</p>
+    </div>
+</div>
+
+<div id="no-payrolls" style="display: none;" class="text-center" style="padding: 3rem;">
+    <i class="fas fa-inbox" style="font-size: 3rem; color: var(--text-light); opacity: 0.3;"></i>
+    <p class="mt-2 text-muted">No payroll records found for the selected period.</p>
+</div>
+
+<!-- Create Payroll Modal -->
+<div class="modal-overlay" id="create-payroll-modal">
+    <div class="modal-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h4 style="margin: 0;"><i class="fas fa-plus-circle"></i> Add Payroll</h4>
+            <button class="btn-close-modal" onclick="closeModal('create-payroll-modal')">&times;</button>
+        </div>
+        <form id="create-payroll-form">
+            <div class="mb-3">
+                <label class="form-label">Employee</label>
+                <select class="form-control" id="payroll-employee" required>
+                    <option value="">Select Employee...</option>
+                </select>
+            </div>
+            <div class="row mb-3">
+                <div class="col-6">
+                    <label class="form-label">Month</label>
+                    <select class="form-control" id="payroll-month" required>
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                <div class="col-6">
+                    <label class="form-label">Year</label>
+                    <input type="number" class="form-control" id="payroll-year" min="2000" max="2100" required>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Basic Salary</label>
+                <input type="number" class="form-control" id="payroll-basic" step="0.01" min="0" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Bonus</label>
+                <input type="number" class="form-control" id="payroll-bonus" step="0.01" min="0" value="0">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Deductions</label>
+                <input type="number" class="form-control" id="payroll-deductions" step="0.01" min="0" value="0">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Net Salary</label>
+                <input type="number" class="form-control" id="payroll-net" readonly>
+            </div>
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                <button type="button" class="btn btn-outline-secondary" onclick="closeModal('create-payroll-modal')">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Payroll</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Generate Payroll Modal -->
+<div class="modal-overlay" id="generate-payroll-modal">
+    <div class="modal-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h4 style="margin: 0;"><i class="fas fa-cog"></i> Generate Payroll</h4>
+            <button class="btn-close-modal" onclick="closeModal('generate-payroll-modal')">&times;</button>
+        </div>
+        <form id="generate-payroll-form">
+            <div class="mb-3">
+                <label class="form-label">Month</label>
+                <select class="form-control" id="generate-month" required>
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6">June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Year</label>
+                <input type="number" class="form-control" id="generate-year" min="2000" max="2100" required>
+            </div>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> This will generate payroll records for all employees based on their salary and attendance data.
+            </div>
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                <button type="button" class="btn btn-outline-secondary" onclick="closeModal('generate-payroll-modal')">Cancel</button>
+                <button type="submit" class="btn generate-payroll-btn"><i class="fas fa-cog"></i> Generate</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Approve Bonus Modal -->
+<div class="modal-overlay" id="approve-bonus-modal">
+    <div class="modal-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h4 style="margin: 0;"><i class="fas fa-check-circle"></i> Approve Bonus</h4>
+            <button class="btn-close-modal" onclick="closeModal('approve-bonus-modal')">&times;</button>
+        </div>
+        <form id="approve-bonus-form">
+            <input type="hidden" id="approve-payroll-id">
+            <div class="mb-3">
+                <label class="form-label">Employee</label>
+                <input type="text" class="form-control" id="approve-employee-name" readonly>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Bonus Amount</label>
+                <input type="text" class="form-control" id="approve-bonus-amount" readonly>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Approval Remarks</label>
+                <textarea class="form-control" id="approve-remarks" rows="3" placeholder="Enter approval remarks..."></textarea>
+            </div>
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                <button type="button" class="btn btn-outline-danger" id="btn-reject-bonus"><i class="fas fa-times"></i> Reject</button>
+                <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> Approve</button>
+            </div>
+        </form>
+    </div>
+</div>

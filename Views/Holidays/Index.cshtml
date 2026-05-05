@@ -1,0 +1,152 @@
+@{
+    ViewData["Title"] = "Holidays Management";
+}
+
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 class="page-title">Holidays Management</h1>
+            <p class="page-subtitle">Manage public holidays and company holidays</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-outline-primary" onclick="openBulkModal()">
+                <i class="fas fa-upload"></i> Bulk Import
+            </button>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus"></i> Add Holiday
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Year Filter -->
+<div class="year-filter">
+    <label style="font-weight: 600; margin: 0;">Year:</label>
+    <select id="yearFilter" class="form-control" onchange="loadHolidays()">
+    </select>
+</div>
+
+<!-- Upcoming Holidays -->
+<div class="upcoming-holidays">
+    <h5 style="margin-top: 0;">
+        <i class="fas fa-calendar-check"></i> Upcoming Holidays
+    </h5>
+    <div id="upcoming-holidays-list">
+        <div class="text-center" style="padding: 1rem;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Holiday Cards -->
+<h5 style="margin-bottom: 1.5rem;">
+    <i class="fas fa-list"></i> All Holidays <span id="holiday-count" class="badge bg-primary" style="font-size: 0.8rem;">0</span>
+</h5>
+
+<div id="holiday-list" class="holiday-list">
+    <div class="text-center" style="padding: 2rem; grid-column: 1 / -1;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+</div>
+
+<!-- Holiday Statistics -->
+<div class="card" style="margin-top: 2rem;">
+    <div class="card-header">
+        <h5 style="margin: 0;">
+            <i class="fas fa-chart-bar"></i> Holiday Statistics
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="stat-grid">
+            <div class="stat-item">
+                <div class="stat-value" style="color: var(--primary-color);" id="stat-total">0</div>
+                <div class="stat-label">Total Holidays</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: var(--success-color);" id="stat-upcoming">0</div>
+                <div class="stat-label">Upcoming</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: var(--warning-color);" id="stat-this-month">0</div>
+                <div class="stat-label">This Month</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: var(--danger-color);" id="stat-past">0</div>
+                <div class="stat-label">Past Holidays</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Holiday Modal -->
+<div class="modal-overlay" id="holidayModal">
+    <div class="modal-dialog">
+        <div class="modal-header-custom">
+            <h5 id="holidayModalTitle">Add Holiday</h5>
+            <button class="close-btn" onclick="closeModal('holidayModal')">&times;</button>
+        </div>
+        <div class="modal-body-custom">
+            <form id="holidayForm">
+                <input type="hidden" id="holidayId" />
+                <div class="mb-3">
+                    <label for="holidayName" class="form-label">Holiday Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="holidayName" required placeholder="e.g., Independence Day" />
+                </div>
+                <div class="mb-3">
+                    <label for="holidayDate" class="form-label">Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="holidayDate" required />
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer-custom">
+            <button class="btn btn-outline-secondary" onclick="closeModal('holidayModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveHoliday()">
+                <i class="fas fa-save"></i> Save Holiday
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Import Modal -->
+<div class="modal-overlay" id="bulkModal">
+    <div class="modal-dialog">
+        <div class="modal-header-custom">
+            <h5>Bulk Import Holidays</h5>
+            <button class="close-btn" onclick="closeModal('bulkModal')">&times;</button>
+        </div>
+        <div class="modal-body-custom">
+            <p class="text-muted">Add multiple holidays at once. One holiday per line with format: <strong>Name, YYYY-MM-DD</strong></p>
+            <textarea id="bulkHolidays" class="form-control" rows="8" placeholder="New Year's Day, 2027-01-01&#10;Independence Day, 2027-07-04&#10;Christmas Day, 2027-12-25"></textarea>
+        </div>
+        <div class="modal-footer-custom">
+            <button class="btn btn-outline-secondary" onclick="closeModal('bulkModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveBulkHolidays()">
+                <i class="fas fa-upload"></i> Import Holidays
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal-dialog" style="max-width: 400px;">
+        <div class="modal-header-custom">
+            <h5>Confirm Delete</h5>
+            <button class="close-btn" onclick="closeModal('deleteModal')">&times;</button>
+        </div>
+        <div class="modal-body-custom">
+            <p>Are you sure you want to delete <strong id="deleteHolidayName"></strong>?</p>
+            <p class="text-muted">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer-custom">
+            <button class="btn btn-outline-secondary" onclick="closeModal('deleteModal')">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmDelete()">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,87 @@
+@{
+    ViewData["Title"] = "Departments Management";
+}
+
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 class="page-title">Departments Management</h1>
+            <p class="page-subtitle">Manage all departments in your organization</p>
+        </div>
+        <button class="btn btn-primary" onclick="openAddModal()">
+            <i class="fas fa-plus"></i> Add Department
+        </button>
+    </div>
+</div>
+
+<!-- View Toggle -->
+<div class="view-toggle">
+    <button class="active" data-view="card" onclick="switchView('card')">
+        <i class="fas fa-th"></i> Card View
+    </button>
+    <button data-view="list" onclick="switchView('list')">
+        <i class="fas fa-list"></i> List View
+    </button>
+</div>
+
+<!-- Card View -->
+<div class="department-grid" id="card-view"></div>
+
+<!-- List View Table (Hidden by default) -->
+<div id="list-view" style="display: none;">
+    <div class="card">
+        <div class="card-body" style="padding: 0;">
+            <div style="overflow-x: auto;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Department Name</th>
+                            <th>Employees</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dept-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Department Modal -->
+<div class="modal-overlay" id="deptModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h5 id="deptModalTitle" style="margin:0;">Add Department</h5>
+            <button onclick="closeModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="deptId">
+            <div class="form-group" style="margin-bottom:1rem;">
+                <label>Department Name <span style="color:red;">*</span></label>
+                <input type="text" class="form-control" id="deptName" placeholder="Enter department name" required>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline-secondary" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveDepartment()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal-box" style="max-width:400px;">
+        <div class="modal-header">
+            <h5 style="margin:0;color:var(--danger-color);">Confirm Delete</h5>
+            <button onclick="closeDeleteModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete <strong id="deleteDeptName"></strong>?</p>
+            <p style="color:var(--text-light);font-size:0.9rem;">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline-secondary" onclick="closeDeleteModal()">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+        </div>
+    </div>
+</div>

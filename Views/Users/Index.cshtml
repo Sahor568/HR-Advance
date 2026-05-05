@@ -1,0 +1,125 @@
+@{
+    ViewData["Title"] = "Users Management";
+}
+
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 class="page-title">Users Management</h1>
+            <p class="page-subtitle">Manage system users and their roles</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()">
+            <i class="fas fa-plus"></i> Add User
+        </button>
+    </div>
+</div>
+
+<!-- Search & Filters -->
+<div class="user-filter">
+    <input type="text" class="form-control" id="searchInput" placeholder="Search by email..." oninput="filterUsers()">
+    <select class="form-control" id="roleFilter" style="max-width: 150px;" onchange="filterUsers()">
+        <option value="">All Roles</option>
+        <option value="Admin">Admin</option>
+        <option value="HR">HR</option>
+        <option value="Employee">Employee</option>
+    </select>
+</div>
+
+<!-- View Toggle -->
+<div class="view-toggle">
+    <button class="active" data-view="table" onclick="switchView('table')">
+        <i class="fas fa-table"></i> Table View
+    </button>
+    <button data-view="card" onclick="switchView('card')">
+        <i class="fas fa-th"></i> Card View
+    </button>
+</div>
+
+<!-- Table View -->
+<div id="table-view" class="card">
+    <div class="card-body" style="padding: 1.5rem;">
+        <div class="user-row" style="border-bottom: 2px solid var(--border-color); font-weight: 600; padding: 1rem 0; margin-bottom: 1rem;">
+            <div style="flex: 1;">User</div>
+            <div style="width: 120px;">Role</div>
+            <div style="width: 100px;">Actions</div>
+        </div>
+        <div id="user-table-body">
+            <div class="text-center" style="padding: 2rem;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Card View -->
+<div id="card-view" style="display: none;">
+    <div id="user-card-grid" class="user-card-grid">
+        <div class="text-center" style="padding: 2rem; grid-column: 1 / -1;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit User Modal -->
+<div class="modal-overlay" id="userModal">
+    <div class="modal-dialog">
+        <div class="modal-header-custom">
+            <h5 id="userModalTitle">Add User</h5>
+            <button class="close-btn" onclick="closeModal('userModal')">&times;</button>
+        </div>
+        <div class="modal-body-custom">
+            <form id="userForm">
+                <input type="hidden" id="userId" />
+                <div class="mb-3">
+                    <label for="userEmail" class="form-label">Email Address <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control" id="userEmail" required placeholder="user@example.com" />
+                </div>
+                <div class="mb-3" id="passwordGroup">
+                    <label for="userPassword" class="form-label">Password <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control" id="userPassword" placeholder="Min 8 characters" />
+                    <div class="form-text">Minimum 8 characters with at least one number and one special character</div>
+                </div>
+                <div class="mb-3">
+                    <label for="userRole" class="form-label">Role <span class="text-danger">*</span></label>
+                    <select class="form-select" id="userRole" required>
+                        <option value="">Select Role...</option>
+                        <option value="Admin">Admin</option>
+                        <option value="HR">HR</option>
+                        <option value="Employee">Employee</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer-custom">
+            <button class="btn btn-outline-secondary" onclick="closeModal('userModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveUser()">
+                <i class="fas fa-save"></i> Save User
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal-dialog" style="max-width: 400px;">
+        <div class="modal-header-custom">
+            <h5>Confirm Delete</h5>
+            <button class="close-btn" onclick="closeModal('deleteModal')">&times;</button>
+        </div>
+        <div class="modal-body-custom">
+            <p>Are you sure you want to delete user <strong id="deleteUserName"></strong>?</p>
+            <p class="text-muted">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer-custom">
+            <button class="btn btn-outline-secondary" onclick="closeModal('deleteModal')">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmDelete()">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+        </div>
+    </div>
+</div>
+

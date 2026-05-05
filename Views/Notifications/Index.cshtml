@@ -1,0 +1,132 @@
+@{
+    ViewData["Title"] = "Notifications";
+}
+
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 class="page-title">Notifications</h1>
+            <p class="page-subtitle">Manage and view system notifications</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-outline-primary" onclick="markAllAsRead()">
+                <i class="fas fa-check-double"></i> Mark All Read
+            </button>
+            <button class="btn btn-primary" id="sendNotifBtn" style="display:none;" onclick="openSendModal()">
+                <i class="fas fa-paper-plane"></i> Send Notification
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h5 style="margin: 0;">All Notifications</h5>
+                <select id="typeFilter" class="form-control" style="max-width: 150px;" onchange="loadNotifications()">
+                    <option value="">All Types</option>
+                    <option value="System">System</option>
+                    <option value="User">User</option>
+                    <option value="Alert">Alert</option>
+                    <option value="Reminder">Reminder</option>
+                </select>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <div id="notifications-list">
+                    <div class="text-center" style="padding: 2rem;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 style="margin: 0;">Notification Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row" style="margin-bottom: 1rem;">
+                    <div class="col-6">
+                        <div class="stat-card">
+                            <div class="stat-value" style="color: var(--primary-color);" id="total-notifications">0</div>
+                            <div class="stat-label">Total</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-card">
+                            <div class="stat-value" style="color: var(--warning-color);" id="unread-notifications">0</div>
+                            <div class="stat-label">Unread</div>
+                        </div>
+                    </div>
+                </div>
+                <h6>Notification Types</h6>
+                <div id="type-counts">
+                    <div class="type-count-item">
+                        <span><i class="fas fa-cog" style="color:#2563eb;margin-right:0.5rem;"></i>System</span>
+                        <span class="badge bg-primary rounded-pill" id="system-count">0</span>
+                    </div>
+                    <div class="type-count-item">
+                        <span><i class="fas fa-user" style="color:#059669;margin-right:0.5rem;"></i>User</span>
+                        <span class="badge bg-success rounded-pill" id="user-count">0</span>
+                    </div>
+                    <div class="type-count-item">
+                        <span><i class="fas fa-exclamation-triangle" style="color:#d97706;margin-right:0.5rem;"></i>Alert</span>
+                        <span class="badge bg-warning rounded-pill" id="alert-count">0</span>
+                    </div>
+                    <div class="type-count-item">
+                        <span><i class="fas fa-clock" style="color:#4f46e5;margin-right:0.5rem;"></i>Reminder</span>
+                        <span class="badge bg-info rounded-pill" id="reminder-count">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Send Notification Modal -->
+<div class="modal-overlay" id="sendModal">
+    <div class="modal-dialog">
+        <div class="modal-header-custom">
+            <h5>Send Notification</h5>
+            <button class="close-btn" onclick="closeModal('sendModal')">&times;</button>
+        </div>
+        <div class="modal-body-custom">
+            <form id="sendNotificationForm">
+                <div class="mb-3">
+                    <label for="recipient" class="form-label">Recipient <span class="text-danger">*</span></label>
+                    <select class="form-select" id="recipient" required>
+                        <option value="">Select recipient...</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="notifTitle" class="form-label">Title <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="notifTitle" required placeholder="Notification title" />
+                </div>
+                <div class="mb-3">
+                    <label for="notifType" class="form-label">Type</label>
+                    <select class="form-select" id="notifType">
+                        <option value="System">System</option>
+                        <option value="User">User</option>
+                        <option value="Alert">Alert</option>
+                        <option value="Reminder">Reminder</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="notifMessage" class="form-label">Message <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="notifMessage" rows="3" required placeholder="Notification message..."></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer-custom">
+            <button class="btn btn-outline-secondary" onclick="closeModal('sendModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="sendNotification()">
+                <i class="fas fa-paper-plane"></i> Send
+            </button>
+        </div>
+    </div>
+</div>

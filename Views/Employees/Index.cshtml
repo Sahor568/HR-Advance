@@ -1,0 +1,137 @@
+@{
+    ViewData["Title"] = "Employees Management";
+}
+
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 class="page-title">Employees Management</h1>
+            <p class="page-subtitle">Manage all employees in your organization</p>
+        </div>
+        <button class="btn btn-primary" onclick="openAddModal()">
+            <i class="fas fa-plus"></i> Add New Employee
+        </button>
+    </div>
+</div>
+
+<!-- Search & Filters -->
+<div class="search-filters">
+    <div class="filter-group">
+        <input type="text" class="form-control" id="searchInput" placeholder="Search by name or email..." oninput="filterEmployees()">
+        <select class="form-control" id="deptFilter" onchange="filterEmployees()">
+            <option value="">All Departments</option>
+        </select>
+    </div>
+</div>
+
+<!-- Table View -->
+<div class="card">
+    <div class="card-body" style="padding: 0;">
+        <div style="overflow-x: auto;">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">Full Name</th>
+                        <th style="width: 15%;">Department</th>
+                        <th style="width: 15%;">Position</th>
+                        <th style="width: 12%;">Salary</th>
+                        <th style="width: 15%;">Supervisor</th>
+                        <th style="width: 12%;">Contact</th>
+                        <th style="width: 6%;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="employees-tbody">
+                    <tr><td colspan="7" class="text-center">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Employee Modal -->
+<div id="employeeModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content-custom">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+            <h4 id="modalTitle" style="margin:0;">Add New Employee</h4>
+            <button class="btn btn-sm btn-light" onclick="closeModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <form id="employeeForm">
+            <input type="hidden" id="empId">
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">Full Name *</label>
+                    <input type="text" class="form-control" id="empFullName" required placeholder="Enter full name">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Email *</label>
+                    <input type="email" class="form-control" id="empEmail" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Phone</label>
+                    <input type="text" class="form-control" id="empPhone">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Age</label>
+                    <input type="number" class="form-control" id="empAge" min="18" max="100">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Department *</label>
+                    <select class="form-control" id="empDepartment" required></select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Position *</label>
+                    <input type="text" class="form-control" id="empPosition" required>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Salary *</label>
+                    <input type="number" class="form-control" id="empSalary" required min="0">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Hire Date *</label>
+                    <input type="date" class="form-control" id="empHireDate" required>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Supervisor</label>
+                    <select class="form-control" id="empSupervisor">
+                        <option value="">None</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">User Account (Email)</label>
+                    <select class="form-control" id="empUser">
+                        <option value="">None</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Address</label>
+                <textarea class="form-control" id="empAddress" rows="2"></textarea>
+            </div>
+            <div style="display:flex;gap:1rem;justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="saveBtn">
+                    <i class="fas fa-save"></i> Save Employee
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- View Employee Detail Modal -->
+<div id="viewModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content-custom">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+            <h4 style="margin:0;">Employee Details</h4>
+            <button class="btn btn-sm btn-light" onclick="document.getElementById('viewModal').style.display='none'"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="viewContent"></div>
+    </div>
+</div>
