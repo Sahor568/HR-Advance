@@ -1,0 +1,280 @@
+@{
+    ViewData["Title"] = "Attendance Management";
+}
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 class="page-title">Attendance Management</h1>
+        <p class="page-subtitle">Track and manage employee attendance records</p>
+    </div>
+    <button class="btn btn-primary" onclick="openAddAttendanceModal()">
+        <i class="fas fa-plus"></i> Mark Attendance
+    </button>
+</div>
+
+<!-- Attendance Statistics -->
+<div class="dashboard-grid" style="margin-bottom: 2rem;">
+    <div class="kpi-card">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #16a34a15 0%, #059e0a15 100%); color: #16a34a;">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <h5 class="kpi-label">Present Today</h5>
+        <div class="kpi-value" id="stat-present">0</div>
+        <div class="stat-change positive">Employees</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #f59e0b15 0%, #d9790015 100%); color: #f59e0b;">
+            <i class="fas fa-ban"></i>
+        </div>
+        <h5 class="kpi-label">Absent</h5>
+        <div class="kpi-value" id="stat-absent">0</div>
+        <div class="stat-change">Not present</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #8b5cf615 0%, #7c3aed15 100%); color: #7c3aed;">
+            <i class="fas fa-clock"></i>
+        </div>
+        <h5 class="kpi-label">Late</h5>
+        <div class="kpi-value" id="stat-late">0</div>
+        <div class="stat-change">Arrived late</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #2563eb15 0%, #0ea5e915 100%); color: #2563eb;">
+            <i class="fas fa-percent"></i>
+        </div>
+        <h5 class="kpi-label">Attendance Rate</h5>
+        <div class="kpi-value" id="stat-rate">0%</div>
+        <div class="stat-change">Monthly average</div>
+    </div>
+</div>
+
+<!-- Search and Filter -->
+<div class="search-filters" style="margin-bottom: 1.5rem;">
+    <input type="date" class="form-control" id="attendanceDate" onchange="filterAttendance()" style="border-radius: 6px;">
+    <select class="form-control" id="attendanceStatus" onchange="filterAttendance()" style="border-radius: 6px;">
+        <option value="">All Status</option>
+        <option value="Present">Present</option>
+        <option value="Absent">Absent</option>
+        <option value="Late">Late</option>
+        <option value="Leave">On Leave</option>
+    </select>
+</div>
+
+<!-- Attendance Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 style="margin: 0;">
+            <i class="fas fa-table me-2"></i>Attendance Records
+        </h5>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <div style="overflow-x: auto;">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Department</th>
+                        <th>Check-In</th>
+                        <th>Check-Out</th>
+                        <th>Status</th>
+                        <th>Working Hours</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="attendance-tbody">
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="fas fa-spinner fa-spin me-2"></i>Loading attendance records...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Attendance Modal -->
+<div class="modal-overlay" id="attendanceModal" style="display: none;">
+    <div class="modal-content-custom" style="max-width: 500px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h5 style="margin: 0;" id="attendanceModalTitle">Mark Attendance</h5>
+            <button onclick="closeAttendanceModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+        <form id="attendanceForm" style="margin-bottom: 1.5rem;">
+            <div class="mb-3">
+                <label class="form-label">Employee <span style="color: #ef4444;">*</span></label>
+                <select class="form-control" id="attendanceEmployee" required style="border-radius: 6px;">
+                    <option value="">Select Employee</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Date <span style="color: #ef4444;">*</span></label>
+                <input type="date" class="form-control" id="attendanceRecordDate" required style="border-radius: 6px;">
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Check-In Time</label>
+                    <input type="time" class="form-control" id="checkInTime" style="border-radius: 6px;">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Check-Out Time</label>
+                    <input type="time" class="form-control" id="checkOutTime" style="border-radius: 6px;">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Status <span style="color: #ef4444;">*</span></label>
+                <select class="form-control" id="attendanceRecordStatus" required style="border-radius: 6px;">
+                    <option value="">Select Status</option>
+                    <option value="Present">Present</option>
+                    <option value="Absent">Absent</option>
+                    <option value="Late">Late</option>
+                    <option value="Leave">On Leave</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Remarks</label>
+                <textarea class="form-control" id="attendanceRemarks" rows="2" placeholder="Add any remarks..." style="border-radius: 6px;"></textarea>
+            </div>
+        </form>
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <button class="btn btn-outline-secondary" onclick="closeAttendanceModal()" style="border-radius: 6px;">Cancel</button>
+            <button class="btn btn-primary" onclick="submitAttendance()" style="border-radius: 6px;">Save Attendance</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let attendanceData = [];
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('attendanceDate').valueAsDate = new Date();
+    loadAttendanceData();
+    loadEmployeeDropdown();
+});
+
+function loadAttendanceData() {
+    fetch('/api/Attendance')
+        .then(response => response.json())
+        .then(data => {
+            attendanceData = data;
+            updateAttendanceStats();
+            renderAttendanceTable();
+        })
+        .catch(error => {
+            console.error('Error loading attendance:', error);
+            showNotification('Error', 'Failed to load attendance data', 'danger');
+        });
+}
+
+function updateAttendanceStats() {
+    const today = new Date().toISOString().split('T')[0];
+    const todayRecords = attendanceData.filter(r => r.date.split('T')[0] === today);
+    
+    document.getElementById('stat-present').textContent = todayRecords.filter(r => r.status === 'Present').length;
+    document.getElementById('stat-absent').textContent = todayRecords.filter(r => r.status === 'Absent').length;
+    document.getElementById('stat-late').textContent = todayRecords.filter(r => r.status === 'Late').length;
+    
+    const totalEmployees = document.querySelectorAll('[data-employee-id]').length || 100;
+    const presentCount = todayRecords.filter(r => r.status === 'Present' || r.status === 'Late').length;
+    const rate = totalEmployees > 0 ? Math.round((presentCount / totalEmployees) * 100) : 0;
+    document.getElementById('stat-rate').textContent = rate + '%';
+}
+
+function renderAttendanceTable() {
+    const tbody = document.getElementById('attendance-tbody');
+    
+    if (attendanceData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No attendance records found</td></tr>';
+        return;
+    }
+
+    const statusBadges = {
+        'Present': '<span style="background: #d1fae5; color: #065f46; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">Present</span>',
+        'Absent': '<span style="background: #fee2e2; color: #991b1b; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">Absent</span>',
+        'Late': '<span style="background: #fef3c7; color: #92400e; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">Late</span>',
+        'Leave': '<span style="background: #dbeafe; color: #1e40af; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">On Leave</span>'
+    };
+
+    tbody.innerHTML = attendanceData.map(record => `
+        <tr>
+            <td>${record.employee?.fullName || '--'}</td>
+            <td>${record.employee?.department?.name || '--'}</td>
+            <td>${record.checkInTime || '--'}</td>
+            <td>${record.checkOutTime || '--'}</td>
+            <td>${statusBadges[record.status] || record.status}</td>
+            <td>${record.workingHours || '--'} hrs</td>
+            <td>
+                <button class="btn btn-sm btn-info" onclick="editAttendance(${record.id})"><i class="fas fa-edit"></i></button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function filterAttendance() {
+    loadAttendanceData();
+}
+
+function loadEmployeeDropdown() {
+    fetch('/api/Employee')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('attendanceEmployee');
+            select.innerHTML = '<option value="">Select Employee</option>' +
+                data.map(emp => `<option value="${emp.id}">${emp.fullName}</option>`).join('');
+        })
+        .catch(error => console.error('Error loading employees:', error));
+}
+
+function openAddAttendanceModal() {
+    document.getElementById('attendanceModalTitle').textContent = 'Mark Attendance';
+    document.getElementById('attendanceForm').reset();
+    document.getElementById('attendanceRecordDate').valueAsDate = new Date();
+    document.getElementById('attendanceModal').style.display = 'flex';
+}
+
+function closeAttendanceModal() {
+    document.getElementById('attendanceModal').style.display = 'none';
+}
+
+function editAttendance(id) {
+    const record = attendanceData.find(r => r.id === id);
+    if (!record) return;
+
+    document.getElementById('attendanceModalTitle').textContent = 'Edit Attendance';
+    document.getElementById('attendanceEmployee').value = record.employeeId;
+    document.getElementById('attendanceRecordDate').value = record.date.split('T')[0];
+    document.getElementById('checkInTime').value = record.checkInTime || '';
+    document.getElementById('checkOutTime').value = record.checkOutTime || '';
+    document.getElementById('attendanceRecordStatus').value = record.status;
+    document.getElementById('attendanceRemarks').value = record.remarks || '';
+    
+    document.getElementById('attendanceModal').style.display = 'flex';
+}
+
+function submitAttendance() {
+    const formData = {
+        employeeId: document.getElementById('attendanceEmployee').value,
+        date: document.getElementById('attendanceRecordDate').value,
+        checkInTime: document.getElementById('checkInTime').value,
+        checkOutTime: document.getElementById('checkOutTime').value,
+        status: document.getElementById('attendanceRecordStatus').value,
+        remarks: document.getElementById('attendanceRemarks').value
+    };
+
+    fetch('/api/Attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        showNotification('Success', 'Attendance recorded successfully', 'success');
+        closeAttendanceModal();
+        loadAttendanceData();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error', 'Failed to save attendance', 'danger');
+    });
+}
+</script>

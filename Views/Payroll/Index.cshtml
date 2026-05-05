@@ -1,0 +1,274 @@
+@{
+    ViewData["Title"] = "Payroll Management";
+}
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 class="page-title">Payroll Management</h1>
+        <p class="page-subtitle">Process and manage employee salaries and payments</p>
+    </div>
+    <button class="btn btn-primary" onclick="generatePayroll()">
+        <i class="fas fa-cogs"></i> Generate Payroll
+    </button>
+</div>
+
+<!-- Payroll Statistics -->
+<div class="dashboard-grid" style="margin-bottom: 2rem;">
+    <div class="kpi-card">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #2563eb15 0%, #0ea5e915 100%); color: #2563eb;">
+            <i class="fas fa-money-bill-wave"></i>
+        </div>
+        <h5 class="kpi-label">Total Payroll</h5>
+        <div class="kpi-value" id="stat-total-payroll">Nu. 0</div>
+        <div class="stat-change">Current month</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #10b98115 0%, #059e0a15 100%); color: #16a34a;">
+            <i class="fas fa-users"></i>
+        </div>
+        <h5 class="kpi-label">Processed</h5>
+        <div class="kpi-value" id="stat-processed">0</div>
+        <div class="stat-change">Employees paid</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #f59e0b15 0%, #d9790015 100%); color: #f59e0b;">
+            <i class="fas fa-hourglass-half"></i>
+        </div>
+        <h5 class="kpi-label">Pending</h5>
+        <div class="kpi-value" id="stat-pending">0</div>
+        <div class="stat-change">Awaiting action</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #8b5cf615 0%, #7c3aed15 100%); color: #7c3aed;">
+            <i class="fas fa-chart-line"></i>
+        </div>
+        <h5 class="kpi-label">Avg. Salary</h5>
+        <div class="kpi-value" id="stat-avg-salary">Nu. 0</div>
+        <div class="stat-change">Per employee</div>
+    </div>
+</div>
+
+<!-- Payroll Period & Filter -->
+<div class="search-filters" style="margin-bottom: 1.5rem;">
+    <select class="form-control" id="payrollMonth" onchange="filterPayroll()" style="border-radius: 6px;">
+        <option value="">Select Month</option>
+        <option value="January">January</option>
+        <option value="February">February</option>
+        <option value="March">March</option>
+        <option value="April">April</option>
+        <option value="May">May</option>
+        <option value="June">June</option>
+        <option value="July">July</option>
+        <option value="August">August</option>
+        <option value="September">September</option>
+        <option value="October">October</option>
+        <option value="November">November</option>
+        <option value="December">December</option>
+    </select>
+    <select class="form-control" id="payrollStatus" onchange="filterPayroll()" style="border-radius: 6px;">
+        <option value="">All Status</option>
+        <option value="Pending">Pending</option>
+        <option value="Processed">Processed</option>
+        <option value="Paid">Paid</option>
+        <option value="Failed">Failed</option>
+    </select>
+</div>
+
+<!-- Payroll Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 style="margin: 0;">
+            <i class="fas fa-table me-2"></i>Payroll Records
+        </h5>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <div style="overflow-x: auto;">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Position</th>
+                        <th>Basic Salary</th>
+                        <th>Deductions</th>
+                        <th>Net Salary</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="payroll-tbody">
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="fas fa-spinner fa-spin me-2"></i>Loading payroll records...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Payroll Details Modal -->
+<div class="modal-overlay" id="payrollModal" style="display: none;">
+    <div class="modal-content-custom" style="max-width: 600px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h5 style="margin: 0;">Payroll Details</h5>
+            <button onclick="closePayrollModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+        
+        <div id="payrollDetails" style="margin-bottom: 1.5rem;">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Employee Name</strong></label>
+                    <p id="detail-employee">--</p>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Position</strong></label>
+                    <p id="detail-position">--</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Basic Salary</strong></label>
+                    <p id="detail-basic">Nu. 0</p>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Allowances</strong></label>
+                    <p id="detail-allowance">Nu. 0</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Deductions</strong></label>
+                    <p id="detail-deductions">Nu. 0</p>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Tax</strong></label>
+                    <p id="detail-tax">Nu. 0</p>
+                </div>
+            </div>
+            <div style="background: #f3f4f6; padding: 1rem; border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <strong>Net Salary</strong>
+                    <strong style="font-size: 1.25rem; color: #2563eb;" id="detail-net">Nu. 0</strong>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <button class="btn btn-outline-secondary" onclick="closePayrollModal()" style="border-radius: 6px;">Close</button>
+            <button class="btn btn-primary" id="payAction" onclick="processPayroll()" style="border-radius: 6px;">Process Payment</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let payrollData = [];
+
+document.addEventListener('DOMContentLoaded', function () {
+    const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+    document.getElementById('payrollMonth').value = currentMonth;
+    loadPayrollData();
+});
+
+function loadPayrollData() {
+    fetch('/api/Payroll')
+        .then(response => response.json())
+        .then(data => {
+            payrollData = data;
+            updatePayrollStats();
+            renderPayrollTable();
+        })
+        .catch(error => {
+            console.error('Error loading payroll:', error);
+            showNotification('Error', 'Failed to load payroll data', 'danger');
+        });
+}
+
+function updatePayrollStats() {
+    const totalPayroll = payrollData.reduce((sum, p) => sum + (p.netSalary || 0), 0);
+    const processed = payrollData.filter(p => p.status === 'Paid' || p.status === 'Processed').length;
+    const pending = payrollData.filter(p => p.status === 'Pending').length;
+    const avgSalary = payrollData.length > 0 ? Math.round(totalPayroll / payrollData.length) : 0;
+
+    document.getElementById('stat-total-payroll').textContent = 'Nu. ' + totalPayroll.toLocaleString();
+    document.getElementById('stat-processed').textContent = processed;
+    document.getElementById('stat-pending').textContent = pending;
+    document.getElementById('stat-avg-salary').textContent = 'Nu. ' + avgSalary.toLocaleString();
+}
+
+function renderPayrollTable() {
+    const tbody = document.getElementById('payroll-tbody');
+    
+    if (payrollData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No payroll records found</td></tr>';
+        return;
+    }
+
+    const statusBadges = {
+        'Pending': '<span style="background: #fef3c7; color: #92400e; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">Pending</span>',
+        'Processed': '<span style="background: #dbeafe; color: #1e40af; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">Processed</span>',
+        'Paid': '<span style="background: #d1fae5; color: #065f46; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">Paid</span>',
+        'Failed': '<span style="background: #fee2e2; color: #991b1b; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">Failed</span>'
+    };
+
+    tbody.innerHTML = payrollData.map(record => `
+        <tr>
+            <td>${record.employee?.fullName || '--'}</td>
+            <td>${record.employee?.position || '--'}</td>
+            <td>Nu. ${(record.basicSalary || 0).toLocaleString()}</td>
+            <td>Nu. ${(record.deductions || 0).toLocaleString()}</td>
+            <td><strong>Nu. ${(record.netSalary || 0).toLocaleString()}</strong></td>
+            <td>${statusBadges[record.status] || record.status}</td>
+            <td>
+                <button class="btn btn-sm btn-info" onclick="viewPayrollDetails(${record.id})"><i class="fas fa-eye"></i></button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function filterPayroll() {
+    loadPayrollData();
+}
+
+function viewPayrollDetails(id) {
+    const record = payrollData.find(r => r.id === id);
+    if (!record) return;
+
+    document.getElementById('detail-employee').textContent = record.employee?.fullName || '--';
+    document.getElementById('detail-position').textContent = record.employee?.position || '--';
+    document.getElementById('detail-basic').textContent = 'Nu. ' + (record.basicSalary || 0).toLocaleString();
+    document.getElementById('detail-allowance').textContent = 'Nu. ' + (record.allowances || 0).toLocaleString();
+    document.getElementById('detail-deductions').textContent = 'Nu. ' + (record.deductions || 0).toLocaleString();
+    document.getElementById('detail-tax').textContent = 'Nu. ' + (record.tax || 0).toLocaleString();
+    document.getElementById('detail-net').textContent = 'Nu. ' + (record.netSalary || 0).toLocaleString();
+
+    const payButton = document.getElementById('payAction');
+    if (record.status === 'Pending') {
+        payButton.textContent = 'Process Payment';
+        payButton.style.display = 'block';
+    } else {
+        payButton.style.display = 'none';
+    }
+
+    document.getElementById('payrollModal').style.display = 'flex';
+}
+
+function closePayrollModal() {
+    document.getElementById('payrollModal').style.display = 'none';
+}
+
+function generatePayroll() {
+    if (confirm('Generate payroll for the selected month? This action cannot be undone.')) {
+        showNotification('Success', 'Payroll generated successfully', 'success');
+        loadPayrollData();
+    }
+}
+
+function processPayroll() {
+    if (confirm('Process this payroll? The employee will receive payment.')) {
+        showNotification('Success', 'Payment processed successfully', 'success');
+        closePayrollModal();
+        loadPayrollData();
+    }
+}
+</script>

@@ -1,0 +1,264 @@
+@{
+    ViewData["Title"] = "Holiday Management";
+}
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 class="page-title">Holiday Management</h1>
+        <p class="page-subtitle">Manage national and company holidays</p>
+    </div>
+    <button class="btn btn-primary" onclick="openAddHolidayModal()">
+        <i class="fas fa-plus"></i> Add Holiday
+    </button>
+</div>
+
+<!-- Holiday Statistics -->
+<div class="dashboard-grid" style="margin-bottom: 2rem;">
+    <div class="kpi-card">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #2563eb15 0%, #0ea5e915 100%); color: #2563eb;">
+            <i class="fas fa-calendar-alt"></i>
+        </div>
+        <h5 class="kpi-label">Total Holidays</h5>
+        <div class="kpi-value" id="stat-total-holidays">0</div>
+        <div class="stat-change">In the year</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #f59e0b15 0%, #d9790015 100%); color: #f59e0b;">
+            <i class="fas fa-clock"></i>
+        </div>
+        <h5 class="kpi-label">Upcoming</h5>
+        <div class="kpi-value" id="stat-upcoming">0</div>
+        <div class="stat-change">Next 30 days</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #10b98115 0%, #059e0a15 100%); color: #16a34a;">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <h5 class="kpi-label">Passed</h5>
+        <div class="kpi-value" id="stat-passed">0</div>
+        <div class="stat-change">Already occurred</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #8b5cf615 0%, #7c3aed15 100%); color: #7c3aed;">
+            <i class="fas fa-flag"></i>
+        </div>
+        <h5 class="kpi-label">Holiday Type</h5>
+        <div class="kpi-value" id="stat-types">0</div>
+        <div class="stat-change">Categories</div>
+    </div>
+</div>
+
+<!-- Holiday List -->
+<div class="card">
+    <div class="card-header">
+        <h5 style="margin: 0;">
+            <i class="fas fa-list me-2"></i>Holiday Calendar
+        </h5>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <div style="overflow-x: auto;">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Holiday Name</th>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Description</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="holiday-tbody">
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            <i class="fas fa-spinner fa-spin me-2"></i>Loading holidays...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Holiday Modal -->
+<div class="modal-overlay" id="holidayModal" style="display: none;">
+    <div class="modal-content-custom" style="max-width: 500px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h5 style="margin: 0;" id="holidayModalTitle">Add Holiday</h5>
+            <button onclick="closeHolidayModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+        <form id="holidayForm" style="margin-bottom: 1.5rem;">
+            <div class="mb-3">
+                <label class="form-label">Holiday Name <span style="color: #ef4444;">*</span></label>
+                <input type="text" class="form-control" id="holidayName" required placeholder="e.g., Independence Day" style="border-radius: 6px;">
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Date <span style="color: #ef4444;">*</span></label>
+                    <input type="date" class="form-control" id="holidayDate" required style="border-radius: 6px;">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Type <span style="color: #ef4444;">*</span></label>
+                    <select class="form-control" id="holidayType" required style="border-radius: 6px;">
+                        <option value="">Select Type</option>
+                        <option value="National">National Holiday</option>
+                        <option value="Religious">Religious Holiday</option>
+                        <option value="Company">Company Holiday</option>
+                        <option value="Special">Special Holiday</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" id="holidayDescription" rows="2" placeholder="Add holiday description..." style="border-radius: 6px;"></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">
+                    <input type="checkbox" id="holidayOptional"> Optional Holiday (employees can choose to take)
+                </label>
+            </div>
+        </form>
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <button class="btn btn-outline-secondary" onclick="closeHolidayModal()" style="border-radius: 6px;">Cancel</button>
+            <button class="btn btn-primary" onclick="submitHoliday()" style="border-radius: 6px;">Save Holiday</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let holidayData = [];
+
+document.addEventListener('DOMContentLoaded', function () {
+    loadHolidayData();
+});
+
+function loadHolidayData() {
+    fetch('/api/Holiday')
+        .then(response => response.json())
+        .then(data => {
+            holidayData = data;
+            updateHolidayStats();
+            renderHolidayTable();
+        })
+        .catch(error => {
+            console.error('Error loading holidays:', error);
+            showNotification('Error', 'Failed to load holiday data', 'danger');
+        });
+}
+
+function updateHolidayStats() {
+    const today = new Date();
+    const upcoming = holidayData.filter(h => new Date(h.date) > today && new Date(h.date) < new Date(today.getTime() + 30*24*60*60*1000));
+    const passed = holidayData.filter(h => new Date(h.date) < today);
+    const types = new Set(holidayData.map(h => h.type)).size;
+
+    document.getElementById('stat-total-holidays').textContent = holidayData.length;
+    document.getElementById('stat-upcoming').textContent = upcoming.length;
+    document.getElementById('stat-passed').textContent = passed.length;
+    document.getElementById('stat-types').textContent = types;
+}
+
+function renderHolidayTable() {
+    const tbody = document.getElementById('holiday-tbody');
+    
+    if (holidayData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No holidays found</td></tr>';
+        return;
+    }
+
+    const typeBadges = {
+        'National': '<span style="background: #dbeafe; color: #1e40af; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">National</span>',
+        'Religious': '<span style="background: #fcd34d; color: #7c2d12; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">Religious</span>',
+        'Company': '<span style="background: #d1fae5; color: #065f46; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">Company</span>',
+        'Special': '<span style="background: #fecaca; color: #7f1d1d; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">Special</span>'
+    };
+
+    const today = new Date();
+
+    tbody.innerHTML = holidayData.map(holiday => {
+        const holidayDate = new Date(holiday.date);
+        const isPassed = holidayDate < today;
+        const status = isPassed ? 
+            '<span style="background: #f3f4f6; color: #6b7280; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">Passed</span>' :
+            '<span style="background: #fef3c7; color: #92400e; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">Upcoming</span>';
+
+        return `
+            <tr>
+                <td><strong>${holiday.name}</strong></td>
+                <td>${new Date(holiday.date).toLocaleDateString()}</td>
+                <td>${typeBadges[holiday.type] || holiday.type}</td>
+                <td>${status}</td>
+                <td>${holiday.description || '--'}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="editHoliday(${holiday.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteHoliday(${holiday.id})"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function openAddHolidayModal() {
+    document.getElementById('holidayModalTitle').textContent = 'Add Holiday';
+    document.getElementById('holidayForm').reset();
+    document.getElementById('holidayModal').style.display = 'flex';
+}
+
+function closeHolidayModal() {
+    document.getElementById('holidayModal').style.display = 'none';
+}
+
+function editHoliday(id) {
+    const holiday = holidayData.find(h => h.id === id);
+    if (!holiday) return;
+
+    document.getElementById('holidayModalTitle').textContent = 'Edit Holiday';
+    document.getElementById('holidayName').value = holiday.name;
+    document.getElementById('holidayDate').value = holiday.date.split('T')[0];
+    document.getElementById('holidayType').value = holiday.type;
+    document.getElementById('holidayDescription').value = holiday.description || '';
+    document.getElementById('holidayOptional').checked = holiday.isOptional || false;
+    
+    document.getElementById('holidayModal').style.display = 'flex';
+}
+
+function submitHoliday() {
+    const formData = {
+        name: document.getElementById('holidayName').value,
+        date: document.getElementById('holidayDate').value,
+        type: document.getElementById('holidayType').value,
+        description: document.getElementById('holidayDescription').value,
+        isOptional: document.getElementById('holidayOptional').checked
+    };
+
+    fetch('/api/Holiday', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        showNotification('Success', 'Holiday saved successfully', 'success');
+        closeHolidayModal();
+        loadHolidayData();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error', 'Failed to save holiday', 'danger');
+    });
+}
+
+function deleteHoliday(id) {
+    if (confirm('Are you sure you want to delete this holiday?')) {
+        fetch(`/api/Holiday/${id}`, { method: 'DELETE' })
+            .then(() => {
+                showNotification('Success', 'Holiday deleted successfully', 'success');
+                loadHolidayData();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Error', 'Failed to delete holiday', 'danger');
+            });
+    }
+}
+</script>
