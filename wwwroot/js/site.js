@@ -169,6 +169,72 @@ function editEmployee(id) {
     document.getElementById('employeeModal').style.display = 'flex';
 }
 
+function deleteEmployee(id) {
+    if (!confirm('Are you sure you want to delete this employee? This action cannot be undone.')) {
+        return;
+    }
+
+    fetch(`${API_BASE}/Employee/${id}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Failed to delete employee');
+        showNotification('Success', 'Employee deleted successfully', 'success');
+        employees.loadEmployees();
+    })
+    .catch(error => {
+        console.error('Error deleting employee:', error);
+        showNotification('Error', 'Failed to delete employee', 'danger');
+    });
+}
+
+function submitEmployeeForm() {
+    const form = document.getElementById('employeeForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return false;
+    }
+
+    const empId = document.getElementById('empId').value;
+    const employeeData = {
+        id: empId ? parseInt(empId) : 0,
+        fullName: document.getElementById('empFullName').value,
+        email: document.getElementById('empEmail').value,
+        phone: document.getElementById('empPhone').value,
+        age: document.getElementById('empAge').value ? parseInt(document.getElementById('empAge').value) : 0,
+        departmentId: parseInt(document.getElementById('empDepartment').value),
+        position: document.getElementById('empPosition').value,
+        salary: parseFloat(document.getElementById('empSalary').value),
+        hireDate: document.getElementById('empHireDate').value,
+        address: document.getElementById('empAddress').value,
+        isActive: true
+    };
+
+    const method = empId ? 'PUT' : 'POST';
+    const url = empId ? `${API_BASE}/Employee/${empId}` : `${API_BASE}/Employee`;
+
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(employeeData)
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Failed to save employee');
+        showNotification('Success', empId ? 'Employee updated successfully' : 'Employee added successfully', 'success');
+        closeModal();
+        employees.loadEmployees();
+    })
+    .catch(error => {
+        console.error('Error saving employee:', error);
+        showNotification('Error', 'Failed to save employee. Please check the form and try again.', 'danger');
+    });
+}
+
 // Leave Management Functions
 const leaves = {
     list: [],
