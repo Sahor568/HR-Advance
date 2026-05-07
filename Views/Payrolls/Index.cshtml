@@ -1,221 +1,215 @@
 @{
-    ViewData["Title"] = "Payroll Management";
+    ViewData["Title"] = "Payroll";
+    var isAdminOrHR = User.IsInRole("Admin") || User.IsInRole("HRManager");
 }
 
-<div class="page-header">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <h1 class="page-title">Payroll Management</h1>
-            <p class="page-subtitle">Manage employee salaries and payroll processing</p>
+<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+        <h1 class="page-title">Payroll</h1>
+        <p class="page-subtitle">@(isAdminOrHR ? "Generate and manage monthly payroll" : "View your payslips")</p>
+    </div>
+    @if (isAdminOrHR)
+    {
+        <div class="d-flex gap-1">
+            <button class="btn-primary" onclick="generatePayroll()"><i class="fas fa-cog"></i> Generate Payroll</button>
         </div>
-        <div style="display: flex; gap: 0.5rem;">
-            <button class="btn btn-outline-primary" id="btn-create-payroll">
-                <i class="fas fa-plus"></i> Add Payroll
-            </button>
-            <button class="btn generate-payroll-btn" id="btn-generate-payroll">
-                <i class="fas fa-cog"></i> Generate Payroll
-            </button>
+    }
+</div>
+
+@if (isAdminOrHR)
+{
+    <!-- Payroll Summary -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));">
+        <div class="kpi-card"><div class="kpi-icon blue"><i class="fas fa-file-invoice-dollar"></i></div><div class="kpi-info"><div class="kpi-value" id="totalPayroll">Rs.0</div><div class="kpi-label">Total Payroll</div></div></div>
+        <div class="kpi-card"><div class="kpi-icon green"><i class="fas fa-check-circle"></i></div><div class="kpi-info"><div class="kpi-value" id="paidCount">0</div><div class="kpi-label">Paid</div></div></div>
+        <div class="kpi-card"><div class="kpi-icon orange"><i class="fas fa-hourglass-half"></i></div><div class="kpi-info"><div class="kpi-value" id="pendingCount">0</div><div class="kpi-label">Pending</div></div></div>
+        <div class="kpi-card"><div class="kpi-icon purple"><i class="fas fa-calendar"></i></div><div class="kpi-info"><div class="kpi-value" id="deadlineInfo">--</div><div class="kpi-label">Publish Deadline</div></div></div>
+    </div>
+
+    <!-- Deadline Notice -->
+    <div id="deadlineNotice" style="display:none;background:#fff7ed;border:1px solid #fed7aa;border-radius:var(--radius);padding:0.75rem 1rem;margin-bottom:1.5rem;">
+        <p style="font-size:0.8rem;color:#c2410c;margin:0;"><i class="fas fa-exclamation-triangle"></i> <span id="deadlineText"></span></p>
+    </div>
+}
+
+<!-- Period Filter -->
+<div class="card mb-3">
+    <div class="card-body" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+        <div class="form-group" style="margin:0;">
+            <select class="form-select" id="payMonth">
+                <option value="1">Baishakh</option><option value="2">Jestha</option><option value="3">Ashadh</option>
+                <option value="4">Shrawan</option><option value="5">Bhadra</option><option value="6">Ashwin</option>
+                <option value="7">Kartik</option><option value="8">Mangsir</option><option value="9">Poush</option>
+                <option value="10">Magh</option><option value="11">Falgun</option><option value="12">Chaitra</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+            <input type="number" class="form-control" id="payYear" value="2081" min="2070" max="2090" />
+        </div>
+        <button class="btn-secondary" onclick="loadPayrolls()"><i class="fas fa-search"></i> Load</button>
+    </div>
+</div>
+
+<!-- Payroll Table -->
+<div class="table-container">
+    <div class="table-header">
+        <h3 style="font-size:1rem;font-weight:600;margin:0;">Payroll Records</h3>
+        <div class="filter-bar">
+            <input type="text" class="form-control" placeholder="Search employee..." id="searchPayroll" onkeyup="filterPayroll()" />
+        </div>
+    </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Employee</th>
+                <th>Base Salary</th>
+                <th>Allowances</th>
+                <th>Deductions</th>
+                <th>Net Pay</th>
+                <th>Status</th>
+                @if (isAdminOrHR) { <th>Actions</th> }
+            </tr>
+        </thead>
+        <tbody id="payrollBody">
+            <tr><td colspan="7" class="text-center" style="padding:2rem;">Select month/year and click Load</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Edit Payroll Modal -->
+@if (isAdminOrHR)
+{
+<div class="modal-overlay" id="editPayrollModal">
+    <div class="modal-box lg">
+        <div class="modal-header">
+            <h3>Edit Payroll</h3>
+            <button class="modal-close" onclick="closeModal('editPayrollModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editPayrollId" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                <div class="form-group"><label class="form-label">Base Salary</label><input type="number" class="form-control" id="editBaseSalary" /></div>
+                <div class="form-group"><label class="form-label">Grade Amount</label><input type="number" class="form-control" id="editGradeAmount" /></div>
+                <div class="form-group"><label class="form-label">Overtime Pay</label><input type="number" class="form-control" id="editOvertimePay" /></div>
+                <div class="form-group"><label class="form-label">Festival Allowance</label><input type="number" class="form-control" id="editFestival" /></div>
+                <div class="form-group"><label class="form-label">Other Allowances</label><input type="number" class="form-control" id="editOtherAllow" /></div>
+                <div class="form-group"><label class="form-label">Other Deductions</label><input type="number" class="form-control" id="editOtherDeduct" /></div>
+            </div>
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--radius);padding:0.75rem;margin-top:1rem;">
+                <p style="font-size:0.8rem;color:#1e40af;margin:0;"><i class="fas fa-info-circle"></i> Payroll can only be edited before the 1st of next month. After deadline, it auto-publishes. Mid-month joiners get pro-rated salary from their join date.</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeModal('editPayrollModal')">Cancel</button>
+            <button class="btn-primary" onclick="savePayroll()"><i class="fas fa-save"></i> Save</button>
         </div>
     </div>
 </div>
+}
 
-<!-- Payroll Period Selection -->
-<div class="payroll-filter">
-    <select class="form-control" id="filter-month" style="max-width: 150px;">
-        <option value="1">January</option>
-        <option value="2">February</option>
-        <option value="3">March</option>
-        <option value="4">April</option>
-        <option value="5">May</option>
-        <option value="6">June</option>
-        <option value="7">July</option>
-        <option value="8">August</option>
-        <option value="9">September</option>
-        <option value="10">October</option>
-        <option value="11">November</option>
-        <option value="12">December</option>
-    </select>
-    <select class="form-control" id="filter-year" style="max-width: 150px;"></select>
-    <button class="btn btn-primary" id="btn-filter">
-        <i class="fas fa-search"></i> Filter
-    </button>
-    <button class="btn btn-outline-secondary" id="btn-clear-filter">
-        <i class="fas fa-times"></i> Clear
-    </button>
-</div>
+@section Scripts {
+<script>
+var isAdminOrHR = @(isAdminOrHR ? "true" : "false");
 
-<!-- Payroll Summary -->
-<div class="payroll-summary" id="payroll-summary">
-    <div class="summary-card">
-        <div class="summary-icon"><i class="fas fa-users"></i></div>
-        <div class="summary-label">Total Employees</div>
-        <div class="summary-value" id="stat-employees">0</div>
-    </div>
-    <div class="summary-card">
-        <div class="summary-icon"><i class="fas fa-wallet"></i></div>
-        <div class="summary-label">Total Basic Salary</div>
-        <div class="summary-value" id="stat-basic">$0</div>
-    </div>
-    <div class="summary-card">
-        <div class="summary-icon"><i class="fas fa-gift"></i></div>
-        <div class="summary-label">Total Bonus</div>
-        <div class="summary-value" id="stat-bonus">$0</div>
-    </div>
-    <div class="summary-card">
-        <div class="summary-icon"><i class="fas fa-scissors"></i></div>
-        <div class="summary-label">Total Deductions</div>
-        <div class="summary-value" id="stat-deductions">$0</div>
-    </div>
-    <div class="summary-card">
-        <div class="summary-icon"><i class="fas fa-money-bill-wave"></i></div>
-        <div class="summary-label">Net Payroll</div>
-        <div class="summary-value" style="color: var(--success-color);" id="stat-net">$0</div>
-    </div>
-</div>
+document.addEventListener('DOMContentLoaded', function() {
+    var now = new Date();
+    document.getElementById('payMonth').value = now.getMonth() + 1;
+    checkDeadline();
+    loadPayrolls();
+});
 
-<!-- Employee Payroll List -->
-<h5 style="margin-bottom: 1.5rem;">
-    <i class="fas fa-list"></i> Employee Payroll Details
-</h5>
+function checkDeadline() {
+    if (!isAdminOrHR) return;
+    var now = new Date();
+    var deadline = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    var daysLeft = Math.ceil((deadline - now) / (1000*60*60*24));
+    document.getElementById('deadlineInfo').textContent = daysLeft + ' days left';
+    if (daysLeft <= 5) {
+        document.getElementById('deadlineNotice').style.display = 'block';
+        document.getElementById('deadlineText').textContent = 'Payroll deadline in ' + daysLeft + ' days! Edit payroll before it auto-publishes on the 1st.';
+    }
+}
 
-<div id="payroll-list">
-    <div class="text-center" style="padding: 3rem;">
-        <div class="spinner-border text-primary" role="status"></div>
-        <p class="mt-2 text-muted">Loading payroll data...</p>
-    </div>
-</div>
+function loadPayrolls() {
+    var month = document.getElementById('payMonth').value;
+    var year = document.getElementById('payYear').value;
+    fetch(`/api/payroll/monthly?month=${month}&year=${year}`).then(r=>r.json()).then(data => {
+        renderPayrolls(data);
+        if (isAdminOrHR) updateSummary(data);
+    }).catch(()=>{ document.getElementById('payrollBody').innerHTML='<tr><td colspan="7" class="text-center">No payroll data</td></tr>'; });
+}
 
-<div id="no-payrolls" style="display: none;" class="text-center" style="padding: 3rem;">
-    <i class="fas fa-inbox" style="font-size: 3rem; color: var(--text-light); opacity: 0.3;"></i>
-    <p class="mt-2 text-muted">No payroll records found for the selected period.</p>
-</div>
+function renderPayrolls(data) {
+    var tbody = document.getElementById('payrollBody');
+    if(!data||data.length===0){tbody.innerHTML='<tr><td colspan="7"><div class="empty-state"><i class="fas fa-money-bill-wave"></i><h4>No payroll records</h4><p>Generate payroll for this period</p></div></td></tr>';return;}
+    var statuses=['Draft','Generated','Approved','Paid'];
+    tbody.innerHTML=data.map(p=>{
+        var status=statuses[p.status]||'Unknown';
+        var badge=p.status===3?'badge-success':p.status===2?'badge-info':p.status===1?'badge-warning':'badge-secondary';
+        return `<tr data-name="${(p.employeeName||'').toLowerCase()}">
+            <td><div class="d-flex align-center gap-1"><div class="avatar avatar-sm">${(p.employeeName||'?')[0]}</div><span>${p.employeeName||'Employee'}</span></div></td>
+            <td>Rs.${(p.baseSalary||0).toLocaleString()}</td>
+            <td>Rs.${((p.otherAllowances||0)+(p.festivalAllowance||0)+(p.overtimePay||0)).toLocaleString()}</td>
+            <td>Rs.${(p.totalDeductions||0).toLocaleString()}</td>
+            <td style="font-weight:600;">Rs.${(p.netPay||0).toLocaleString()}</td>
+            <td><span class="badge-status ${badge}">${status}</span></td>
+            ${isAdminOrHR?`<td><div class="d-flex gap-1">
+                ${p.status<2?`<button class="btn-icon" title="Edit" onclick="editPayroll(${p.id})"><i class="fas fa-edit"></i></button>`:''}
+                ${p.status===1?`<button class="btn-icon" title="Approve" onclick="approvePayroll(${p.id})"><i class="fas fa-check"></i></button>`:''}
+            </div></td>`:'<td></td>'}
+        </tr>`;
+    }).join('');
+}
 
-<!-- Create Payroll Modal -->
-<div class="modal-overlay" id="create-payroll-modal">
-    <div class="modal-content">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h4 style="margin: 0;"><i class="fas fa-plus-circle"></i> Add Payroll</h4>
-            <button class="btn-close-modal" onclick="closeModal('create-payroll-modal')">&times;</button>
-        </div>
-        <form id="create-payroll-form">
-            <div class="mb-3">
-                <label class="form-label">Employee</label>
-                <select class="form-control" id="payroll-employee" required>
-                    <option value="">Select Employee...</option>
-                </select>
-            </div>
-            <div class="row mb-3">
-                <div class="col-6">
-                    <label class="form-label">Month</label>
-                    <select class="form-control" id="payroll-month" required>
-                        <option value="1">January</option>
-                        <option value="2">February</option>
-                        <option value="3">March</option>
-                        <option value="4">April</option>
-                        <option value="5">May</option>
-                        <option value="6">June</option>
-                        <option value="7">July</option>
-                        <option value="8">August</option>
-                        <option value="9">September</option>
-                        <option value="10">October</option>
-                        <option value="11">November</option>
-                        <option value="12">December</option>
-                    </select>
-                </div>
-                <div class="col-6">
-                    <label class="form-label">Year</label>
-                    <input type="number" class="form-control" id="payroll-year" min="2000" max="2100" required>
-                </div>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Basic Salary</label>
-                <input type="number" class="form-control" id="payroll-basic" step="0.01" min="0" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Bonus</label>
-                <input type="number" class="form-control" id="payroll-bonus" step="0.01" min="0" value="0">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Deductions</label>
-                <input type="number" class="form-control" id="payroll-deductions" step="0.01" min="0" value="0">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Net Salary</label>
-                <input type="number" class="form-control" id="payroll-net" readonly>
-            </div>
-            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                <button type="button" class="btn btn-outline-secondary" onclick="closeModal('create-payroll-modal')">Cancel</button>
-                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Payroll</button>
-            </div>
-        </form>
-    </div>
-</div>
+function updateSummary(data) {
+    var total = data.reduce((s,p)=>s+(p.netPay||0),0);
+    document.getElementById('totalPayroll').textContent = 'Rs.' + total.toLocaleString();
+    document.getElementById('paidCount').textContent = data.filter(p=>p.status===3).length;
+    document.getElementById('pendingCount').textContent = data.filter(p=>p.status<3).length;
+}
 
-<!-- Generate Payroll Modal -->
-<div class="modal-overlay" id="generate-payroll-modal">
-    <div class="modal-content">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h4 style="margin: 0;"><i class="fas fa-cog"></i> Generate Payroll</h4>
-            <button class="btn-close-modal" onclick="closeModal('generate-payroll-modal')">&times;</button>
-        </div>
-        <form id="generate-payroll-form">
-            <div class="mb-3">
-                <label class="form-label">Month</label>
-                <select class="form-control" id="generate-month" required>
-                    <option value="1">January</option>
-                    <option value="2">February</option>
-                    <option value="3">March</option>
-                    <option value="4">April</option>
-                    <option value="5">May</option>
-                    <option value="6">June</option>
-                    <option value="7">July</option>
-                    <option value="8">August</option>
-                    <option value="9">September</option>
-                    <option value="10">October</option>
-                    <option value="11">November</option>
-                    <option value="12">December</option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Year</label>
-                <input type="number" class="form-control" id="generate-year" min="2000" max="2100" required>
-            </div>
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i> This will generate payroll records for all employees based on their salary and attendance data.
-            </div>
-            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                <button type="button" class="btn btn-outline-secondary" onclick="closeModal('generate-payroll-modal')">Cancel</button>
-                <button type="submit" class="btn generate-payroll-btn"><i class="fas fa-cog"></i> Generate</button>
-            </div>
-        </form>
-    </div>
-</div>
+function generatePayroll() {
+    var month = document.getElementById('payMonth').value;
+    var year = document.getElementById('payYear').value;
+    if(!confirm('Generate payroll for all employees for this period?')) return;
+    fetch('/api/payroll/generate-bulk', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({month:parseInt(month),year:parseInt(year)})}).then(r=>{
+        if(r.ok){loadPayrolls();alert('Payroll generated!');}
+        else r.text().then(t=>alert('Error: '+t));
+    }).catch(()=>alert('Failed'));
+}
 
-<!-- Approve Bonus Modal -->
-<div class="modal-overlay" id="approve-bonus-modal">
-    <div class="modal-content">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h4 style="margin: 0;"><i class="fas fa-check-circle"></i> Approve Bonus</h4>
-            <button class="btn-close-modal" onclick="closeModal('approve-bonus-modal')">&times;</button>
-        </div>
-        <form id="approve-bonus-form">
-            <input type="hidden" id="approve-payroll-id">
-            <div class="mb-3">
-                <label class="form-label">Employee</label>
-                <input type="text" class="form-control" id="approve-employee-name" readonly>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Bonus Amount</label>
-                <input type="text" class="form-control" id="approve-bonus-amount" readonly>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Approval Remarks</label>
-                <textarea class="form-control" id="approve-remarks" rows="3" placeholder="Enter approval remarks..."></textarea>
-            </div>
-            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                <button type="button" class="btn btn-outline-danger" id="btn-reject-bonus"><i class="fas fa-times"></i> Reject</button>
-                <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> Approve</button>
-            </div>
-        </form>
-    </div>
-</div>
+function editPayroll(id) {
+    fetch(`/api/payroll/${id}`).then(r=>r.json()).then(p=>{
+        document.getElementById('editPayrollId').value=p.id;
+        document.getElementById('editBaseSalary').value=p.baseSalary||0;
+        document.getElementById('editGradeAmount').value=p.gradeAmount||0;
+        document.getElementById('editOvertimePay').value=p.overtimePay||0;
+        document.getElementById('editFestival').value=p.festivalAllowance||0;
+        document.getElementById('editOtherAllow').value=p.otherAllowances||0;
+        document.getElementById('editOtherDeduct').value=p.otherDeductions||0;
+        document.getElementById('editPayrollModal').classList.add('active');
+    }).catch(()=>alert('Failed to load'));
+}
+
+function savePayroll() {
+    var id=document.getElementById('editPayrollId').value;
+    var body={baseSalary:parseFloat(document.getElementById('editBaseSalary').value),gradeAmount:parseFloat(document.getElementById('editGradeAmount').value),overtimePay:parseFloat(document.getElementById('editOvertimePay').value),festivalAllowance:parseFloat(document.getElementById('editFestival').value),otherAllowances:parseFloat(document.getElementById('editOtherAllow').value),otherDeductions:parseFloat(document.getElementById('editOtherDeduct').value)};
+    fetch(`/api/payroll/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>{
+        if(r.ok){closeModal('editPayrollModal');loadPayrolls();alert('Payroll updated!');}
+        else alert('Failed to save');
+    }).catch(()=>alert('Error'));
+}
+
+function approvePayroll(id) {
+    if(!confirm('Approve this payroll?'))return;
+    fetch(`/api/payroll/${id}/approve`,{method:'POST'}).then(r=>{if(r.ok)loadPayrolls();else alert('Failed');}).catch(()=>alert('Error'));
+}
+
+function filterPayroll() {
+    var s=document.getElementById('searchPayroll').value.toLowerCase();
+    document.querySelectorAll('#payrollBody tr[data-name]').forEach(r=>{r.style.display=(!s||r.dataset.name.includes(s))?'':'none';});
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('active');}
+</script>
+}

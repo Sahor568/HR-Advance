@@ -31,6 +31,18 @@ namespace HR_Management_System.Models
         [Required]
         public AttendanceStatus Status { get; set; }
 
+        // Location tracking
+        [Column(TypeName = "decimal(10,8)")]
+        public decimal? Latitude { get; set; }
+
+        [Column(TypeName = "decimal(11,8)")]
+        public decimal? Longitude { get; set; }
+
+        [StringLength(200)]
+        public string? LocationAddress { get; set; }
+
+        public bool IsLocationEnabled { get; set; } = false;
+
         [StringLength(500)]
         public string? Remarks { get; set; }
 

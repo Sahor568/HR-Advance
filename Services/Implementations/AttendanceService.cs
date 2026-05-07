@@ -18,7 +18,7 @@ namespace HR_Management_System.Services.Implementations
             _logger = logger;
         }
 
-        public async Task<Attendance> ClockInAsync(int employeeId)
+        public async Task<Attendance> ClockInAsync(int employeeId, decimal? latitude = null, decimal? longitude = null, string? locationAddress = null)
         {
             _logger.LogInformation("Clock-in for employee ID: {EmployeeId}", employeeId);
 
@@ -40,12 +40,16 @@ namespace HR_Management_System.Services.Implementations
                 Status = AttendanceStatus.Present,
                 OT_Hours = 0,
                 TotalHours = 0,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                Latitude = latitude,
+                Longitude = longitude,
+                LocationAddress = locationAddress,
+                IsLocationEnabled = latitude.HasValue && longitude.HasValue || !string.IsNullOrEmpty(locationAddress)
             };
 
             _context.Attendances.Add(attendance);
             await _context.SaveChangesAsync();
-            _logger.LogInformation("Clock-in successful for employee ID: {EmployeeId}", employeeId);
+            _logger.LogInformation("Clock-in successful for employee ID: {EmployeeId} with location enabled: {LocationEnabled}", employeeId, attendance.IsLocationEnabled);
             return attendance;
         }
 
@@ -132,6 +136,70 @@ namespace HR_Management_System.Services.Implementations
             var today = DateTime.UtcNow.Date;
             return await _context.Attendances
                 .FirstOrDefaultAsync(a => a.EmployeeId == employeeId && a.Date == today);
+        }
+
+        public async Task<IEnumerable<AttendanceListViewModel>> GetTodayAttendancesAsync()
+        {
+            var today = DateTime.UtcNow.Date;
+            
+            return await _context.Attendances
+                .Where(a => a.Date == today)
+                .Include(a => a.Employee)
+                .Select(a => new AttendanceListViewModel
+                {
+                    Id = a.Id,
+                    Emp_ID = a.EmployeeId.ToString(),
+                    EmployeeName = a.Employee.FullName,
+                    Date = a.Date,
+                    Clock_In = a.Clock_In,
+                    Clock_Out = a.Clock_Out,
+                    Status = a.Status.ToString(),
+                    TotalHours = a.TotalHours,
+                    OT_Hours = a.OT_Hours
+                })
+                .ToListAsync();
+        }
+
+        public async Task<Dictionary<DateTime, (int Present, int Absent)>> GetAttendanceStatsLast7DaysAsync()
+        {
+            var endDate = DateTime.UtcNow.Date;
+            var startDate = endDate.AddDays(-6);
+            
+            var activeEmployeeIds = await _context.Employees
+                .Where(e => e.IsActive)
+                .Select(e => e.Id)
+                .ToListAsync();
+            
+            var attendanceByDate = await _context.Attendances
+                .Where(a => a.Date >= startDate && a.Date <= endDate)
+                .GroupBy(a => a.Date)
+                .Select(g => new
+                {
+                    Date = g.Key,
+                    PresentCount = g.Count(a => a.Status == Models.Enums.AttendanceStatus.Present),
+                    AbsentCount = g.Count(a => a.Status == Models.Enums.AttendanceStatus.Absent)
+                })
+                .ToDictionaryAsync(
+                    x => x.Date,
+                    x => (x.PresentCount, x.AbsentCount)
+                );
+            
+            var result = new Dictionary<DateTime, (int Present, int Absent)>();
+            
+            for (var date = startDate; date <= endDate; date = date.AddDays(1))
+            {
+                if (attendanceByDate.TryGetValue(date, out var counts))
+                {
+                    result[date] = counts;
+                }
+                else
+                {
+                    // If no attendance records for this date, count all active employees as absent
+                    result[date] = (0, activeEmployeeIds.Count);
+                }
+            }
+            
+            return result;
         }
 
         public async Task<IEnumerable<WeeklyWorkHoursViewModel>> GetWeeklyWorkHoursAsync(int employeeId, DateTime? weekStart = null)

@@ -1,0 +1,157 @@
+@model HR_Management_System.Models.ViewModels.TaskExtensionRequestCreateViewModel
+
+@{
+    ViewData["Title"] = "Request Task Extension";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-action="MyTasks">My Tasks</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Request Extension</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">Request Task Extension</h1>
+            <p class="text-muted">Request an extension for task deadline with a valid reason</p>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Extension Request Form</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="RequestExtension" method="post">
+                        <input type="hidden" asp-for="TaskId" />
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Task Information</label>
+                            <div class="form-control bg-light">
+                                <strong>Task ID:</strong> @Model.TaskId<br />
+                                <strong>Task Title:</strong> @Model.TaskTitle<br />
+                                <strong>Current Deadline:</strong> @Model.CurrentDeadline.ToString("yyyy-MM-dd")<br />
+                                <strong>Assigned To:</strong> @Model.AssignedEmployeeName
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="RequestedDeadline" class="form-label">New Deadline *</label>
+                            <input type="date" asp-for="RequestedDeadline" class="form-control" 
+                                   min="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")" 
+                                   required />
+                            <span asp-validation-for="RequestedDeadline" class="text-danger"></span>
+                            <small class="form-text text-muted">The new deadline must be after the current deadline (@Model.CurrentDeadline.ToString("yyyy-MM-dd"))</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Reason" class="form-label">Reason for Extension *</label>
+                            <textarea asp-for="Reason" class="form-control" rows="4" 
+                                      placeholder="Please provide a detailed reason for the extension request..." 
+                                      required></textarea>
+                            <span asp-validation-for="Reason" class="text-danger"></span>
+                            <small class="form-text text-muted">
+                                Note: Extension requests may affect your performance rating. 
+                                Each approved extension may result in a performance deduction.
+                            </small>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <h6 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Important Notice</h6>
+                            <ul class="mb-0">
+                                <li>Extension requests require approval from your manager/HR</li>
+                                <li>Performance deduction may be applied based on extension duration</li>
+                                <li>Multiple extension requests for the same task may have additional penalties</li>
+                                <li>Provide a valid and detailed reason to increase approval chances</li>
+                            </ul>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="MyTasks" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Submit Extension Request</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i>Extension Policy</h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Performance Impact</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>0.5 points deduction per day of extension</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Maximum 10 points deduction per request</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Deduction applied only after approval</li>
+                    </ul>
+
+                    <h6 class="card-subtitle mb-2 text-muted">Approval Process</h6>
+                    <ol class="ps-3">
+                        <li class="mb-1">Submit request with valid reason</li>
+                        <li class="mb-1">Manager/HR reviews the request</li>
+                        <li class="mb-1">Notification sent upon decision</li>
+                        <li class="mb-1">Performance deduction applied if approved</li>
+                    </ol>
+
+                    <div class="alert alert-info mt-3">
+                        <small>
+                            <i class="fas fa-lightbulb me-2"></i>
+                            <strong>Tip:</strong> Request extensions well before the current deadline to avoid last-minute issues.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        $(document).ready(function() {
+            // Set minimum date to tomorrow
+            var tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            var minDate = tomorrow.toISOString().split('T')[0];
+            $('#RequestedDeadline').attr('min', minDate);
+
+            // Validate that requested deadline is after current deadline
+            $('form').submit(function(e) {
+                var requestedDate = new Date($('#RequestedDeadline').val());
+                var currentDeadline = new Date('@Model.CurrentDeadline.ToString("yyyy-MM-dd")');
+                
+                if (requestedDate <= currentDeadline) {
+                    alert('Requested deadline must be after the current deadline.');
+                    e.preventDefault();
+                    return false;
+                }
+                
+                return true;
+            });
+        });
+    </script>
+}

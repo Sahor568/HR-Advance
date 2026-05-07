@@ -84,6 +84,12 @@ namespace HR_Management_System.Data
         public DbSet<ExamAttempt> ExamAttempts { get; set; }
         public DbSet<ExamAnswer> ExamAnswers { get; set; }
 
+        // Team and Project Management Models
+        public DbSet<Team> Teams { get; set; }
+        public DbSet<TeamMember> TeamMembers { get; set; }
+        public DbSet<ProjectTask> ProjectTasks { get; set; }
+        public DbSet<TaskExtensionRequest> TaskExtensionRequests { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -103,6 +109,12 @@ namespace HR_Management_System.Data
                       .WithMany(d => d.Employees)
                       .HasForeignKey(e => e.DepartmentId)
                       .OnDelete(DeleteBehavior.SetNull);
+                
+                // Supervisor relationship (self-referencing)
+                entity.HasOne(e => e.Supervisor)
+                      .WithMany(s => s.Subordinates)
+                      .HasForeignKey(e => e.SupervisorId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Department configuration
@@ -199,6 +211,48 @@ namespace HR_Management_System.Data
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
+            // PerformanceReview configuration - fix cascade cycle
+            modelBuilder.Entity<PerformanceReview>(entity =>
+            {
+                entity.HasOne(e => e.Employee)
+                      .WithMany()
+                      .HasForeignKey(e => e.EmployeeId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                
+                entity.HasOne(e => e.Reviewer)
+                      .WithMany()
+                      .HasForeignKey(e => e.ReviewerId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // OnlineExam configuration - fix cascade cycle
+            modelBuilder.Entity<OnlineExam>(entity =>
+            {
+                entity.HasOne(e => e.Employee)
+                      .WithMany()
+                      .HasForeignKey(e => e.EmployeeId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                
+                entity.HasOne(e => e.PerformanceReview)
+                      .WithMany()
+                      .HasForeignKey(e => e.PerformanceReviewId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ExamAttempt configuration - fix cascade cycle
+            modelBuilder.Entity<ExamAttempt>(entity =>
+            {
+                entity.HasOne(e => e.OnlineExam)
+                      .WithMany()
+                      .HasForeignKey(e => e.OnlineExamId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                
+                entity.HasOne(e => e.Employee)
+                      .WithMany()
+                      .HasForeignKey(e => e.EmployeeId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
             // AuditLog configuration
             modelBuilder.Entity<AuditLog>(entity =>
             {
@@ -210,6 +264,116 @@ namespace HR_Management_System.Data
             modelBuilder.Entity<LaborAuditReport>(entity =>
             {
                 entity.HasIndex(e => e.ReportNumber).IsUnique();
+            });
+
+            // Team configuration
+            modelBuilder.Entity<Team>(entity =>
+            {
+                entity.HasIndex(e => e.Name).IsUnique();
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                
+                // Department relationship
+                entity.HasOne(e => e.Department)
+                      .WithMany()
+                      .HasForeignKey(e => e.DepartmentId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                
+                // CreatedBy relationship (Employee)
+                entity.HasOne(e => e.Creator)
+                      .WithMany()
+                      .HasForeignKey(e => e.CreatedBy)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // TeamMember configuration
+            modelBuilder.Entity<TeamMember>(entity =>
+            {
+                entity.HasIndex(e => new { e.TeamId, e.EmployeeId }).IsUnique();
+                entity.Property(e => e.JoinedAt).HasDefaultValueSql("GETUTCDATE()");
+                
+                // Team relationship
+                entity.HasOne(e => e.Team)
+                      .WithMany(t => t.TeamMembers)
+                      .HasForeignKey(e => e.TeamId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                
+                // Employee relationship
+                entity.HasOne(e => e.Employee)
+                      .WithMany()
+                      .HasForeignKey(e => e.EmployeeId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ProjectTask configuration
+            modelBuilder.Entity<ProjectTask>(entity =>
+            {
+                entity.HasIndex(e => new { e.TeamId, e.Title });
+                entity.Property(e => e.StartDate).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.Status).HasDefaultValue("Pending");
+                entity.Property(e => e.Priority).HasDefaultValue(1);
+                
+                // Team relationship
+                entity.HasOne(e => e.Team)
+                      .WithMany(t => t.Tasks)
+                      .HasForeignKey(e => e.TeamId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                
+                // AssignedTo relationship (Employee)
+                entity.HasOne(e => e.AssignedEmployee)
+                      .WithMany()
+                      .HasForeignKey(e => e.AssignedTo)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Recruitment models configuration to fix cascade cycles
+            modelBuilder.Entity<JobPosition>(entity =>
+            {
+                entity.HasIndex(e => e.PositionCode).IsUnique();
+                entity.Property(e => e.CreatedDate).HasDefaultValueSql("GETUTCDATE()");
+            });
+
+            modelBuilder.Entity<Candidate>(entity =>
+            {
+                entity.HasIndex(e => e.Email).IsUnique();
+                entity.HasIndex(e => e.Phone);
+                
+                // JobPosition relationship
+                entity.HasOne(e => e.JobPosition)
+                      .WithMany()
+                      .HasForeignKey(e => e.JobPositionId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<Interview>(entity =>
+            {
+                entity.HasIndex(e => new { e.CandidateId, e.ScheduledDate });
+                
+                // Candidate relationship
+                entity.HasOne(e => e.Candidate)
+                      .WithMany()
+                      .HasForeignKey(e => e.CandidateId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                
+                // JobPosition relationship
+                entity.HasOne(e => e.JobPosition)
+                      .WithMany()
+                      .HasForeignKey(e => e.JobPositionId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<OfferLetter>(entity =>
+            {
+                // Candidate relationship
+                entity.HasOne(e => e.Candidate)
+                      .WithMany()
+                      .HasForeignKey(e => e.CandidateId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                
+                // JobPosition relationship
+                entity.HasOne(e => e.JobPosition)
+                      .WithMany()
+                      .HasForeignKey(e => e.JobPositionId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Seed roles
@@ -252,26 +416,27 @@ namespace HR_Management_System.Data
                     await roleManager.CreateAsync(new IdentityRole(roleName));
                 }
             }
-
-            // Create default admin user if it doesn't exist
+            
+            // Create admin user if it doesn't exist
             var adminEmail = "admin@hrms.com";
             var adminUser = await userManager.FindByEmailAsync(adminEmail);
             if (adminUser == null)
             {
-                var user = new ApplicationUser
+                adminUser = new ApplicationUser
                 {
                     UserName = adminEmail,
                     Email = adminEmail,
-                    EmailConfirmed = true,
                     FullName = "System Administrator",
-                    PhoneNumber = "9800000000",
-                    CreatedAt = DateTime.Now
+                    EmailConfirmed = true,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
                 };
-
-                var createUser = await userManager.CreateAsync(user, "Admin@123");
-                if (createUser.Succeeded)
+                
+                var createResult = await userManager.CreateAsync(adminUser, "Admin@123");
+                if (createResult.Succeeded)
                 {
-                    await userManager.AddToRoleAsync(user, "Admin");
+                    await userManager.AddToRoleAsync(adminUser, "Admin");
+                    await userManager.AddToRoleAsync(adminUser, "HRManager"); // Give both roles for full access
                 }
             }
         }

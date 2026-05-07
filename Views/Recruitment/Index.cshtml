@@ -1,0 +1,168 @@
+@model IEnumerable<HR_Management_System.Models.Recruitment.JobPosition>
+
+@{
+    ViewData["Title"] = "Recruitment";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3 mb-0">Recruitment</h1>
+            <p class="text-muted">Plan, publish, analyze, engage, evaluate & hire</p>
+        </div>
+        <div class="col-auto">
+            <a href="/Recruitment/CreateJob" class="btn btn-primary">
+                <i class="fas fa-plus"></i> New Job Position
+            </a>
+            <a href="/Recruitment/Candidates" class="btn btn-outline-primary">
+                <i class="fas fa-user-tie"></i> View Candidates
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-3 mb-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Open Positions</h5>
+                    <h2 class="mb-0">@(Model?.Count(p => p.Status == HR_Management_System.Models.Recruitment.JobStatus.Open) ?? 0)</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Hired This Month</h5>
+                    <h2 class="mb-0">12</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Active Candidates</h5>
+                    <h2 class="mb-0">48</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Interviews Scheduled</h5>
+                    <h2 class="mb-0">8</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Job Positions</h5>
+        </div>
+        <div class="card-body">
+            @if (Model != null && Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover" id="jobsTable">
+                        <thead>
+                            <tr>
+                                <th>Job Title</th>
+                                <th>Department</th>
+                                <th>Type</th>
+                                <th>Vacancies</th>
+                                <th>Salary Range</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var position in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@position.PositionTitle</strong>
+                                        <br>
+                                        <small class="text-muted">@position.PositionCode</small>
+                                    </td>
+                                    <td>@position.Department</td>
+                                    <td>
+                                        <span class="badge bg-secondary">@position.PositionType</span>
+                                    </td>
+                                    <td>@position.NumberOfVacancies</td>
+                                    <td>@position.MinSalary.ToString("C") - @position.MaxSalary.ToString("C")</td>
+                                    <td>
+                                        @{
+                                            var statusClass = position.Status == HR_Management_System.Models.Recruitment.JobStatus.Open ? "success" :
+                                            position.Status == HR_Management_System.Models.Recruitment.JobStatus.Closed ? "danger" : "warning";
+                                            var statusText = position.Status.ToString();
+                                        }
+                                        <span class="badge bg-@statusClass">
+                                            @statusText
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="/Recruitment/JobDetails/@position.Id" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        <a href="/Recruitment/EditJob/@position.Id" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-briefcase fa-3x text-muted mb-3"></i>
+                    <h5>No Job Positions Found</h5>
+                    <p class="text-muted">Start by creating a new job position</p>
+                    <a href="/Recruitment/CreateJob" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create First Job
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Candidate Pipeline</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Track candidates through the recruitment pipeline from application to hire.</p>
+                    <a href="/Recruitment/Candidates" class="btn btn-outline-primary">View Pipeline</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Interview Management</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Schedule and manage interviews with candidates and interviewers.</p>
+                    <a href="/Recruitment/Interviews" class="btn btn-outline-primary">Manage Interviews</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#jobsTable').DataTable({
+                responsive: true,
+                pageLength: 10,
+                order: [[5, 'desc']]
+            });
+        });
+    </script>
+}

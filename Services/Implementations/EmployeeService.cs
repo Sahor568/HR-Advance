@@ -116,6 +116,10 @@ namespace HR_Management_System.Services.Implementations
                 FatherName = model.FatherName,
                 MotherName = model.MotherName,
                 SpouseName = model.SpouseName,
+                PhotoPath = model.PhotoPath,
+                CVPath = model.CVPath,
+                ExperienceCertificatePath = model.ExperienceCertificatePath,
+                SupervisorId = model.SupervisorId,
                 IsActive = true,
                 ProbationStatus = model.HasProbation ? ProbationStatus.Active : ProbationStatus.Completed,
                 Probation_End = model.HasProbation ? model.Join_Date.AddMonths((int)model.ProbationMonths) : null,
@@ -189,6 +193,10 @@ namespace HR_Management_System.Services.Implementations
             employee.FatherName = model.FatherName;
             employee.MotherName = model.MotherName;
             employee.SpouseName = model.SpouseName;
+            employee.PhotoPath = model.PhotoPath;
+            employee.CVPath = model.CVPath;
+            employee.ExperienceCertificatePath = model.ExperienceCertificatePath;
+            employee.SupervisorId = model.SupervisorId;
             employee.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();

@@ -1,0 +1,313 @@
+@model HR_Management_System.Models.ViewModels.TaskExtensionRequestReviewViewModel
+
+@{
+    ViewData["Title"] = "Review Extension Request";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    
+    // In a real implementation, we would get this from ViewBag or ViewData
+    var requestDetails = ViewBag.RequestDetails as HR_Management_System.Models.ViewModels.TaskExtensionRequestViewModel;
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-action="ExtensionRequests">Extension Requests</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Review Request</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">Review Extension Request</h1>
+            <p class="text-muted">Approve or reject a task extension request</p>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Extension Request Details</h5>
+                </div>
+                <div class="card-body">
+                    @if (requestDetails != null)
+                    {
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Task Information</h6>
+                                <dl class="row">
+                                    <dt class="col-sm-4">Task ID:</dt>
+                                    <dd class="col-sm-8">@requestDetails.TaskId</dd>
+                                    
+                                    <dt class="col-sm-4">Task Title:</dt>
+                                    <dd class="col-sm-8">@requestDetails.TaskTitle</dd>
+                                    
+                                    <dt class="col-sm-4">Requested By:</dt>
+                                    <dd class="col-sm-8">@requestDetails.RequestedByEmployeeName (ID: @requestDetails.RequestedByEmployeeId)</dd>
+                                </dl>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Request Details</h6>
+                                <dl class="row">
+                                    <dt class="col-sm-4">Request ID:</dt>
+                                    <dd class="col-sm-8">@requestDetails.Id</dd>
+                                    
+                                    <dt class="col-sm-4">Requested Deadline:</dt>
+                                    <dd class="col-sm-8">@requestDetails.RequestedDeadline.ToString("yyyy-MM-dd")</dd>
+                                    
+                                    <dt class="col-sm-4">Created On:</dt>
+                                    <dd class="col-sm-8">@requestDetails.CreatedAt.ToString("yyyy-MM-dd HH:mm")</dd>
+                                    
+                                    <dt class="col-sm-4">Status:</dt>
+                                    <dd class="col-sm-8">
+                                        @{
+                                            string statusClass = "";
+                                            if (requestDetails.Status == 1)
+                                            {
+                                                statusClass = "badge bg-warning";
+                                            }
+                                            else if (requestDetails.Status == 2)
+                                            {
+                                                statusClass = "badge bg-success";
+                                            }
+                                            else if (requestDetails.Status == 3)
+                                            {
+                                                statusClass = "badge bg-danger";
+                                            }
+                                            else if (requestDetails.Status == 4)
+                                            {
+                                                statusClass = "badge bg-secondary";
+                                            }
+                                            else
+                                            {
+                                                statusClass = "badge bg-secondary";
+                                            }
+                                        }
+                                        <span class="@statusClass">@requestDetails.StatusName</span>
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <h6 class="text-muted">Reason for Extension</h6>
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <p class="mb-0">@requestDetails.Reason</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (requestDetails.Status == 2 || requestDetails.Status == 3)
+                        {
+                            <div class="mb-4">
+                                <h6 class="text-muted">Review Details</h6>
+                                <div class="card @(requestDetails.Status == 2 ? "bg-success bg-opacity-10" : "bg-danger bg-opacity-10")">
+                                    <div class="card-body">
+                                        <dl class="row mb-0">
+                                            <dt class="col-sm-3">Reviewed By:</dt>
+                                            <dd class="col-sm-9">@(requestDetails.ReviewedByEmployeeName ?? "N/A")</dd>
+                                            
+                                            <dt class="col-sm-3">Reviewed At:</dt>
+                                            <dd class="col-sm-9">@(requestDetails.ReviewedAt?.ToString("yyyy-MM-dd HH:mm") ?? "N/A")</dd>
+                                            
+                                            <dt class="col-sm-3">Comments:</dt>
+                                            <dd class="col-sm-9">@(requestDetails.ReviewComments ?? "No comments provided")</dd>
+                                            
+                                            @if (requestDetails.Status == 2)
+                                            {
+                                                <dt class="col-sm-3">Performance Deduction:</dt>
+                                                <dd class="col-sm-9">
+                                                    @if (requestDetails.IsDeductionApplied)
+                                                    {
+                                                        <span class="badge bg-danger">-@requestDetails.PerformanceDeduction points</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-warning">Pending Application</span>
+                                                    }
+                                                </dd>
+                                            }
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Request details not found. The extension request may have been deleted or you don't have permission to view it.
+                        </div>
+                    }
+
+                    @if (requestDetails != null && requestDetails.Status == 1)
+                    {
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Review Decision</h5>
+                            </div>
+                            <div class="card-body">
+                                <form asp-action="ReviewExtensionRequest" method="post">
+                                    <input type="hidden" asp-for="RequestId" />
+                                    
+                                    <div class="alert alert-info">
+                                        <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Review Guidelines</h6>
+                                        <ul class="mb-0">
+                                            <li>Approving this request will extend the task deadline and apply a performance deduction</li>
+                                            <li>Rejecting will keep the original deadline unchanged</li>
+                                            <li>Provide clear comments to help the employee understand your decision</li>
+                                        </ul>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" asp-for="Approve" id="approveOption" value="true" checked>
+                                            <label class="form-check-label" for="approveOption">
+                                                <span class="badge bg-success">Approve</span> - Grant extension with performance deduction
+                                            </label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" asp-for="Approve" id="rejectOption" value="false">
+                                            <label class="form-check-label" for="rejectOption">
+                                                <span class="badge bg-danger">Reject</span> - Keep original deadline
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label asp-for="Comments" class="form-label">Comments (Optional)</label>
+                                        <textarea asp-for="Comments" class="form-control" rows="4" 
+                                                  placeholder="Provide feedback or reason for your decision..."></textarea>
+                                        <span asp-validation-for="Comments" class="text-danger"></span>
+                                    </div>
+
+                                    <div class="alert alert-warning" id="approveWarning" style="display: none;">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <strong>Performance Impact:</strong> Approving this request will apply a performance deduction of 0.5 points per day of extension (maximum 10 points).
+                                    </div>
+
+                                    <div class="d-flex justify-content-between">
+                                        <a asp-action="ExtensionRequests" class="btn btn-secondary">Back to List</a>
+                                        <button type="submit" class="btn btn-primary">Submit Review</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                    else if (requestDetails != null)
+                    {
+                        <div class="text-center mt-4">
+                            <a asp-action="ExtensionRequests" class="btn btn-secondary">Back to Extension Requests</a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-calculator me-2"></i>Performance Impact Calculator</h5>
+                </div>
+                <div class="card-body">
+                    @if (requestDetails != null)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Extension Duration (days)</label>
+                            <input type="number" id="extensionDays" class="form-control" min="1" max="30" value="7" />
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Performance Deduction</label>
+                            <div class="input-group">
+                                <input type="text" id="deductionPoints" class="form-control" readonly value="3.5" />
+                                <span class="input-group-text">points</span>
+                            </div>
+                            <small class="form-text text-muted">0.5 points per day, maximum 10 points</small>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading mb-2">Formula</h6>
+                            <p class="mb-1">Deduction = min(Extension Days × 0.5, 10)</p>
+                            <p class="mb-0"><small>Example: 7 days × 0.5 = 3.5 points</small></p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-3">
+                            <i class="fas fa-calculator fa-2x text-muted mb-3"></i>
+                            <p class="text-muted">Request details required to calculate performance impact</p>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-history me-2"></i>Recent Activity</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-user-clock text-primary me-2"></i>
+                            <span>Request submitted on @(requestDetails?.CreatedAt.ToString("MMM dd, yyyy") ?? "N/A")</span>
+                        </li>
+                        @if (requestDetails?.ReviewedAt.HasValue == true)
+                        {
+                            <li class="mb-2">
+                                <i class="fas fa-check-circle @(requestDetails.Status == 2 ? "text-success" : "text-danger") me-2"></i>
+                                <span>Reviewed on @requestDetails.ReviewedAt.Value.ToString("MMM dd, yyyy")</span>
+                            </li>
+                        }
+                        @if (requestDetails?.IsDeductionApplied == true)
+                        {
+                            <li class="mb-2">
+                                <i class="fas fa-chart-line text-warning me-2"></i>
+                                <span>Performance deduction applied</span>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        $(document).ready(function() {
+            // Show/hide warning based on selection
+            $('input[name="Approve"]').change(function() {
+                if ($('#approveOption').is(':checked')) {
+                    $('#approveWarning').show();
+                } else {
+                    $('#approveWarning').hide();
+                }
+            });
+            
+            // Trigger initial state
+            $('input[name="Approve"]:checked').trigger('change');
+            
+            // Performance calculator
+            $('#extensionDays').on('input', function() {
+                var days = parseInt($(this).val()) || 0;
+                var deduction = Math.min(days * 0.5, 10);
+                $('#deductionPoints').val(deduction.toFixed(1));
+            });
+            
+            // Initialize calculator
+            $('#extensionDays').trigger('input');
+        });
+    </script>
+}

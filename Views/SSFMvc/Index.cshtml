@@ -1,0 +1,151 @@
+@{
+    ViewData["Title"] = "SSF Management";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="page-title-box">
+                <h4 class="page-title">SSF Management</h4>
+                <p class="text-muted">Social Security Fund - Contribution tracking and management</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="avatar-sm rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center">
+                                <i class="fas fa-wallet fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h5 class="card-title mb-1">Balance Inquiry</h5>
+                            <p class="text-muted mb-0">Check SSF balance for employees</p>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <a href="@Url.Action("Balance", "SSFMvc")" class="btn btn-primary w-100">View Balance</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="avatar-sm rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center">
+                                <i class="fas fa-history fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h5 class="card-title mb-1">Contribution History</h5>
+                            <p class="text-muted mb-0">View detailed contribution history</p>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <a href="@Url.Action("History", "SSFMvc")" class="btn btn-success w-100">View History</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="avatar-sm rounded-circle bg-info bg-opacity-10 text-info d-flex align-items-center justify-content-center">
+                                <i class="fas fa-chart-pie fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h5 class="card-title mb-1">Contribution Analysis</h5>
+                            <p class="text-muted mb-0">Employee vs Employer contributions</p>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <a href="@Url.Action("Contributions", "SSFMvc")" class="btn btn-info w-100">View Analysis</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="d-grid gap-2">
+                                <a href="@Url.Action("Dashboard", "SSFMvc")" class="btn btn-outline-primary">
+                                    <i class="fas fa-tachometer-alt me-2"></i>SSF Dashboard
+                                </a>
+                                <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#employeeSearchModal">
+                                    <i class="fas fa-search me-2"></i>Find Employee SSF
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="alert alert-info">
+                                <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i>SSF Information</h6>
+                                <p class="mb-0">Social Security Fund (SSF) is a mandatory contribution scheme for employees and employers in Nepal. The current contribution rate is 11% from employee and 20% from employer of basic salary.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Employee Search Modal -->
+<div class="modal fade" id="employeeSearchModal" tabindex="-1" aria-labelledby="employeeSearchModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="employeeSearchModalLabel">Search Employee SSF</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="employeeSearchForm" method="get" action="@Url.Action("Balance", "SSFMvc")">
+                    <div class="mb-3">
+                        <label for="employeeId" class="form-label">Employee ID</label>
+                        <input type="number" class="form-control" id="employeeId" name="employeeId" required min="1" placeholder="Enter employee ID">
+                        <div class="form-text">Enter the employee ID to view their SSF information</div>
+                    </div>
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Search</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize any SSF-specific scripts
+            $('#employeeSearchForm').on('submit', function(e) {
+                const employeeId = $('#employeeId').val();
+                if (!employeeId || employeeId < 1) {
+                    e.preventDefault();
+                    alert('Please enter a valid employee ID');
+                    return false;
+                }
+            });
+        });
+    </script>
+}

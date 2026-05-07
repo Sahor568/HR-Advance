@@ -1,124 +1,185 @@
 @{
-    ViewData["Title"] = "Attendance Management";
+    ViewData["Title"] = "Attendance";
+    var isAdminOrHR = User.IsInRole("Admin") || User.IsInRole("HRManager");
 }
 
 <div class="page-header">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
+    <h1 class="page-title">Attendance</h1>
+    <p class="page-subtitle">Track daily attendance with Nepal date and location</p>
+</div>
+
+<!-- Check In/Out Section -->
+<div class="card mb-3">
+    <div class="card-body" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
         <div>
-            <h1 class="page-title">Attendance Management</h1>
-            <p class="page-subtitle">Track and manage employee attendance</p>
+            <div style="font-size:0.8rem;color:var(--secondary);">Today</div>
+            <div style="font-size:1.1rem;font-weight:600;" id="todayDateDisplay">--</div>
+            <div style="font-size:0.8rem;color:var(--secondary);" id="nepaliDateDisplay">Nepal Date: --</div>
+            <div style="font-size:0.75rem;color:var(--secondary);margin-top:0.25rem;" id="locationDisplay"><i class="fas fa-map-marker-alt"></i> Detecting location...</div>
         </div>
-        <button class="btn btn-primary" onclick="openMarkAttendanceModal()" id="mark-attendance-btn" style="display:none;">
-            <i class="fas fa-plus"></i> Mark Attendance
-        </button>
+        <div style="display:flex;align-items:center;gap:1rem;">
+            <div style="text-align:center;">
+                <div style="font-size:0.7rem;color:var(--secondary);">Clock In</div>
+                <div style="font-size:1.1rem;font-weight:600;color:var(--success);" id="clockInTime">--:--</div>
+            </div>
+            <div style="text-align:center;">
+                <div style="font-size:0.7rem;color:var(--secondary);">Clock Out</div>
+                <div style="font-size:1.1rem;font-weight:600;color:var(--danger);" id="clockOutTime">--:--</div>
+            </div>
+            <div style="text-align:center;">
+                <div style="font-size:0.7rem;color:var(--secondary);">Total Hours</div>
+                <div style="font-size:1.1rem;font-weight:600;" id="totalHours">0h 0m</div>
+            </div>
+        </div>
+        <div style="display:flex;gap:0.75rem;">
+            <button class="btn-success" id="checkInBtn" onclick="clockIn()"><i class="fas fa-sign-in-alt"></i> Check In</button>
+            <button class="btn-danger" id="checkOutBtn" onclick="clockOut()" disabled><i class="fas fa-sign-out-alt"></i> Check Out</button>
+        </div>
     </div>
 </div>
 
-<!-- Check-In/Check-Out Area -->
-<div class="check-in-area" id="checkInArea" style="display: none;">
-    <div class="check-in-time" id="greeting">Good Morning! Time to Check In</div>
-    <div class="time-display" id="currentTime">00:00:00</div>
-    <div class="check-btn-group">
-        <button class="btn" style="background: rgba(255,255,255,0.2); border: 2px solid white; color: white;" onclick="checkIn()" id="checkInBtn">
-            <i class="fas fa-sign-in-alt"></i> Check In
-        </button>
-        <button class="btn" style="background: rgba(255,255,255,0.2); border: 2px solid white; color: white;" onclick="checkOut()" id="checkOutBtn">
-            <i class="fas fa-sign-out-alt"></i> Check Out
-        </button>
-    </div>
-    <div class="check-status" id="checkStatus"></div>
-</div>
-
-<!-- Attendance Statistics -->
-<div class="attendance-stats">
-    <div class="stat-card">
-        <i class="fas fa-check-circle" style="color: var(--success-color); font-size: 1.5rem;"></i>
-        <div class="stat-number" style="color: var(--success-color);" id="stat-present">--</div>
-        <div class="stat-label">Present Today</div>
-    </div>
-    <div class="stat-card">
-        <i class="fas fa-times-circle" style="color: var(--danger-color); font-size: 1.5rem;"></i>
-        <div class="stat-number" style="color: var(--danger-color);" id="stat-absent">--</div>
-        <div class="stat-label">Absent Today</div>
-    </div>
-    <div class="stat-card">
-        <i class="fas fa-clock" style="color: var(--warning-color); font-size: 1.5rem;"></i>
-        <div class="stat-number" style="color: var(--warning-color);" id="stat-late">--</div>
-        <div class="stat-label">Late Today</div>
-    </div>
-    <div class="stat-card">
-        <i class="fas fa-percentage" style="color: var(--primary-color); font-size: 1.5rem;"></i>
-        <div class="stat-number" style="color: var(--primary-color);" id="stat-rate">--</div>
-        <div class="stat-label">Attendance Rate</div>
-    </div>
-</div>
-
-<!-- Filters -->
-<div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
-    <input type="date" class="form-control" id="filterDate" style="max-width: 150px;">
-    <select class="form-control" id="filterStatus" style="max-width: 150px;" onchange="loadAttendance()">
-        <option value="">All Status</option>
-        <option value="Present">Present</option>
-        <option value="Absent">Absent</option>
-        <option value="Late">Late</option>
-    </select>
+<!-- Stats -->
+<div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
+    <div class="kpi-card"><div class="kpi-icon green"><i class="fas fa-check"></i></div><div class="kpi-info"><div class="kpi-value" id="statPresent">0</div><div class="kpi-label">Present (Month)</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon red"><i class="fas fa-times"></i></div><div class="kpi-info"><div class="kpi-value" id="statAbsent">0</div><div class="kpi-label">Absent</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon orange"><i class="fas fa-clock"></i></div><div class="kpi-info"><div class="kpi-value" id="statLate">0</div><div class="kpi-label">Late</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon blue"><i class="fas fa-hourglass-half"></i></div><div class="kpi-info"><div class="kpi-value" id="statHours">0h</div><div class="kpi-label">Total Hours</div></div></div>
 </div>
 
 <!-- Attendance Records -->
-<div class="card">
-    <div class="card-header">
-        <h5 style="margin: 0;">
-            <i class="fas fa-list"></i> Attendance Records
-        </h5>
-    </div>
-    <div class="card-body" style="padding: 0;">
-        <div style="max-height: 600px; overflow-y: auto;" id="attendance-records">
-            <div style="text-align:center;padding:3rem;color:var(--text-light);">
-                <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
-                <p style="margin-top:1rem;">Loading attendance records...</p>
-            </div>
+<div class="table-container">
+    <div class="table-header">
+        <h3 style="font-size:1rem;font-weight:600;margin:0;">Attendance Records</h3>
+        <div class="filter-bar">
+            <input type="date" class="form-control" id="dateFrom" />
+            <input type="date" class="form-control" id="dateTo" />
+            <button class="btn-secondary btn-sm" onclick="loadRecords()"><i class="fas fa-filter"></i> Filter</button>
         </div>
     </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Nepal Date</th>
+                @if (isAdminOrHR) { <th>Employee</th> }
+                <th>Clock In</th>
+                <th>Clock Out</th>
+                <th>Total Hours</th>
+                <th>OT Hours</th>
+                <th>Location</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="attendanceBody">
+            <tr><td colspan="9" class="text-center" style="padding:2rem;">Loading...</td></tr>
+        </tbody>
+    </table>
 </div>
 
-<!-- Mark Attendance Modal (Admin/HR) -->
-<div class="modal-overlay" id="attendanceModal">
-    <div class="modal-box">
-        <div class="modal-header">
-            <h5 style="margin:0;">Mark Attendance</h5>
-            <button onclick="closeAttendanceModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="form-group" style="margin-bottom:1rem;">
-                <label>Employee <span style="color:red;">*</span></label>
-                <select class="form-control" id="attEmployeeId">
-                    <option value="">Select Employee</option>
-                </select>
-            </div>
-            <div class="form-group" style="margin-bottom:1rem;">
-                <label>Date <span style="color:red;">*</span></label>
-                <input type="date" class="form-control" id="attDate">
-            </div>
-            <div class="form-group" style="margin-bottom:1rem;">
-                <label>Status <span style="color:red;">*</span></label>
-                <select class="form-control" id="attStatus">
-                    <option value="Present">Present</option>
-                    <option value="Absent">Absent</option>
-                    <option value="Late">Late</option>
-                </select>
-            </div>
-            <div class="form-group" style="margin-bottom:1rem;">
-                <label>Check In Time</label>
-                <input type="time" class="form-control" id="attCheckIn">
-            </div>
-            <div class="form-group" style="margin-bottom:1rem;">
-                <label>Check Out Time</label>
-                <input type="time" class="form-control" id="attCheckOut">
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-outline-secondary" onclick="closeAttendanceModal()">Cancel</button>
-            <button class="btn btn-primary" onclick="markAttendance()">Save</button>
-        </div>
-    </div>
-</div>
+@section Scripts {
+<script>
+var userLat = null, userLng = null, userLocation = 'Unknown';
+
+document.addEventListener('DOMContentLoaded', function() {
+    var today = new Date();
+    document.getElementById('todayDateDisplay').textContent = today.toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+    document.getElementById('dateFrom').value = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+    document.getElementById('dateTo').value = today.toISOString().split('T')[0];
+
+    getLocation();
+    loadTodayAttendance();
+    loadRecords();
+});
+
+function getLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(pos) {
+            userLat = pos.coords.latitude;
+            userLng = pos.coords.longitude;
+            userLocation = userLat.toFixed(4) + ', ' + userLng.toFixed(4);
+            document.getElementById('locationDisplay').innerHTML = '<i class="fas fa-map-marker-alt"></i> ' + userLocation;
+        }, function() {
+            document.getElementById('locationDisplay').innerHTML = '<i class="fas fa-map-marker-alt"></i> Location unavailable';
+        });
+    }
+}
+
+function loadTodayAttendance() {
+    fetch('/api/attendance/today').then(r=>r.json()).then(data => {
+        if (data && data.clockInTime) {
+            document.getElementById('clockInTime').textContent = formatTime(data.clockInTime);
+            document.getElementById('checkInBtn').disabled = true;
+            document.getElementById('checkOutBtn').disabled = false;
+            if (data.clockOutTime) {
+                document.getElementById('clockOutTime').textContent = formatTime(data.clockOutTime);
+                document.getElementById('checkOutBtn').disabled = true;
+                document.getElementById('totalHours').textContent = (data.totalHours||0).toFixed(1) + 'h';
+            }
+        }
+    }).catch(()=>{});
+}
+
+function clockIn() {
+    var body = { latitude: userLat, longitude: userLng, location: userLocation };
+    fetch('/api/attendance/clock-in', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }).then(r=>{
+        if(r.ok) { loadTodayAttendance(); loadRecords(); alert('Checked in successfully!'); }
+        else r.text().then(t=>alert('Error: '+t));
+    }).catch(()=>alert('Failed to check in'));
+}
+
+function clockOut() {
+    var body = { latitude: userLat, longitude: userLng, location: userLocation };
+    fetch('/api/attendance/clock-out', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }).then(r=>{
+        if(r.ok) { loadTodayAttendance(); loadRecords(); alert('Checked out successfully!'); }
+        else r.text().then(t=>alert('Error: '+t));
+    }).catch(()=>alert('Failed to check out'));
+}
+
+function loadRecords() {
+    var from = document.getElementById('dateFrom').value;
+    var to = document.getElementById('dateTo').value;
+    var url = '/api/attendance/range?from='+from+'&to='+to;
+    fetch(url).then(r=>r.json()).then(data => {
+        renderRecords(data);
+        updateStats(data);
+    }).catch(()=>{ document.getElementById('attendanceBody').innerHTML='<tr><td colspan="9" class="text-center">Failed to load</td></tr>'; });
+}
+
+function renderRecords(data) {
+    var tbody = document.getElementById('attendanceBody');
+    var isHR = @(isAdminOrHR ? "true" : "false");
+    if(!data||data.length===0){tbody.innerHTML='<tr><td colspan="9"><div class="empty-state"><i class="fas fa-clock"></i><h4>No records</h4></div></td></tr>';return;}
+    var statuses=['Present','Absent','HalfDay','OnLeave','Holiday','Weekend'];
+    tbody.innerHTML=data.map(a=>{
+        var status=statuses[a.status]||'Unknown';
+        var badge=a.status===0?'badge-success':a.status===1?'badge-danger':a.status===4?'badge-info':'badge-warning';
+        return `<tr>
+            <td>${a.date?new Date(a.date).toLocaleDateString():'-'}</td>
+            <td style="font-size:0.75rem;">${a.nepaliDate||'-'}</td>
+            ${isHR?'<td>'+(a.employeeName||'-')+'</td>':''}
+            <td>${a.clockInTime?formatTime(a.clockInTime):'-'}</td>
+            <td>${a.clockOutTime?formatTime(a.clockOutTime):'-'}</td>
+            <td>${a.totalHours?(a.totalHours).toFixed(1)+'h':'-'}</td>
+            <td>${a.otHours?(a.otHours).toFixed(1)+'h':'0'}</td>
+            <td style="font-size:0.75rem;">${a.remarks||'-'}</td>
+            <td><span class="badge-status ${badge}">${status}</span></td>
+        </tr>`;
+    }).join('');
+}
+
+function updateStats(data) {
+    if(!data)return;
+    document.getElementById('statPresent').textContent = data.filter(a=>a.status===0).length;
+    document.getElementById('statAbsent').textContent = data.filter(a=>a.status===1).length;
+    document.getElementById('statLate').textContent = data.filter(a=>a.status===2).length;
+    var totalH = data.reduce((s,a)=>s+(a.totalHours||0),0);
+    document.getElementById('statHours').textContent = totalH.toFixed(0)+'h';
+}
+
+function formatTime(t) {
+    if(!t) return '--:--';
+    var d = new Date(t);
+    return d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+}
+</script>
+}

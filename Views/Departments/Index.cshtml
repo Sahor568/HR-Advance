@@ -1,87 +1,154 @@
 @{
-    ViewData["Title"] = "Departments Management";
+    ViewData["Title"] = "Departments";
+    var isAdminOrHR = User.IsInRole("Admin") || User.IsInRole("HRManager");
 }
 
-<div class="page-header">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <h1 class="page-title">Departments Management</h1>
-            <p class="page-subtitle">Manage all departments in your organization</p>
-        </div>
-        <button class="btn btn-primary" onclick="openAddModal()">
-            <i class="fas fa-plus"></i> Add Department
-        </button>
+<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+        <h1 class="page-title">Departments & Positions</h1>
+        <p class="page-subtitle">Manage organizational structure</p>
     </div>
+    @if (isAdminOrHR)
+    {
+        <button class="btn-primary" onclick="openAddDept()"><i class="fas fa-plus"></i> Add Department</button>
+    }
 </div>
 
-<!-- View Toggle -->
-<div class="view-toggle">
-    <button class="active" data-view="card" onclick="switchView('card')">
-        <i class="fas fa-th"></i> Card View
-    </button>
-    <button data-view="list" onclick="switchView('list')">
-        <i class="fas fa-list"></i> List View
-    </button>
-</div>
+<!-- Department Cards -->
+<div id="deptGrid" class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-bottom:1.5rem;"></div>
 
-<!-- Card View -->
-<div class="department-grid" id="card-view"></div>
-
-<!-- List View Table (Hidden by default) -->
-<div id="list-view" style="display: none;">
-    <div class="card">
-        <div class="card-body" style="padding: 0;">
-            <div style="overflow-x: auto;">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Department Name</th>
-                            <th>Employees</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dept-table-body"></tbody>
-                </table>
-            </div>
-        </div>
+<!-- Department Table -->
+<div class="table-container">
+    <div class="table-header">
+        <h3 style="font-size:1rem;font-weight:600;margin:0;">All Departments</h3>
     </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Department</th>
+                <th>Code</th>
+                <th>Head</th>
+                <th>Employees</th>
+                <th>Status</th>
+                @if (isAdminOrHR) { <th>Actions</th> }
+            </tr>
+        </thead>
+        <tbody id="deptBody">
+            <tr><td colspan="6" class="text-center" style="padding:2rem;">Loading...</td></tr>
+        </tbody>
+    </table>
 </div>
 
 <!-- Add/Edit Department Modal -->
+@if (isAdminOrHR)
+{
 <div class="modal-overlay" id="deptModal">
     <div class="modal-box">
         <div class="modal-header">
-            <h5 id="deptModalTitle" style="margin:0;">Add Department</h5>
-            <button onclick="closeModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;">&times;</button>
+            <h3 id="deptModalTitle">Add Department</h3>
+            <button class="modal-close" onclick="closeModal('deptModal')">&times;</button>
         </div>
         <div class="modal-body">
-            <input type="hidden" id="deptId">
-            <div class="form-group" style="margin-bottom:1rem;">
-                <label>Department Name <span style="color:red;">*</span></label>
-                <input type="text" class="form-control" id="deptName" placeholder="Enter department name" required>
+            <form id="deptForm">
+                <input type="hidden" id="deptId" />
+                <div class="form-group"><label class="form-label">Department Name *</label><input type="text" class="form-control" id="deptName" required /></div>
+                <div class="form-group"><label class="form-label">Code *</label><input type="text" class="form-control" id="deptCode" required placeholder="e.g. IT, HR, FIN" /></div>
+                <div class="form-group"><label class="form-label">Department Head</label><input type="text" class="form-control" id="deptHead" /></div>
+                <div class="form-group"><label class="form-label">Description</label><textarea class="form-control" id="deptDesc" rows="2"></textarea></div>
+                <div class="form-group">
+                    <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;cursor:pointer;">
+                        <input type="checkbox" id="deptActive" checked /> Active
+                    </label>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeModal('deptModal')">Cancel</button>
+            <button class="btn-primary" onclick="saveDept()"><i class="fas fa-save"></i> Save</button>
+        </div>
+    </div>
+</div>
+}
+
+@section Scripts {
+<script>
+var isAdminOrHR = @(isAdminOrHR ? "true" : "false");
+document.addEventListener('DOMContentLoaded', loadDepartments);
+
+function loadDepartments() {
+    fetch('/api/departments').then(r=>r.json()).then(data => {
+        renderDeptCards(data);
+        renderDeptTable(data);
+    }).catch(()=>{ document.getElementById('deptBody').innerHTML='<tr><td colspan="6" class="text-center">Failed to load</td></tr>'; });
+}
+
+function renderDeptCards(data) {
+    var grid=document.getElementById('deptGrid');
+    if(!data||data.length===0){grid.innerHTML='';return;}
+    var colors=['blue','green','purple','orange','teal','red'];
+    grid.innerHTML=data.slice(0,6).map((d,i)=>`
+        <div class="kpi-card">
+            <div class="kpi-icon ${colors[i%colors.length]}"><i class="fas fa-building"></i></div>
+            <div class="kpi-info">
+                <div class="kpi-value" style="font-size:1.1rem;">${d.name}</div>
+                <div class="kpi-label">${d.employeeCount||0} employees | Head: ${d.departmentHead||'N/A'}</div>
             </div>
         </div>
-        <div class="modal-footer">
-            <button class="btn btn-outline-secondary" onclick="closeModal()">Cancel</button>
-            <button class="btn btn-primary" onclick="saveDepartment()">Save</button>
-        </div>
-    </div>
-</div>
+    `).join('');
+}
 
-<!-- Delete Confirmation Modal -->
-<div class="modal-overlay" id="deleteModal">
-    <div class="modal-box" style="max-width:400px;">
-        <div class="modal-header">
-            <h5 style="margin:0;color:var(--danger-color);">Confirm Delete</h5>
-            <button onclick="closeDeleteModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;">&times;</button>
-        </div>
-        <div class="modal-body">
-            <p>Are you sure you want to delete <strong id="deleteDeptName"></strong>?</p>
-            <p style="color:var(--text-light);font-size:0.9rem;">This action cannot be undone.</p>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-outline-secondary" onclick="closeDeleteModal()">Cancel</button>
-            <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
-        </div>
-    </div>
-</div>
+function renderDeptTable(data) {
+    var tbody=document.getElementById('deptBody');
+    if(!data||data.length===0){tbody.innerHTML='<tr><td colspan="6"><div class="empty-state"><i class="fas fa-sitemap"></i><h4>No departments</h4></div></td></tr>';return;}
+    tbody.innerHTML=data.map(d=>`
+        <tr>
+            <td style="font-weight:500;">${d.name}</td>
+            <td><span class="badge-status badge-secondary">${d.code||'-'}</span></td>
+            <td>${d.departmentHead||'-'}</td>
+            <td>${d.employeeCount||0}</td>
+            <td><span class="badge-status ${d.isActive?'badge-success':'badge-danger'}">${d.isActive?'Active':'Inactive'}</span></td>
+            ${isAdminOrHR?`<td><div class="d-flex gap-1"><button class="btn-icon" title="Edit" onclick="editDept(${d.id})"><i class="fas fa-edit"></i></button><button class="btn-icon" title="Delete" onclick="deleteDept(${d.id})"><i class="fas fa-trash"></i></button></div></td>`:'<td></td>'}
+        </tr>
+    `).join('');
+}
+
+function openAddDept() {
+    document.getElementById('deptModalTitle').textContent='Add Department';
+    document.getElementById('deptForm').reset();
+    document.getElementById('deptId').value='';
+    document.getElementById('deptActive').checked=true;
+    document.getElementById('deptModal').classList.add('active');
+}
+
+function editDept(id) {
+    fetch(`/api/departments/${id}`).then(r=>r.json()).then(d=>{
+        document.getElementById('deptModalTitle').textContent='Edit Department';
+        document.getElementById('deptId').value=d.id;
+        document.getElementById('deptName').value=d.name||'';
+        document.getElementById('deptCode').value=d.code||'';
+        document.getElementById('deptHead').value=d.departmentHead||'';
+        document.getElementById('deptDesc').value=d.description||'';
+        document.getElementById('deptActive').checked=d.isActive!==false;
+        document.getElementById('deptModal').classList.add('active');
+    }).catch(()=>alert('Failed'));
+}
+
+function saveDept() {
+    var id=document.getElementById('deptId').value;
+    var body={name:document.getElementById('deptName').value,code:document.getElementById('deptCode').value,departmentHead:document.getElementById('deptHead').value,description:document.getElementById('deptDesc').value,isActive:document.getElementById('deptActive').checked};
+    var url=id?`/api/departments/${id}`:'/api/departments';
+    var method=id?'PUT':'POST';
+    fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>{
+        if(r.ok){closeModal('deptModal');loadDepartments();alert('Department saved!');}
+        else r.text().then(t=>alert('Error: '+t));
+    }).catch(()=>alert('Failed'));
+}
+
+function deleteDept(id) {
+    if(!confirm('Delete this department?'))return;
+    fetch(`/api/departments/${id}`,{method:'DELETE'}).then(r=>{if(r.ok)loadDepartments();else alert('Failed');}).catch(()=>alert('Error'));
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('active');}
+</script>
+}

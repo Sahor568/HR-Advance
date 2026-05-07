@@ -159,9 +159,22 @@ namespace HR_Management_System.Models
         [StringLength(500)]
         public string? PhotoPath { get; set; }
 
+        // KYC Documents
+        [StringLength(500)]
+        public string? CVPath { get; set; }
+
+        [StringLength(500)]
+        public string? ExperienceCertificatePath { get; set; }
+
         // Audit
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
+
+        // Supervisor relationship (optional)
+        public int? SupervisorId { get; set; }
+
+        [ForeignKey("SupervisorId")]
+        public virtual Employee? Supervisor { get; set; }
 
         // Navigation Properties
         public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
@@ -173,5 +186,6 @@ namespace HR_Management_System.Models
         public virtual ICollection<AccidentLog> AccidentLogs { get; set; } = new List<AccidentLog>();
         public virtual ICollection<MedicalInsuranceClaim> MedicalInsuranceClaims { get; set; } = new List<MedicalInsuranceClaim>();
         public virtual ICollection<SSFRecord> SSFRecords { get; set; } = new List<SSFRecord>();
+        public virtual ICollection<Employee> Subordinates { get; set; } = new List<Employee>();
     }
 }

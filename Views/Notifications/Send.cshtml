@@ -1,0 +1,122 @@
+@{
+    ViewData["Title"] = "Send Notification";
+}
+
+@model HR_Management_System.Controllers.SendNotificationViewModel
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Send Notification</h1>
+        <p class="page-subtitle">Send custom notifications to employees</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Send" method="post" id="notificationForm">
+            @Html.AntiForgeryToken()
+            
+            <div class="form-group">
+                <label asp-for="Title" class="form-label">Title *</label>
+                <input asp-for="Title" class="form-control" placeholder="Enter notification title" />
+                <span asp-validation-for="Title" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Message" class="form-label">Message *</label>
+                <textarea asp-for="Message" class="form-control" rows="5" placeholder="Enter notification message"></textarea>
+                <span asp-validation-for="Message" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="NotificationType" class="form-label">Notification Type</label>
+                <select asp-for="NotificationType" class="form-control">
+                    <option value="Info">Information</option>
+                    <option value="Success">Success</option>
+                    <option value="Warning">Warning</option>
+                    <option value="Error">Error</option>
+                    <option value="Approval">Approval</option>
+                    <option value="Reminder">Reminder</option>
+                    <option value="Alert">Alert</option>
+                    <option value="System">System</option>
+                </select>
+                <span asp-validation-for="NotificationType" class="text-danger"></span>
+            </div>
+
+            <hr class="my-4" />
+
+            <h5 class="mb-3">Recipients</h5>
+
+            <div class="form-check mb-3">
+                <input asp-for="SendToAllEmployees" class="form-check-input" id="sendToAll" />
+                <label class="form-check-label" for="sendToAll">
+                    Send to all active employees
+                </label>
+            </div>
+
+            <div class="form-group" id="departmentGroup">
+                <label asp-for="DepartmentId" class="form-label">Send to specific department</label>
+                <select asp-for="DepartmentId" class="form-control" asp-items="Model.AvailableDepartments">
+                    <option value="">-- Select Department --</option>
+                </select>
+                <span asp-validation-for="DepartmentId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group" id="employeeGroup">
+                <label asp-for="SelectedEmployeeIds" class="form-label">Or select specific employees</label>
+                <select asp-for="SelectedEmployeeIds" class="form-control select2-multiple" multiple="multiple" asp-items="Model.AvailableEmployees">
+                </select>
+                <span asp-validation-for="SelectedEmployeeIds" class="text-danger"></span>
+                <small class="form-text text-muted">Hold Ctrl (or Cmd) to select multiple employees.</small>
+            </div>
+
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> Notification will be sent to:
+                <ul class="mb-0 mt-2">
+                    <li>All active employees (if "Send to all" is checked)</li>
+                    <li>Employees in selected department (if department is selected)</li>
+                    <li>Specific selected employees (if any are selected)</li>
+                </ul>
+                <strong>Priority: Send to all > Department > Specific employees</strong>
+            </div>
+
+            <div class="form-group mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-paper-plane"></i> Send Notification
+                </button>
+                <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sendToAllCheckbox = document.getElementById('sendToAll');
+            const departmentGroup = document.getElementById('departmentGroup');
+            const employeeGroup = document.getElementById('employeeGroup');
+
+            function updateVisibility() {
+                if (sendToAllCheckbox.checked) {
+                    departmentGroup.style.display = 'none';
+                    employeeGroup.style.display = 'none';
+                } else {
+                    departmentGroup.style.display = 'block';
+                    employeeGroup.style.display = 'block';
+                }
+            }
+
+            sendToAllCheckbox.addEventListener('change', updateVisibility);
+            updateVisibility();
+
+            // Initialize Select2 for multi-select
+            if (typeof $ !== 'undefined' && $.fn.select2) {
+                $('.select2-multiple').select2({
+                    placeholder: "Select employees",
+                    allowClear: true
+                });
+            }
+        });
+    </script>
+}

@@ -1,0 +1,226 @@
+@model IEnumerable<HR_Management_System.Models.ViewModels.ProjectTaskViewModel>
+
+@{
+    ViewData["Title"] = "My Tasks";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3 mb-0">My Tasks</h1>
+            <p class="text-muted">Tasks assigned to you across all teams</p>
+        </div>
+        <div class="col-auto">
+            <a asp-action="MyTeams" class="btn btn-outline-primary">
+                <i class="fas fa-users"></i> View My Teams
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-tasks fa-4x text-muted mb-4"></i>
+                <h4 class="text-muted">No tasks assigned to you yet</h4>
+                <p class="text-muted">When tasks are assigned to you, they will appear here.</p>
+                <a asp-action="MyTeams" class="btn btn-outline-primary">View My Teams</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Total Tasks</h6>
+                        <h2 class="mb-0">@Model.Count()</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Completed</h6>
+                        <h2 class="mb-0">@Model.Count(t => t.Status == "Completed")</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">In Progress</h6>
+                        <h2 class="mb-0">@Model.Count(t => t.Status == "In Progress")</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Overdue</h6>
+                        <h2 class="mb-0">@Model.Count(t => t.IsOverdue)</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="tasksTable">
+                        <thead>
+                            <tr>
+                                <th>Task Title</th>
+                                <th>Team</th>
+                                <th>Start Date</th>
+                                <th>Deadline</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var task in Model)
+                            {
+                                <tr class="@(task.IsOverdue ? "table-danger" : "")">
+                                    <td>
+                                        <strong>@task.Title</strong>
+                                        @if (!string.IsNullOrEmpty(task.Description))
+                                        {
+                                            <br />
+                                            <small class="text-muted">@task.Description</small>
+                                        }
+                                    </td>
+                                    <td>@task.TeamName</td>
+                                    <td>@task.StartDate.ToString("dd MMM yyyy")</td>
+                                    <td>
+                                        @task.Deadline.ToString("dd MMM yyyy")
+                                        @if (task.IsOverdue)
+                                        {
+                                            <br />
+                                            <small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Overdue</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        @{
+                                            var priorityClass = task.Priority switch
+                                            {
+                                                1 => "bg-secondary",
+                                                2 => "bg-info",
+                                                3 => "bg-warning",
+                                                4 => "bg-danger",
+                                                _ => "bg-secondary"
+                                            };
+                                            var priorityText = task.Priority switch
+                                            {
+                                                1 => "Low",
+                                                2 => "Medium",
+                                                3 => "High",
+                                                4 => "Critical",
+                                                _ => "Low"
+                                            };
+                                        }
+                                        <span class="badge @priorityClass">@priorityText</span>
+                                    </td>
+                                    <td>
+                                        @{
+                                            var statusClass = task.Status switch
+                                            {
+                                                "Completed" => "bg-success",
+                                                "In Progress" => "bg-primary",
+                                                "Pending" => "bg-warning",
+                                                "Cancelled" => "bg-danger",
+                                                _ => "bg-secondary"
+                                            };
+                                        }
+                                        <span class="badge @statusClass">@task.Status</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            @if (task.Status != "Completed" && task.Status != "Cancelled")
+                                            {
+                                                <div class="dropdown">
+                                                    <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        Update Status
+                                                    </button>
+                                                    <ul class="dropdown-menu">
+                                                        <li>
+                                                            <form asp-action="UpdateTaskStatus" method="post" class="dropdown-item p-0">
+                                                                @Html.AntiForgeryToken()
+                                                                <input type="hidden" name="id" value="@task.Id" />
+                                                                <input type="hidden" name="status" value="Pending" />
+                                                                <button type="submit" class="dropdown-item @(task.Status == "Pending" ? "active" : "")">Pending</button>
+                                                            </form>
+                                                        </li>
+                                                        <li>
+                                                            <form asp-action="UpdateTaskStatus" method="post" class="dropdown-item p-0">
+                                                                @Html.AntiForgeryToken()
+                                                                <input type="hidden" name="id" value="@task.Id" />
+                                                                <input type="hidden" name="status" value="In Progress" />
+                                                                <button type="submit" class="dropdown-item @(task.Status == "In Progress" ? "active" : "")">In Progress</button>
+                                                            </form>
+                                                        </li>
+                                                        <li>
+                                                            <form asp-action="UpdateTaskStatus" method="post" class="dropdown-item p-0">
+                                                                @Html.AntiForgeryToken()
+                                                                <input type="hidden" name="id" value="@task.Id" />
+                                                                <input type="hidden" name="status" value="Completed" />
+                                                                <button type="submit" class="dropdown-item @(task.Status == "Completed" ? "active" : "")">Completed</button>
+                                                            </form>
+                                                        </li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li>
+                                                            <form asp-action="UpdateTaskStatus" method="post" class="dropdown-item p-0">
+                                                                @Html.AntiForgeryToken()
+                                                                <input type="hidden" name="id" value="@task.Id" />
+                                                                <input type="hidden" name="status" value="Cancelled" />
+                                                                <button type="submit" class="dropdown-item text-danger @(task.Status == "Cancelled" ? "active" : "")">Cancel Task</button>
+                                                            </form>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#tasksTable').DataTable({
+                pageLength: 10,
+                responsive: true,
+                order: [[3, 'asc']], // Sort by Deadline ascending
+                columnDefs: [
+                    { orderable: false, targets: 6 } // Disable sorting for Actions column
+                ]
+            });
+        });
+    </script>
+}

@@ -1,0 +1,76 @@
+@{
+    ViewData["Title"] = "Employee History";
+}
+
+<div class="page-header">
+    <h1 class="page-title">Employee History</h1>
+    <p class="page-subtitle">View employee performance and employment history</p>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+        <select class="form-select" id="historyEmployee" onchange="loadEmployeeHistory()" style="max-width:300px;">
+            <option value="">Select Employee</option>
+        </select>
+    </div>
+</div>
+
+<div id="historyContent" style="display:none;">
+    <!-- Employee Summary -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:1.5rem;">
+        <div class="kpi-card"><div class="kpi-icon blue"><i class="fas fa-calendar"></i></div><div class="kpi-info"><div class="kpi-value" id="hDaysWorked">0</div><div class="kpi-label">Days Worked</div></div></div>
+        <div class="kpi-card"><div class="kpi-icon green"><i class="fas fa-check-circle"></i></div><div class="kpi-info"><div class="kpi-value" id="hAttendance">0%</div><div class="kpi-label">Attendance Rate</div></div></div>
+        <div class="kpi-card"><div class="kpi-icon orange"><i class="fas fa-calendar-minus"></i></div><div class="kpi-info"><div class="kpi-value" id="hLeavesTaken">0</div><div class="kpi-label">Leaves Taken</div></div></div>
+        <div class="kpi-card"><div class="kpi-icon purple"><i class="fas fa-arrow-up"></i></div><div class="kpi-info"><div class="kpi-value" id="hPromotions">0</div><div class="kpi-label">Promotions</div></div></div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="card">
+        <div class="card-header"><h3 style="font-size:0.95rem;font-weight:600;margin:0;">Employment Timeline</h3></div>
+        <div class="card-body" style="padding:0;">
+            <ul class="activity-list" id="historyTimeline" style="padding:0.75rem 1.25rem;"></ul>
+        </div>
+    </div>
+</div>
+
+<div id="historyEmpty">
+    <div class="empty-state"><i class="fas fa-history"></i><h4>Select an employee</h4><p>Choose an employee to view their history</p></div>
+</div>
+
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', loadEmployeeList);
+
+function loadEmployeeList() {
+    fetch('/api/employee').then(r=>r.json()).then(data=>{
+        var sel=document.getElementById('historyEmployee');
+        data.forEach(e=>{ sel.innerHTML+=`<option value="${e.id}">${e.firstName} ${e.lastName} (${e.emp_ID||''})</option>`; });
+    }).catch(()=>{});
+}
+
+function loadEmployeeHistory() {
+    var empId=document.getElementById('historyEmployee').value;
+    if(!empId){document.getElementById('historyContent').style.display='none';document.getElementById('historyEmpty').style.display='block';return;}
+    document.getElementById('historyContent').style.display='block';
+    document.getElementById('historyEmpty').style.display='none';
+
+    fetch(`/api/employee/${empId}`).then(r=>r.json()).then(emp=>{
+        var days=emp.joinDate?Math.floor((new Date()-new Date(emp.joinDate))/(1000*60*60*24)):0;
+        document.getElementById('hDaysWorked').textContent=days;
+        document.getElementById('hAttendance').textContent='--';
+        document.getElementById('hLeavesTaken').textContent='--';
+        document.getElementById('hPromotions').textContent=emp.promotionCount||'0';
+
+        var timeline=[];
+        if(emp.joinDate) timeline.push({text:`Joined as ${emp.designation||'Employee'} in ${emp.departmentName||''}`,date:emp.joinDate,color:'var(--success)'});
+        if(emp.probationStatus===1) timeline.push({text:'Probation completed successfully',date:emp.probationEndDate||emp.joinDate,color:'var(--info)'});
+        if(emp.lastPromotionDate) timeline.push({text:'Promoted to current position',date:emp.lastPromotionDate,color:'var(--primary)'});
+        if(!emp.isActive) timeline.push({text:'Employment ended: '+(emp.terminationReason||''),date:emp.terminationDate,color:'var(--danger)'});
+        timeline.sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
+        if(timeline.length===0) timeline.push({text:'No history events recorded',date:null,color:'var(--secondary)'});
+
+        document.getElementById('historyTimeline').innerHTML=timeline.map(h=>`<li class="activity-item"><div class="activity-dot" style="background:${h.color};"></div><div><div class="activity-text">${h.text}</div><div class="activity-time">${h.date?new Date(h.date).toLocaleDateString():''}</div></div></li>`).join('');
+    }).catch(()=>{});
+}
+</script>
+}

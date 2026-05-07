@@ -1,0 +1,174 @@
+@model HR_Management_System.Models.ViewModels.ProjectTaskCreateViewModel
+
+@{
+    ViewData["Title"] = "Create New Task";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-action="Index">Teams</a></li>
+                    <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@Model.TeamId">Team Details</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Create Task</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">Create New Task</h1>
+            <p class="text-muted">Assign a new task to team members</p>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Task Information</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="CreateTask" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="TeamId" />
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label asp-for="Title" class="form-label">Task Title *</label>
+                                <input asp-for="Title" class="form-control" placeholder="Enter task title" />
+                                <span asp-validation-for="Title" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label asp-for="Description" class="form-label">Description</label>
+                                <textarea asp-for="Description" class="form-control" rows="4" placeholder="Enter task description (optional)"></textarea>
+                                <span asp-validation-for="Description" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="AssignedTo" class="form-label">Assign To (Optional)</label>
+                                <select asp-for="AssignedTo" class="form-select">
+                                    <option value="">-- Unassigned (Team Task) --</option>
+                                    @if (Model.AvailableTeamMembers != null)
+                                    {
+                                        foreach (var member in Model.AvailableTeamMembers)
+                                        {
+                                            <option value="@member.Key">@member.Value</option>
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="AssignedTo" class="text-danger"></span>
+                                <small class="text-muted">Leave unassigned for team-wide tasks</small>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="StartDate" class="form-label">Start Date *</label>
+                                <input asp-for="StartDate" type="date" class="form-control" />
+                                <span asp-validation-for="StartDate" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Deadline" class="form-label">Deadline *</label>
+                                <input asp-for="Deadline" type="date" class="form-control" />
+                                <span asp-validation-for="Deadline" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Priority" class="form-label">Priority *</label>
+                                <select asp-for="Priority" class="form-select">
+                                    <option value="1">Low</option>
+                                    <option value="2">Medium</option>
+                                    <option value="3">High</option>
+                                    <option value="4">Critical</option>
+                                </select>
+                                <span asp-validation-for="Priority" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="d-flex justify-content-between">
+                                    <a asp-action="Details" asp-route-id="@Model.TeamId" class="btn btn-outline-secondary">Cancel</a>
+                                    <button type="submit" class="btn btn-primary">Create Task</button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Task Guidelines</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle"></i> Task Creation Tips</h6>
+                        <ul class="mb-0">
+                            <li>Use clear, descriptive titles</li>
+                            <li>Provide detailed descriptions for complex tasks</li>
+                            <li>Set realistic deadlines</li>
+                            <li>Assign appropriate priority levels</li>
+                            <li>Assign to specific team members when needed</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-bell"></i> Notifications</h6>
+                        <p class="mb-0">If assigned to a specific team member, they will receive a notification about this task.</p>
+                    </div>
+
+                    <div class="alert alert-success">
+                        <h6><i class="fas fa-calendar-check"></i> Deadline Tips</h6>
+                        <ul class="mb-0">
+                            <li>Consider team workload when setting deadlines</li>
+                            <li>Allow buffer time for unexpected delays</li>
+                            <li>Break large tasks into smaller subtasks</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    
+    <script>
+        $(document).ready(function () {
+            // Set minimum date for start date to today
+            var today = new Date().toISOString().split('T')[0];
+            $('#StartDate').attr('min', today);
+            
+            // Set minimum date for deadline to start date
+            $('#StartDate').change(function() {
+                $('#Deadline').attr('min', $(this).val());
+            });
+            
+            // Initialize select2 for better dropdown experience
+            $('#AssignedTo').select2({
+                placeholder: '-- Unassigned (Team Task) --',
+                width: '100%'
+            });
+        });
+    </script>
+}

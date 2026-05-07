@@ -1,0 +1,84 @@
+@{
+    ViewData["Title"] = "Login";
+    ViewData["HideLayout"] = true;
+}
+
+<div class="login-page">
+    <div class="login-card">
+        <div class="login-logo">
+            <div class="login-logo-icon"><i class="fas fa-building"></i></div>
+            <h2>HRMS Nepal</h2>
+            <p>Human Resource Management System</p>
+        </div>
+
+        <div class="demo-credentials">
+            <h4><i class="fas fa-info-circle"></i> Demo Credentials</h4>
+            <p><strong>Admin:</strong> admin@hrms.com / Admin@123</p>
+        </div>
+
+        @if (ViewData["Error"] != null)
+        {
+            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:var(--radius);padding:0.75rem 1rem;margin-bottom:1rem;">
+                <p style="font-size:0.8rem;color:#dc2626;margin:0;"><i class="fas fa-exclamation-circle"></i> @ViewData["Error"]</p>
+            </div>
+        }
+
+        <form class="login-form" method="post" asp-controller="Account" asp-action="Login">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" name="email" class="form-control" placeholder="Enter your email" required autofocus />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <div style="position:relative;">
+                    <input type="password" name="password" id="loginPassword" class="form-control" placeholder="Enter your password" required />
+                    <button type="button" onclick="togglePassword()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;color:var(--secondary);">
+                        <i class="fas fa-eye" id="eyeIcon"></i>
+                    </button>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+                <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.8rem;cursor:pointer;">
+                    <input type="checkbox" name="rememberMe" value="true" /> Remember me
+                </label>
+            </div>
+            <button type="submit" class="login-btn">
+                <i class="fas fa-sign-in-alt"></i> Sign In
+            </button>
+        </form>
+
+        <a class="forgot-link" onclick="document.getElementById('forgotPopup').classList.add('active')">
+            Forgot Password?
+        </a>
+    </div>
+</div>
+
+<!-- Forgot Password Popup -->
+<div class="popup-overlay" id="forgotPopup">
+    <div class="popup-box">
+        <div class="popup-icon"><i class="fas fa-lock"></i></div>
+        <h3>Password Reset</h3>
+        <p>Please contact your HR Manager or Supervisor to reset your password. They will provide you with new credentials.</p>
+        <button class="btn-primary" onclick="document.getElementById('forgotPopup').classList.remove('active')">
+            <i class="fas fa-check"></i> Understood
+        </button>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function togglePassword() {
+    var input = document.getElementById('loginPassword');
+    var icon = document.getElementById('eyeIcon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
+</script>
+}

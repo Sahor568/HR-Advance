@@ -1,0 +1,121 @@
+@{
+    ViewData["Title"] = "Master Sheet";
+}
+
+<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+        <h1 class="page-title">Master Sheet</h1>
+        <p class="page-subtitle">Complete employee overview for HR and Admin</p>
+    </div>
+    <div class="d-flex gap-1">
+        <button class="btn-secondary" onclick="exportSheet()"><i class="fas fa-download"></i> Export</button>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+        <input type="text" class="form-control" placeholder="Search..." id="masterSearch" onkeyup="filterMaster()" style="max-width:250px;" />
+        <select class="form-select" id="masterDept" onchange="filterMaster()" style="max-width:180px;"><option value="">All Departments</option></select>
+        <select class="form-select" id="masterStatus" onchange="filterMaster()" style="max-width:150px;">
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+        </select>
+    </div>
+</div>
+
+<div class="table-container" style="overflow-x:auto;">
+    <table class="data-table master-table" id="masterTable">
+        <thead>
+            <tr>
+                <th>Emp ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Department</th>
+                <th>Designation</th>
+                <th>Join Date</th>
+                <th>Days Worked</th>
+                <th>Type</th>
+                <th>Base Salary</th>
+                <th>Supervisor</th>
+                <th>Probation</th>
+                <th>Status</th>
+                <th>Last Promotion</th>
+            </tr>
+        </thead>
+        <tbody id="masterBody">
+            <tr><td colspan="13" class="text-center" style="padding:2rem;">Loading...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', function() { loadMasterData(); loadDepts(); });
+
+function loadMasterData() {
+    fetch('/api/employee').then(r=>r.json()).then(data => {
+        renderMaster(data);
+    }).catch(()=>{ document.getElementById('masterBody').innerHTML='<tr><td colspan="13" class="text-center">Failed to load</td></tr>'; });
+}
+
+function loadDepts() {
+    fetch('/api/departments').then(r=>r.json()).then(depts=>{
+        var sel=document.getElementById('masterDept');
+        depts.forEach(d=>{ sel.innerHTML+=`<option value="${d.name}">${d.name}</option>`; });
+    }).catch(()=>{});
+}
+
+function renderMaster(data) {
+    var tbody=document.getElementById('masterBody');
+    if(!data||data.length===0){tbody.innerHTML='<tr><td colspan="13" class="text-center">No data</td></tr>';return;}
+    var types=['Regular','Time Bound','Task Based','Casual','Part Time'];
+    var probation=['Active','Completed','Extended','Terminated'];
+    tbody.innerHTML=data.map(e=>{
+        var days=e.joinDate?Math.floor((new Date()-new Date(e.joinDate))/(1000*60*60*24)):0;
+        return `<tr data-name="${(e.firstName+' '+e.lastName).toLowerCase()}" data-dept="${e.departmentName||''}" data-status="${e.isActive?'active':'inactive'}">
+            <td>${e.emp_ID||'-'}</td>
+            <td style="font-weight:500;white-space:nowrap;">${e.firstName} ${e.lastName||''}</td>
+            <td>${e.email||'-'}</td>
+            <td>${e.departmentName||'-'}</td>
+            <td>${e.designation||'-'}</td>
+            <td>${e.joinDate?new Date(e.joinDate).toLocaleDateString():'-'}</td>
+            <td>${days}</td>
+            <td>${types[e.employmentType]||'-'}</td>
+            <td>Rs.${(e.baseSalary||0).toLocaleString()}</td>
+            <td>${e.supervisorName||'-'}</td>
+            <td><span class="badge-status ${e.probationStatus===0?'badge-warning':'badge-success'}">${probation[e.probationStatus]||'-'}</span></td>
+            <td><span class="badge-status ${e.isActive?'badge-success':'badge-danger'}">${e.isActive?'Active':'Inactive'}</span></td>
+            <td>${e.lastPromotionDate?new Date(e.lastPromotionDate).toLocaleDateString():'-'}</td>
+        </tr>`;
+    }).join('');
+}
+
+function filterMaster() {
+    var s=document.getElementById('masterSearch').value.toLowerCase();
+    var d=document.getElementById('masterDept').value;
+    var st=document.getElementById('masterStatus').value;
+    document.querySelectorAll('#masterBody tr[data-name]').forEach(r=>{
+        var ok=(!s||r.dataset.name.includes(s))&&(!d||r.dataset.dept===d)&&(!st||r.dataset.status===st);
+        r.style.display=ok?'':'none';
+    });
+}
+
+function exportSheet() {
+    var table=document.getElementById('masterTable');
+    var csv=[];
+    var rows=table.querySelectorAll('tr');
+    rows.forEach(row=>{
+        var cols=row.querySelectorAll('td,th');
+        var rowData=[];
+        cols.forEach(col=>rowData.push('"'+col.textContent.trim().replace(/"/g,'""')+'"'));
+        csv.push(rowData.join(','));
+    });
+    var blob=new Blob([csv.join('\n')],{type:'text/csv'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='master_sheet_'+new Date().toISOString().split('T')[0]+'.csv';
+    a.click();
+}
+</script>
+}

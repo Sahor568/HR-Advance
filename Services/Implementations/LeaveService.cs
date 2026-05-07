@@ -346,10 +346,71 @@ namespace HR_Management_System.Services.Implementations
             return holiday;
         }
 
+        public async Task<PublicHoliday> UpdatePublicHolidayAsync(int id, PublicHoliday holiday)
+        {
+            _logger.LogInformation("Updating public holiday with ID: {Id}", id);
+            var existingHoliday = await _context.PublicHolidays.FindAsync(id);
+            if (existingHoliday == null)
+            {
+                throw new KeyNotFoundException($"Public holiday with ID {id} not found");
+            }
+
+            // Update properties
+            existingHoliday.HolidayName = holiday.HolidayName;
+            existingHoliday.HolidayDate = holiday.HolidayDate;
+            existingHoliday.NepaliDate = holiday.NepaliDate;
+            existingHoliday.IsForWomenOnly = holiday.IsForWomenOnly;
+            existingHoliday.Description = holiday.Description;
+            existingHoliday.IsActive = holiday.IsActive;
+
+            await _context.SaveChangesAsync();
+            return existingHoliday;
+        }
+
+        public async Task<bool> DeletePublicHolidayAsync(int id)
+        {
+            _logger.LogInformation("Deleting public holiday with ID: {Id}", id);
+            var holiday = await _context.PublicHolidays.FindAsync(id);
+            if (holiday == null)
+            {
+                return false;
+            }
+
+            // Soft delete by setting IsActive to false
+            holiday.IsActive = false;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<int> GetPendingLeaveCountAsync()
         {
             return await _context.LeaveRequests
                 .CountAsync(lr => lr.Status == LeaveStatus.Pending);
+        }
+
+        public async Task<Dictionary<string, int>> GetLeaveStatsByStatusAsync()
+        {
+            var stats = await _context.LeaveRequests
+                .GroupBy(lr => lr.Status)
+                .Select(g => new
+                {
+                    Status = g.Key.ToString(),
+                    Count = g.Count()
+                })
+                .ToListAsync();
+            
+            var result = new Dictionary<string, int>();
+            foreach (var stat in stats)
+            {
+                result[stat.Status] = stat.Count;
+            }
+            
+            // Ensure all statuses are present
+            if (!result.ContainsKey("Approved")) result["Approved"] = 0;
+            if (!result.ContainsKey("Pending")) result["Pending"] = 0;
+            if (!result.ContainsKey("Rejected")) result["Rejected"] = 0;
+            
+            return result;
         }
 
         private async Task ValidateLeaveBalance(LeaveBalanceViewModel balance, LeaveTypeEnum leaveType, decimal requestedDays, Employee employee)

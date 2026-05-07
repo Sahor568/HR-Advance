@@ -1,0 +1,10 @@
+@{
+    ViewData["Title"] = "Access Denied";
+}
+
+<div style="text-align:center;padding:4rem 1rem;">
+    <div style="font-size:4rem;color:var(--danger);margin-bottom:1rem;"><i class="fas fa-ban"></i></div>
+    <h2 style="font-size:1.5rem;font-weight:700;margin:0 0 0.5rem;">Access Denied</h2>
+    <p style="color:var(--secondary);margin:0 0 1.5rem;">You do not have permission to access this page.</p>
+    <a href="@Url.Action("Dashboard", "Home")" class="btn-primary"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+</div>

@@ -73,6 +73,8 @@ builder.Services.AddScoped<IDynamicPayrollService, DynamicPayrollService>();
 builder.Services.AddScoped<IEmployeeSelfService, EmployeeSelfService>();
 builder.Services.AddScoped<IHRISService, HRISService>();
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+builder.Services.AddScoped<IFileUploadService, FileUploadService>();
+builder.Services.AddScoped<ITeamService, TeamService>();
 
 // Add authorization policies
 builder.Services.AddAuthorization(options =>
@@ -110,6 +112,9 @@ else
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+// Add custom audit logging middleware BEFORE routing to catch all requests
+app.UseMiddleware<HR_Management_System.Middleware.SimpleAuditLoggingMiddleware>();
 
 app.UseRouting();
 

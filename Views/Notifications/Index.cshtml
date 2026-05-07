@@ -1,132 +1,96 @@
 @{
     ViewData["Title"] = "Notifications";
+    var isAdmin = User.IsInRole("Admin");
+    var isHR = User.IsInRole("HRManager");
 }
 
-<div class="page-header">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <h1 class="page-title">Notifications</h1>
-            <p class="page-subtitle">Manage and view system notifications</p>
-        </div>
-        <div style="display: flex; gap: 0.5rem;">
-            <button class="btn btn-outline-primary" onclick="markAllAsRead()">
-                <i class="fas fa-check-double"></i> Mark All Read
-            </button>
-            <button class="btn btn-primary" id="sendNotifBtn" style="display:none;" onclick="openSendModal()">
-                <i class="fas fa-paper-plane"></i> Send Notification
-            </button>
+<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+        <h1 class="page-title">Notifications</h1>
+        <p class="page-subtitle">Stay updated with important alerts</p>
+    </div>
+    <button class="btn-secondary" onclick="markAllRead()"><i class="fas fa-check-double"></i> Mark All Read</button>
+</div>
+
+<!-- Priority Filter -->
+<div class="tabs">
+    <button class="tab-btn active" onclick="filterNotifs(this,'all')">All</button>
+    <button class="tab-btn" onclick="filterNotifs(this,'critical')">Critical</button>
+    <button class="tab-btn" onclick="filterNotifs(this,'high')">High</button>
+    <button class="tab-btn" onclick="filterNotifs(this,'normal')">Normal</button>
+    <button class="tab-btn" onclick="filterNotifs(this,'low')">Low</button>
+</div>
+
+<!-- Notification List -->
+<div class="card">
+    <div class="card-body" style="padding:0;">
+        <div id="notifList">
+            <div class="empty-state"><i class="fas fa-bell"></i><h4>Loading notifications...</h4></div>
         </div>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                <h5 style="margin: 0;">All Notifications</h5>
-                <select id="typeFilter" class="form-control" style="max-width: 150px;" onchange="loadNotifications()">
-                    <option value="">All Types</option>
-                    <option value="System">System</option>
-                    <option value="User">User</option>
-                    <option value="Alert">Alert</option>
-                    <option value="Reminder">Reminder</option>
-                </select>
-            </div>
-            <div class="card-body" style="padding: 0;">
-                <div id="notifications-list">
-                    <div class="text-center" style="padding: 2rem;">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 style="margin: 0;">Notification Statistics</h5>
-            </div>
-            <div class="card-body">
-                <div class="row" style="margin-bottom: 1rem;">
-                    <div class="col-6">
-                        <div class="stat-card">
-                            <div class="stat-value" style="color: var(--primary-color);" id="total-notifications">0</div>
-                            <div class="stat-label">Total</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="stat-card">
-                            <div class="stat-value" style="color: var(--warning-color);" id="unread-notifications">0</div>
-                            <div class="stat-label">Unread</div>
-                        </div>
-                    </div>
-                </div>
-                <h6>Notification Types</h6>
-                <div id="type-counts">
-                    <div class="type-count-item">
-                        <span><i class="fas fa-cog" style="color:#2563eb;margin-right:0.5rem;"></i>System</span>
-                        <span class="badge bg-primary rounded-pill" id="system-count">0</span>
-                    </div>
-                    <div class="type-count-item">
-                        <span><i class="fas fa-user" style="color:#059669;margin-right:0.5rem;"></i>User</span>
-                        <span class="badge bg-success rounded-pill" id="user-count">0</span>
-                    </div>
-                    <div class="type-count-item">
-                        <span><i class="fas fa-exclamation-triangle" style="color:#d97706;margin-right:0.5rem;"></i>Alert</span>
-                        <span class="badge bg-warning rounded-pill" id="alert-count">0</span>
-                    </div>
-                    <div class="type-count-item">
-                        <span><i class="fas fa-clock" style="color:#4f46e5;margin-right:0.5rem;"></i>Reminder</span>
-                        <span class="badge bg-info rounded-pill" id="reminder-count">0</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', loadNotifications);
 
-<!-- Send Notification Modal -->
-<div class="modal-overlay" id="sendModal">
-    <div class="modal-dialog">
-        <div class="modal-header-custom">
-            <h5>Send Notification</h5>
-            <button class="close-btn" onclick="closeModal('sendModal')">&times;</button>
-        </div>
-        <div class="modal-body-custom">
-            <form id="sendNotificationForm">
-                <div class="mb-3">
-                    <label for="recipient" class="form-label">Recipient <span class="text-danger">*</span></label>
-                    <select class="form-select" id="recipient" required>
-                        <option value="">Select recipient...</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label for="notifTitle" class="form-label">Title <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="notifTitle" required placeholder="Notification title" />
-                </div>
-                <div class="mb-3">
-                    <label for="notifType" class="form-label">Type</label>
-                    <select class="form-select" id="notifType">
-                        <option value="System">System</option>
-                        <option value="User">User</option>
-                        <option value="Alert">Alert</option>
-                        <option value="Reminder">Reminder</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label for="notifMessage" class="form-label">Message <span class="text-danger">*</span></label>
-                    <textarea class="form-control" id="notifMessage" rows="3" required placeholder="Notification message..."></textarea>
-                </div>
-            </form>
-        </div>
-        <div class="modal-footer-custom">
-            <button class="btn btn-outline-secondary" onclick="closeModal('sendModal')">Cancel</button>
-            <button class="btn btn-primary" onclick="sendNotification()">
-                <i class="fas fa-paper-plane"></i> Send
-            </button>
-        </div>
-    </div>
-</div>
+function loadNotifications() {
+    fetch('/api/notifications').then(r=>r.json()).then(data => {
+        renderNotifications(data);
+    }).catch(()=>{
+        document.getElementById('notifList').innerHTML='<div class="empty-state"><i class="fas fa-bell-slash"></i><h4>No notifications</h4><p>You\'re all caught up!</p></div>';
+    });
+}
+
+function renderNotifications(data) {
+    var list=document.getElementById('notifList');
+    if(!data||data.length===0){list.innerHTML='<div class="empty-state"><i class="fas fa-bell-slash"></i><h4>No notifications</h4><p>You\'re all caught up!</p></div>';return;}
+    var priorities=['Low','Normal','High','Critical'];
+    var priorityColors=['#64748b','#3b82f6','#f59e0b','#ef4444'];
+    var typeIcons={Info:'fa-info-circle',Success:'fa-check-circle',Warning:'fa-exclamation-triangle',Error:'fa-times-circle',Approval:'fa-gavel',Reminder:'fa-clock',Alert:'fa-bell',System:'fa-cog'};
+    list.innerHTML=data.map(n=>{
+        var priority=priorities[n.priority]||'Normal';
+        var color=priorityColors[n.priority]||'#3b82f6';
+        var icon=typeIcons[n.type]||'fa-bell';
+        return `<div class="notification-item ${n.isRead?'':'unread'}" data-priority="${priority.toLowerCase()}" onclick="markRead(${n.id})">
+            <div class="notification-icon" style="background:${color}20;color:${color};"><i class="fas ${icon}"></i></div>
+            <div class="notification-content">
+                <div class="notification-title">${n.title||'Notification'}</div>
+                <div class="notification-text">${n.message||''}</div>
+                <div class="notification-time"><span class="badge-status" style="background:${color}20;color:${color};margin-right:0.5rem;">${priority}</span>${n.createdAt?timeAgo(n.createdAt):''}</div>
+            </div>
+            ${n.actionRequired?`<a href="${n.actionUrl||'#'}" class="btn-primary btn-sm">${n.actionButtonText||'Action'}</a>`:''}
+        </div>`;
+    }).join('');
+}
+
+function filterNotifs(btn, priority) {
+    btn.parentElement.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.notification-item').forEach(n=>{
+        n.style.display=(priority==='all'||n.dataset.priority===priority)?'':'none';
+    });
+}
+
+function markRead(id) {
+    fetch(`/api/notifications/${id}/read`,{method:'POST'}).catch(()=>{});
+}
+
+function markAllRead() {
+    fetch('/api/notifications/mark-all-read',{method:'POST'}).then(()=>{
+        document.querySelectorAll('.notification-item.unread').forEach(n=>n.classList.remove('unread'));
+    }).catch(()=>{});
+}
+
+function timeAgo(date) {
+    var d=new Date(date);
+    var now=new Date();
+    var diff=Math.floor((now-d)/1000);
+    if(diff<60) return 'Just now';
+    if(diff<3600) return Math.floor(diff/60)+'m ago';
+    if(diff<86400) return Math.floor(diff/3600)+'h ago';
+    return Math.floor(diff/86400)+'d ago';
+}
+</script>
+}

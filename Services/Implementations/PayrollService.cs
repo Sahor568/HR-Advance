@@ -417,7 +417,8 @@ namespace HR_Management_System.Services.Implementations
         {
             return await _context.Payrolls
                 .Where(p => p.Month == month && p.Year == year && p.Status == PayrollStatus.Paid)
-                .SumAsync(p => p.Net_Pay);
+                .SumAsync(p => p.Base_Salary + p.Grade_Amount + p.OvertimeAmount + p.FestivalAllowance + p.OtherAllowances
+                    - (p.SSF_Employee_Contribution + p.Tax_Deduction + p.OtherDeductions));
         }
 
         private async Task<decimal> GetOvertimeHoursAsync(int employeeId, int month, int year)

@@ -133,5 +133,60 @@ namespace HR_Management_System.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
+
+        [HttpGet("attendance-stats")]
+        [Authorize(Roles = "Admin,HRManager")]
+        public async Task<IActionResult> GetAttendanceStats()
+        {
+            try
+            {
+                var stats = await _attendanceService.GetAttendanceStatsLast7DaysAsync();
+                
+                // Convert to format expected by frontend
+                var dates = stats.Keys.OrderBy(d => d).ToList();
+                var presentData = dates.Select(d => stats[d].Present).ToList();
+                var absentData = dates.Select(d => stats[d].Absent).ToList();
+                var dayLabels = dates.Select(d => d.ToString("ddd")).ToList();
+                
+                return Ok(new
+                {
+                    labels = dayLabels,
+                    present = presentData,
+                    absent = absentData
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching attendance statistics");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpGet("leave-stats")]
+        [Authorize(Roles = "Admin,HRManager")]
+        public async Task<IActionResult> GetLeaveStats()
+        {
+            try
+            {
+                var stats = await _leaveService.GetLeaveStatsByStatusAsync();
+                
+                // Ensure we have all three statuses
+                var approved = stats.ContainsKey("Approved") ? stats["Approved"] : 0;
+                var pending = stats.ContainsKey("Pending") ? stats["Pending"] : 0;
+                var rejected = stats.ContainsKey("Rejected") ? stats["Rejected"] : 0;
+                
+                return Ok(new
+                {
+                    approved,
+                    pending,
+                    rejected
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching leave statistics");
+                return StatusCode(500, "Internal server error");
+            }
+        }
     }
 }

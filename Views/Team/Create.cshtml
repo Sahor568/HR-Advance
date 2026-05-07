@@ -1,0 +1,228 @@
+@model HR_Management_System.Models.ViewModels.TeamCreateViewModel
+
+@{
+    ViewData["Title"] = "Create New Team";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-action="Index">Teams</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Create New Team</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">Create New Team</h1>
+            <p class="text-muted">Create a new team and assign members to it</p>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Team Information</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post">
+                        @Html.AntiForgeryToken()
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label asp-for="Name" class="form-label">Team Name *</label>
+                                <input asp-for="Name" class="form-control" placeholder="Enter team name" />
+                                <span asp-validation-for="Name" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label asp-for="Description" class="form-label">Description</label>
+                                <textarea asp-for="Description" class="form-control" rows="3" placeholder="Enter team description (optional)"></textarea>
+                                <span asp-validation-for="Description" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="DepartmentId" class="form-label">Department *</label>
+                                <select asp-for="DepartmentId" class="form-select" asp-items="@(new SelectList(Model.AvailableDepartments ?? new Dictionary<int, string>(), "Key", "Value"))">
+                                    <option value="">-- Select Department --</option>
+                                </select>
+                                <span asp-validation-for="DepartmentId" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Team Members *</label>
+                                
+                                <div class="mb-3">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="memberSearch" placeholder="Search employees...">
+                                        <button class="btn btn-outline-secondary" type="button" id="selectAllBtn">Select All</button>
+                                        <button class="btn btn-outline-secondary" type="button" id="selectNoneBtn">Select None</button>
+                                    </div>
+                                    <small class="text-muted">Type to filter employees, or use buttons to select all/none</small>
+                                </div>
+                                
+                                <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                                    @if (Model.AvailableEmployees != null && Model.AvailableEmployees.Any())
+                                    {
+                                        foreach (var employee in Model.AvailableEmployees)
+                                        {
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" name="MemberIds" value="@employee.Key" id="employee_@employee.Key"
+                                                       @(Model.MemberIds != null && Model.MemberIds.Contains(employee.Key) ? "checked" : "") />
+                                                <label class="form-check-label" for="employee_@employee.Key">
+                                                    @employee.Value
+                                                </label>
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="text-center py-3">
+                                            <i class="fas fa-users fa-2x text-muted mb-2"></i>
+                                            <p class="text-muted">No employees available to add to team.</p>
+                                        </div>
+                                    }
+                                </div>
+                                
+                                <div class="mt-2">
+                                    <span class="text-muted small">Selected: <span id="selectedCount">0</span> employees</span>
+                                </div>
+                                <span asp-validation-for="MemberIds" class="text-danger d-block"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="d-flex justify-content-between">
+                                    <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                                    <button type="submit" class="btn btn-primary">Create Team</button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Tips</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle"></i> Team Creation Guidelines</h6>
+                        <ul class="mb-0">
+                            <li>Choose a descriptive team name that reflects its purpose</li>
+                            <li>Select the appropriate department for the team</li>
+                            <li>Add relevant team members who will collaborate</li>
+                            <li>Team members will receive notifications when added</li>
+                            <li>You can add/remove members later as needed</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-bell"></i> Notifications</h6>
+                        <p class="mb-0">All selected team members will receive a notification when the team is created.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    
+    <script>
+        $(document).ready(function () {
+            // Enhance member selection with search
+            const memberSearch = document.getElementById('memberSearch');
+            const memberCheckboxes = document.querySelectorAll('input[name="MemberIds"]');
+            const selectedCountElement = document.getElementById('selectedCount');
+            
+            // Function to update selected count
+            function updateSelectedCount() {
+                const checkedCount = Array.from(memberCheckboxes).filter(cb => cb.checked).length;
+                if (selectedCountElement) {
+                    selectedCountElement.textContent = checkedCount;
+                }
+            }
+            
+            // Initialize count
+            updateSelectedCount();
+            
+            // Add change event to all checkboxes
+            memberCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateSelectedCount);
+            });
+            
+            if (memberSearch) {
+                memberSearch.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    
+                    memberCheckboxes.forEach(checkbox => {
+                        const label = checkbox.nextElementSibling;
+                        const employeeName = label.textContent.toLowerCase();
+                        const formCheck = checkbox.closest('.form-check');
+                        
+                        if (employeeName.includes(searchTerm)) {
+                            formCheck.style.display = 'block';
+                        } else {
+                            formCheck.style.display = 'none';
+                        }
+                    });
+                });
+            }
+            
+            // Add select all/none functionality
+            const selectAllBtn = document.getElementById('selectAllBtn');
+            const selectNoneBtn = document.getElementById('selectNoneBtn');
+            
+            if (selectAllBtn) {
+                selectAllBtn.addEventListener('click', function() {
+                    memberCheckboxes.forEach(checkbox => {
+                        checkbox.checked = true;
+                    });
+                    updateSelectedCount();
+                });
+            }
+            
+            if (selectNoneBtn) {
+                selectNoneBtn.addEventListener('click', function() {
+                    memberCheckboxes.forEach(checkbox => {
+                        checkbox.checked = false;
+                    });
+                    updateSelectedCount();
+                });
+            }
+            
+            // Form validation
+            $('form').on('submit', function() {
+                const checkedCount = $('input[name="MemberIds"]:checked').length;
+                if (checkedCount === 0) {
+                    alert('Please select at least one team member.');
+                    return false;
+                }
+                return true;
+            });
+        });
+    </script>
+}

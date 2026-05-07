@@ -1,137 +1,374 @@
 @{
-    ViewData["Title"] = "Employees Management";
+    ViewData["Title"] = "Employee Management";
+    var isAdminOrHR = User.IsInRole("Admin") || User.IsInRole("HRManager");
 }
 
-<div class="page-header">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <h1 class="page-title">Employees Management</h1>
-            <p class="page-subtitle">Manage all employees in your organization</p>
-        </div>
-        <button class="btn btn-primary" onclick="openAddModal()">
-            <i class="fas fa-plus"></i> Add New Employee
-        </button>
+<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+        <h1 class="page-title">Employees</h1>
+        <p class="page-subtitle">Manage employee records and KYC details</p>
     </div>
+    @if (isAdminOrHR)
+    {
+        <button class="btn-primary" onclick="openAddEmployee()"><i class="fas fa-plus"></i> Add Employee</button>
+    }
 </div>
 
-<!-- Search & Filters -->
-<div class="search-filters">
-    <div class="filter-group">
-        <input type="text" class="form-control" id="searchInput" placeholder="Search by name or email..." oninput="filterEmployees()">
-        <select class="form-control" id="deptFilter" onchange="filterEmployees()">
-            <option value="">All Departments</option>
-        </select>
-    </div>
+<!-- Stats -->
+<div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+    <div class="kpi-card"><div class="kpi-icon blue"><i class="fas fa-users"></i></div><div class="kpi-info"><div class="kpi-value" id="statTotal">0</div><div class="kpi-label">Total</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon green"><i class="fas fa-user-check"></i></div><div class="kpi-info"><div class="kpi-value" id="statActive">0</div><div class="kpi-label">Active</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon orange"><i class="fas fa-user-clock"></i></div><div class="kpi-info"><div class="kpi-value" id="statProbation">0</div><div class="kpi-label">Probation</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon red"><i class="fas fa-user-times"></i></div><div class="kpi-info"><div class="kpi-value" id="statInactive">0</div><div class="kpi-label">Inactive</div></div></div>
 </div>
 
-<!-- Table View -->
-<div class="card">
-    <div class="card-body" style="padding: 0;">
-        <div style="overflow-x: auto;">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th style="width: 25%;">Full Name</th>
-                        <th style="width: 15%;">Department</th>
-                        <th style="width: 15%;">Position</th>
-                        <th style="width: 12%;">Salary</th>
-                        <th style="width: 15%;">Supervisor</th>
-                        <th style="width: 12%;">Contact</th>
-                        <th style="width: 6%;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="employees-tbody">
-                    <tr><td colspan="7" class="text-center">Loading...</td></tr>
-                </tbody>
-            </table>
+<!-- Employee Table -->
+<div class="table-container">
+    <div class="table-header">
+        <div class="filter-bar">
+            <input type="text" class="form-control" placeholder="Search employees..." id="searchEmp" onkeyup="filterEmployees()" />
+            <select class="form-select" id="deptFilter" onchange="filterEmployees()"><option value="">All Departments</option></select>
+            <select class="form-select" id="statusFilter" onchange="filterEmployees()">
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="probation">Probation</option>
+                <option value="inactive">Inactive</option>
+            </select>
         </div>
     </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Employee</th>
+                <th>ID</th>
+                <th>Department</th>
+                <th>Designation</th>
+                <th>Join Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="empTableBody">
+            <tr><td colspan="7" class="text-center" style="padding:2rem;">Loading...</td></tr>
+        </tbody>
+    </table>
 </div>
 
 <!-- Add/Edit Employee Modal -->
-<div id="employeeModal" class="modal-overlay" style="display:none;">
-    <div class="modal-content-custom">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-            <h4 id="modalTitle" style="margin:0;">Add New Employee</h4>
-            <button class="btn btn-sm btn-light" onclick="closeModal()"><i class="fas fa-times"></i></button>
+<div class="modal-overlay" id="empModal">
+    <div class="modal-box xl">
+        <div class="modal-header">
+            <h3 id="empModalTitle">Add Employee</h3>
+            <button class="modal-close" onclick="closeModal('empModal')">&times;</button>
         </div>
-        <form id="employeeForm">
-            <input type="hidden" id="empId">
-            <div class="row">
-                <div class="col-md-12 mb-3">
-                    <label class="form-label">Full Name *</label>
-                    <input type="text" class="form-control" id="empFullName" required placeholder="Enter full name">
-                </div>
+        <div class="modal-body">
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab(this,'personal')">Personal Info</button>
+                <button class="tab-btn" onclick="switchTab(this,'employment')">Employment</button>
+                <button class="tab-btn" onclick="switchTab(this,'documents')">Documents & KYC</button>
+                <button class="tab-btn" onclick="switchTab(this,'bank')">Bank & Family</button>
             </div>
-            <div class="row">
-                <div class="col-md-4 mb-3">
-                    <label class="form-label">Email *</label>
-                    <input type="email" class="form-control" id="empEmail" required>
+
+            <form id="empForm" enctype="multipart/form-data">
+                <input type="hidden" id="empId" />
+
+                <!-- Personal Info Tab -->
+                <div class="tab-content active" id="tab-personal">
+                    <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.5rem;">
+                        <div style="text-align:center;">
+                            <div id="photoPreview" class="avatar avatar-xl" style="margin:0 auto 0.5rem;">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <label class="btn-secondary btn-sm" style="cursor:pointer;">
+                                <i class="fas fa-camera"></i> Upload Photo
+                                <input type="file" id="empPhoto" accept="image/*" style="display:none;" onchange="previewPhoto(this)" />
+                            </label>
+                        </div>
+                        <div style="flex:1;">
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
+                                <div class="form-group"><label class="form-label">First Name *</label><input type="text" class="form-control" id="firstName" required /></div>
+                                <div class="form-group"><label class="form-label">Middle Name</label><input type="text" class="form-control" id="middleName" /></div>
+                                <div class="form-group"><label class="form-label">Last Name *</label><input type="text" class="form-control" id="lastName" required /></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
+                        <div class="form-group"><label class="form-label">Gender *</label><select class="form-select" id="gender" required><option value="">Select</option><option value="0">Male</option><option value="1">Female</option><option value="2">Other</option></select></div>
+                        <div class="form-group"><label class="form-label">Date of Birth *</label><input type="date" class="form-control" id="dob" required /></div>
+                        <div class="form-group"><label class="form-label">Marital Status</label><select class="form-select" id="maritalStatus"><option value="0">Single</option><option value="1">Married</option><option value="2">Divorced</option><option value="3">Widowed</option></select></div>
+                        <div class="form-group"><label class="form-label">Email *</label><input type="email" class="form-control" id="empEmail" required /></div>
+                        <div class="form-group"><label class="form-label">Phone</label><input type="text" class="form-control" id="empPhone" /></div>
+                        <div class="form-group"><label class="form-label">Address</label><input type="text" class="form-control" id="empAddress" /></div>
+                    </div>
                 </div>
-                <div class="col-md-4 mb-3">
-                    <label class="form-label">Phone</label>
-                    <input type="text" class="form-control" id="empPhone">
+
+                <!-- Employment Tab -->
+                <div class="tab-content" id="tab-employment">
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
+                        <div class="form-group"><label class="form-label">Employee ID</label><input type="text" class="form-control" id="empCode" placeholder="Auto-generated" readonly /></div>
+                        <div class="form-group"><label class="form-label">Department *</label><select class="form-select" id="empDept" required><option value="">Select</option></select></div>
+                        <div class="form-group"><label class="form-label">Designation *</label><input type="text" class="form-control" id="empDesignation" required /></div>
+                        <div class="form-group"><label class="form-label">Employment Type</label><select class="form-select" id="empType"><option value="0">Regular</option><option value="1">Time Bound</option><option value="2">Task Based</option><option value="3">Casual</option><option value="4">Part Time</option></select></div>
+                        <div class="form-group"><label class="form-label">Join Date *</label><input type="date" class="form-control" id="joinDate" required /></div>
+                        <div class="form-group"><label class="form-label">Grade</label><input type="text" class="form-control" id="empGrade" /></div>
+                        <div class="form-group"><label class="form-label">Base Salary (NPR)</label><input type="number" class="form-control" id="baseSalary" /></div>
+                        <div class="form-group"><label class="form-label">Supervisor</label><select class="form-select" id="empSupervisor"><option value="">None (Optional)</option></select></div>
+                        <div class="form-group"><label class="form-label">Assign User Account</label><select class="form-select" id="empUserId"><option value="">None</option></select></div>
+                    </div>
                 </div>
-                <div class="col-md-4 mb-3">
-                    <label class="form-label">Age</label>
-                    <input type="number" class="form-control" id="empAge" min="18" max="100">
+
+                <!-- Documents Tab -->
+                <div class="tab-content" id="tab-documents">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                        <div class="form-group"><label class="form-label">Citizenship Number *</label><input type="text" class="form-control" id="citizenshipNo" required /></div>
+                        <div class="form-group"><label class="form-label">Citizenship District</label><input type="text" class="form-control" id="citizenshipDistrict" /></div>
+                        <div class="form-group"><label class="form-label">Citizenship Issue Date</label><input type="date" class="form-control" id="citizenshipDate" /></div>
+                        <div class="form-group"><label class="form-label">PAN Number</label><input type="text" class="form-control" id="panNo" /></div>
+                        <div class="form-group"><label class="form-label">SSN</label><input type="text" class="form-control" id="ssn" /></div>
+                    </div>
+                    <hr style="margin:1.5rem 0;border-color:var(--border);" />
+                    <h4 style="font-size:0.9rem;font-weight:600;margin-bottom:1rem;">Upload Documents</h4>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">CV / Resume</label>
+                            <input type="file" class="form-control" id="empCV" accept=".pdf,.doc,.docx" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Experience Certificate</label>
+                            <input type="file" class="form-control" id="empExpCert" accept=".pdf,.doc,.docx,.jpg,.png" />
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Department *</label>
-                    <select class="form-control" id="empDepartment" required></select>
+
+                <!-- Bank & Family Tab -->
+                <div class="tab-content" id="tab-bank">
+                    <h4 style="font-size:0.9rem;font-weight:600;margin-bottom:1rem;">Bank Details</h4>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
+                        <div class="form-group"><label class="form-label">Bank Name</label><input type="text" class="form-control" id="bankName" /></div>
+                        <div class="form-group"><label class="form-label">Account Number</label><input type="text" class="form-control" id="bankAccount" /></div>
+                        <div class="form-group"><label class="form-label">Branch</label><input type="text" class="form-control" id="bankBranch" /></div>
+                    </div>
+                    <hr style="margin:1.5rem 0;border-color:var(--border);" />
+                    <h4 style="font-size:0.9rem;font-weight:600;margin-bottom:1rem;">Family Information</h4>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
+                        <div class="form-group"><label class="form-label">Father's Name</label><input type="text" class="form-control" id="fatherName" /></div>
+                        <div class="form-group"><label class="form-label">Mother's Name</label><input type="text" class="form-control" id="motherName" /></div>
+                        <div class="form-group"><label class="form-label">Spouse Name</label><input type="text" class="form-control" id="spouseName" /></div>
+                    </div>
+                    <h4 style="font-size:0.9rem;font-weight:600;margin:1.5rem 0 1rem;">Emergency Contact</h4>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                        <div class="form-group"><label class="form-label">Contact Name</label><input type="text" class="form-control" id="emergencyName" /></div>
+                        <div class="form-group"><label class="form-label">Contact Phone</label><input type="text" class="form-control" id="emergencyPhone" /></div>
+                    </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Position *</label>
-                    <input type="text" class="form-control" id="empPosition" required>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Salary *</label>
-                    <input type="number" class="form-control" id="empSalary" required min="0">
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Hire Date *</label>
-                    <input type="date" class="form-control" id="empHireDate" required>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Supervisor</label>
-                    <select class="form-control" id="empSupervisor">
-                        <option value="">None</option>
-                    </select>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">User Account (Email)</label>
-                    <select class="form-control" id="empUser">
-                        <option value="">None</option>
-                    </select>
-                </div>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Address</label>
-                <textarea class="form-control" id="empAddress" rows="2"></textarea>
-            </div>
-            <div style="display:flex;gap:1rem;justify-content:flex-end;">
-                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary" id="saveBtn">
-                    <i class="fas fa-save"></i> Save Employee
-                </button>
-            </div>
-        </form>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeModal('empModal')">Cancel</button>
+            <button class="btn-primary" onclick="saveEmployee()"><i class="fas fa-save"></i> Save Employee</button>
+        </div>
     </div>
 </div>
 
-<!-- View Employee Detail Modal -->
-<div id="viewModal" class="modal-overlay" style="display:none;">
-    <div class="modal-content-custom">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-            <h4 style="margin:0;">Employee Details</h4>
-            <button class="btn btn-sm btn-light" onclick="document.getElementById('viewModal').style.display='none'"><i class="fas fa-times"></i></button>
-        </div>
-        <div id="viewContent"></div>
-    </div>
-</div>
+@section Scripts {
+<script>
+var allEmployees = [];
+document.addEventListener('DOMContentLoaded', function() { loadEmployees(); loadDepartments(); loadSupervisors(); });
+
+function loadEmployees() {
+    fetch('/api/employee').then(r=>r.json()).then(data => {
+        allEmployees = data;
+        renderEmployees(data);
+        updateStats(data);
+    }).catch(()=>{ document.getElementById('empTableBody').innerHTML='<tr><td colspan="7" class="text-center">Failed to load</td></tr>'; });
+}
+
+function updateStats(data) {
+    document.getElementById('statTotal').textContent = data.length;
+    document.getElementById('statActive').textContent = data.filter(e=>e.isActive&&e.probationStatus!==0).length;
+    document.getElementById('statProbation').textContent = data.filter(e=>e.probationStatus===0).length;
+    document.getElementById('statInactive').textContent = data.filter(e=>!e.isActive).length;
+}
+
+function renderEmployees(data) {
+    var tbody = document.getElementById('empTableBody');
+    if(!data||data.length===0){tbody.innerHTML='<tr><td colspan="7"><div class="empty-state"><i class="fas fa-users"></i><h4>No employees</h4></div></td></tr>';return;}
+    tbody.innerHTML = data.map(e=>`
+        <tr data-dept="${e.departmentId||''}" data-status="${!e.isActive?'inactive':e.probationStatus===0?'probation':'active'}" data-name="${(e.firstName+' '+e.lastName).toLowerCase()}">
+            <td><div class="d-flex align-center gap-1"><div class="avatar avatar-sm">${(e.firstName||'?')[0]}</div><div><div style="font-weight:500;">${e.firstName} ${e.lastName||''}</div><div style="font-size:0.7rem;color:var(--secondary);">${e.email||''}</div></div></div></td>
+            <td>${e.emp_ID||'-'}</td>
+            <td>${e.departmentName||'-'}</td>
+            <td>${e.designation||'-'}</td>
+            <td>${e.joinDate?new Date(e.joinDate).toLocaleDateString():'-'}</td>
+            <td><span class="badge-status ${!e.isActive?'badge-danger':e.probationStatus===0?'badge-warning':'badge-success'}">${!e.isActive?'Inactive':e.probationStatus===0?'Probation':'Active'}</span></td>
+            <td><div class="d-flex gap-1">
+                <button class="btn-icon" title="View" onclick="viewEmployee(${e.id})"><i class="fas fa-eye"></i></button>
+                <button class="btn-icon" title="Edit" onclick="editEmployee(${e.id})"><i class="fas fa-edit"></i></button>
+            </div></td>
+        </tr>`).join('');
+}
+
+function filterEmployees() {
+    var s=document.getElementById('searchEmp').value.toLowerCase();
+    var d=document.getElementById('deptFilter').value;
+    var st=document.getElementById('statusFilter').value;
+    document.querySelectorAll('#empTableBody tr[data-name]').forEach(r=>{
+        var ok=(!s||r.dataset.name.includes(s))&&(!d||r.dataset.dept==d)&&(!st||r.dataset.status==st);
+        r.style.display=ok?'':'none';
+    });
+}
+
+function loadDepartments() {
+    fetch('/api/departments').then(r=>r.json()).then(depts=>{
+        var sel=document.getElementById('deptFilter');
+        var sel2=document.getElementById('empDept');
+        depts.forEach(d=>{
+            sel.innerHTML+=`<option value="${d.id}">${d.name}</option>`;
+            sel2.innerHTML+=`<option value="${d.id}">${d.name}</option>`;
+        });
+    }).catch(()=>{});
+}
+
+function loadSupervisors() {
+    fetch('/api/employee').then(r=>r.json()).then(emps=>{
+        var sel=document.getElementById('empSupervisor');
+        emps.forEach(e=>{ sel.innerHTML+=`<option value="${e.id}">${e.firstName} ${e.lastName} (${e.designation||''})</option>`; });
+    }).catch(()=>{});
+}
+
+function openAddEmployee() {
+    document.getElementById('empModalTitle').textContent='Add Employee';
+    document.getElementById('empForm').reset();
+    document.getElementById('empId').value='';
+    document.getElementById('empModal').classList.add('active');
+}
+
+function editEmployee(id) {
+    fetch(`/api/employee/${id}`).then(r=>r.json()).then(e=>{
+        document.getElementById('empModalTitle').textContent='Edit Employee';
+        document.getElementById('empId').value=e.id;
+        document.getElementById('firstName').value=e.firstName||'';
+        document.getElementById('middleName').value=e.middleName||'';
+        document.getElementById('lastName').value=e.lastName||'';
+        document.getElementById('gender').value=e.gender!=null?e.gender:'';
+        document.getElementById('dob').value=e.dateOfBirth?e.dateOfBirth.split('T')[0]:'';
+        document.getElementById('empEmail').value=e.email||'';
+        document.getElementById('empDept').value=e.departmentId||'';
+        document.getElementById('empDesignation').value=e.designation||'';
+        document.getElementById('joinDate').value=e.joinDate?e.joinDate.split('T')[0]:'';
+        document.getElementById('baseSalary').value=e.baseSalary||'';
+        document.getElementById('citizenshipNo').value=e.citizenshipNumber||'';
+        document.getElementById('panNo').value=e.paN_No||'';
+        document.getElementById('empSupervisor').value=e.supervisorId||'';
+        document.getElementById('empModal').classList.add('active');
+    }).catch(()=>alert('Failed to load employee'));
+}
+
+function viewEmployee(id) { window.location.href='/Home/Profile?empId='+id; }
+
+function saveEmployee() {
+    var id = document.getElementById('empId').value;
+    var formData = new FormData();
+    
+    // Add all form fields to FormData with correct property names
+    formData.append('FirstName', document.getElementById('firstName').value);
+    formData.append('MiddleName', document.getElementById('middleName').value);
+    formData.append('LastName', document.getElementById('lastName').value);
+    formData.append('Gender', document.getElementById('gender').value);
+    formData.append('DateOfBirth', document.getElementById('dob').value);
+    formData.append('Email', document.getElementById('empEmail').value);
+    
+    // Department is a string in the model, but we have departmentId from dropdown
+    // We need to get the department name from the selected option
+    var deptSelect = document.getElementById('empDept');
+    var deptName = deptSelect.options[deptSelect.selectedIndex]?.text || '';
+    formData.append('Department', deptName);
+    
+    formData.append('Designation', document.getElementById('empDesignation').value);
+    formData.append('Join_Date', document.getElementById('joinDate').value);
+    formData.append('BaseSalary', document.getElementById('baseSalary').value || '0');
+    formData.append('CitizenshipNumber', document.getElementById('citizenshipNo').value);
+    formData.append('PAN_No', document.getElementById('panNo').value);
+    formData.append('EmploymentType', document.getElementById('empType').value || '0');
+    formData.append('SupervisorId', document.getElementById('empSupervisor').value || '');
+    
+    // Add other fields with correct property names
+    var phone = document.getElementById('empPhone');
+    if (phone) formData.append('PhoneNumber', phone.value);
+    
+    var address = document.getElementById('empAddress');
+    if (address) formData.append('PermanentAddress', address.value);
+    
+    var maritalStatus = document.getElementById('maritalStatus');
+    if (maritalStatus) formData.append('MaritalStatus', maritalStatus.value);
+    
+    var citizenshipDistrict = document.getElementById('citizenshipDistrict');
+    if (citizenshipDistrict) formData.append('CitizenshipIssuedDistrict', citizenshipDistrict.value);
+    
+    var citizenshipDate = document.getElementById('citizenshipDate');
+    if (citizenshipDate) formData.append('CitizenshipIssuedDate', citizenshipDate.value);
+    
+    var ssn = document.getElementById('ssn');
+    if (ssn) formData.append('SSN', ssn.value);
+    
+    var empGrade = document.getElementById('empGrade');
+    if (empGrade) formData.append('Grade', empGrade.value);
+    
+    // Add file uploads - note: parameter names must match controller parameter names
+    var photoFile = document.getElementById('empPhoto');
+    if (photoFile && photoFile.files[0]) {
+        formData.append('photoFile', photoFile.files[0]);
+    }
+    
+    var cvFile = document.getElementById('empCV');
+    if (cvFile && cvFile.files[0]) {
+        formData.append('cvFile', cvFile.files[0]);
+    }
+    
+    var expCertFile = document.getElementById('empExpCert');
+    if (expCertFile && expCertFile.files[0]) {
+        formData.append('experienceCertificateFile', expCertFile.files[0]);
+    }
+    
+    // For update, need to add the ID to the model
+    if (id) {
+        formData.append('Id', id);
+        var empCode = document.getElementById('empCode');
+        if (empCode) formData.append('Emp_ID', empCode.value);
+    }
+    
+    var url = id ? `/api/employee/${id}` : '/api/employee';
+    var method = id ? 'PUT' : 'POST';
+    
+    fetch(url, {
+        method: method,
+        body: formData
+        // Don't set Content-Type header - let browser set it with boundary
+    }).then(r => {
+        if (r.ok) {
+            closeModal('empModal');
+            loadEmployees();
+            alert('Employee saved!');
+        } else {
+            r.text().then(t => alert('Error: ' + t));
+        }
+    }).catch(() => alert('Failed to save'));
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('active');}
+function switchTab(btn,tabId){
+    btn.parentElement.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+    document.getElementById('tab-'+tabId).classList.add('active');
+}
+function previewPhoto(input){
+    if(input.files&&input.files[0]){
+        var reader=new FileReader();
+        reader.onload=function(e){document.getElementById('photoPreview').innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" />';};
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
+}

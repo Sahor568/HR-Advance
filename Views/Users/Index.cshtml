@@ -1,125 +1,245 @@
 @{
-    ViewData["Title"] = "Users Management";
+    ViewData["Title"] = "User Management";
 }
 
-<div class="page-header">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <h1 class="page-title">Users Management</h1>
-            <p class="page-subtitle">Manage system users and their roles</p>
-        </div>
-        <button class="btn btn-primary" onclick="openCreateModal()">
-            <i class="fas fa-plus"></i> Add User
-        </button>
+<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+        <h1 class="page-title">User Management</h1>
+        <p class="page-subtitle">Create and manage user accounts</p>
     </div>
+    <button class="btn-primary" onclick="openCreateUser()"><i class="fas fa-plus"></i> Create User</button>
 </div>
 
-<!-- Search & Filters -->
-<div class="user-filter">
-    <input type="text" class="form-control" id="searchInput" placeholder="Search by email..." oninput="filterUsers()">
-    <select class="form-control" id="roleFilter" style="max-width: 150px;" onchange="filterUsers()">
-        <option value="">All Roles</option>
-        <option value="Admin">Admin</option>
-        <option value="HR">HR</option>
-        <option value="Employee">Employee</option>
-    </select>
-</div>
-
-<!-- View Toggle -->
-<div class="view-toggle">
-    <button class="active" data-view="table" onclick="switchView('table')">
-        <i class="fas fa-table"></i> Table View
-    </button>
-    <button data-view="card" onclick="switchView('card')">
-        <i class="fas fa-th"></i> Card View
-    </button>
-</div>
-
-<!-- Table View -->
-<div id="table-view" class="card">
-    <div class="card-body" style="padding: 1.5rem;">
-        <div class="user-row" style="border-bottom: 2px solid var(--border-color); font-weight: 600; padding: 1rem 0; margin-bottom: 1rem;">
-            <div style="flex: 1;">User</div>
-            <div style="width: 120px;">Role</div>
-            <div style="width: 100px;">Actions</div>
-        </div>
-        <div id="user-table-body">
-            <div class="text-center" style="padding: 2rem;">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
+<div class="table-container">
+    <div class="table-header">
+        <div class="filter-bar">
+            <input type="text" class="form-control" placeholder="Search users..." id="searchUsers" onkeyup="filterUsers()" />
+            <select class="form-select" id="roleFilter" onchange="filterUsers()">
+                <option value="">All Roles</option>
+                <option value="Admin">Admin</option>
+                <option value="HRManager">HR Manager</option>
+                <option value="Employee">Employee</option>
+            </select>
         </div>
     </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="usersTableBody">
+            <tr><td colspan="6" class="text-center" style="padding:2rem;">Loading...</td></tr>
+        </tbody>
+    </table>
 </div>
 
-<!-- Card View -->
-<div id="card-view" style="display: none;">
-    <div id="user-card-grid" class="user-card-grid">
-        <div class="text-center" style="padding: 2rem; grid-column: 1 / -1;">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
+<!-- Create User Modal -->
+<div class="modal-overlay" id="createUserModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3>Create New User</h3>
+            <button class="modal-close" onclick="closeModal('createUserModal')">&times;</button>
         </div>
-    </div>
-</div>
-
-<!-- Create/Edit User Modal -->
-<div class="modal-overlay" id="userModal">
-    <div class="modal-dialog">
-        <div class="modal-header-custom">
-            <h5 id="userModalTitle">Add User</h5>
-            <button class="close-btn" onclick="closeModal('userModal')">&times;</button>
-        </div>
-        <div class="modal-body-custom">
-            <form id="userForm">
-                <input type="hidden" id="userId" />
-                <div class="mb-3">
-                    <label for="userEmail" class="form-label">Email Address <span class="text-danger">*</span></label>
-                    <input type="email" class="form-control" id="userEmail" required placeholder="user@example.com" />
+        <div class="modal-body">
+            <form id="createUserForm">
+                <div class="form-group">
+                    <label class="form-label">Email Address *</label>
+                    <input type="email" class="form-control" id="newUserEmail" required placeholder="user@company.com" />
                 </div>
-                <div class="mb-3" id="passwordGroup">
-                    <label for="userPassword" class="form-label">Password <span class="text-danger">*</span></label>
-                    <input type="password" class="form-control" id="userPassword" placeholder="Min 8 characters" />
-                    <div class="form-text">Minimum 8 characters with at least one number and one special character</div>
+                <div class="form-group">
+                    <label class="form-label">Full Name *</label>
+                    <input type="text" class="form-control" id="newUserName" required placeholder="Full name" />
                 </div>
-                <div class="mb-3">
-                    <label for="userRole" class="form-label">Role <span class="text-danger">*</span></label>
-                    <select class="form-select" id="userRole" required>
-                        <option value="">Select Role...</option>
-                        <option value="Admin">Admin</option>
-                        <option value="HR">HR</option>
+                <div class="form-group">
+                    <label class="form-label">Password *</label>
+                    <input type="password" class="form-control" id="newUserPassword" required placeholder="Min 8 chars, uppercase, lowercase, digit" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Role *</label>
+                    <select class="form-select" id="newUserRole" required>
+                        <option value="">Select Role</option>
+                        <option value="HRManager">HR Manager</option>
                         <option value="Employee">Employee</option>
                     </select>
                 </div>
+                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--radius);padding:0.75rem;margin-top:1rem;">
+                    <p style="font-size:0.8rem;color:#1e40af;margin:0;"><i class="fas fa-info-circle"></i> Only email and password are required for account creation. Employee details can be assigned later in the Employees section.</p>
+                </div>
             </form>
         </div>
-        <div class="modal-footer-custom">
-            <button class="btn btn-outline-secondary" onclick="closeModal('userModal')">Cancel</button>
-            <button class="btn btn-primary" onclick="saveUser()">
-                <i class="fas fa-save"></i> Save User
-            </button>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeModal('createUserModal')">Cancel</button>
+            <button class="btn-primary" onclick="createUser()"><i class="fas fa-check"></i> Create User</button>
         </div>
     </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
-<div class="modal-overlay" id="deleteModal">
-    <div class="modal-dialog" style="max-width: 400px;">
-        <div class="modal-header-custom">
-            <h5>Confirm Delete</h5>
-            <button class="close-btn" onclick="closeModal('deleteModal')">&times;</button>
-        </div>
-        <div class="modal-body-custom">
-            <p>Are you sure you want to delete user <strong id="deleteUserName"></strong>?</p>
-            <p class="text-muted">This action cannot be undone.</p>
-        </div>
-        <div class="modal-footer-custom">
-            <button class="btn btn-outline-secondary" onclick="closeModal('deleteModal')">Cancel</button>
-            <button class="btn btn-danger" onclick="confirmDelete()">
-                <i class="fas fa-trash"></i> Delete
-            </button>
-        </div>
-    </div>
-</div>
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', loadUsers);
 
+function loadUsers() {
+    fetch('/api/users').then(r => r.json()).then(users => {
+        renderUsers(users);
+    }).catch(() => {
+        document.getElementById('usersTableBody').innerHTML = '<tr><td colspan="6" class="text-center">Failed to load users</td></tr>';
+    });
+}
+
+function renderUsers(users) {
+    var tbody = document.getElementById('usersTableBody');
+    if (!users || users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="fas fa-users"></i><h4>No users found</h4><p>Create a new user to get started</p></div></td></tr>';
+        return;
+    }
+    tbody.innerHTML = users.map(u => `
+        <tr data-role="${u.role||''}" data-name="${(u.fullName||u.email||'').toLowerCase()}">
+            <td><div class="d-flex align-center gap-1"><div class="avatar avatar-sm">${(u.fullName||u.email||'U')[0].toUpperCase()}</div><span>${u.fullName||'N/A'}</span></div></td>
+            <td>${u.email}</td>
+            <td><span class="badge-status ${u.role==='Admin'?'badge-danger':u.role==='HRManager'?'badge-info':'badge-secondary'}">${u.role||'No Role'}</span></td>
+            <td><span class="badge-status ${u.isActive?'badge-success':'badge-danger'}">${u.isActive?'Active':'Inactive'}</span></td>
+            <td>${u.createdAt?new Date(u.createdAt).toLocaleDateString():'-'}</td>
+            <td>
+                <div class="d-flex gap-1">
+                    <button class="btn-icon" title="Edit" onclick="editUser('${u.id}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn-icon" title="Toggle Status" onclick="toggleUser('${u.id}',${u.isActive})"><i class="fas fa-${u.isActive?'ban':'check'}"></i></button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function filterUsers() {
+    var search = document.getElementById('searchUsers').value.toLowerCase();
+    var role = document.getElementById('roleFilter').value;
+    var rows = document.querySelectorAll('#usersTableBody tr[data-role]');
+    rows.forEach(row => {
+        var matchRole = !role || row.dataset.role === role;
+        var matchSearch = !search || row.dataset.name.includes(search);
+        row.style.display = matchRole && matchSearch ? '' : 'none';
+    });
+}
+
+function openCreateUser() { document.getElementById('createUserModal').classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+function createUser() {
+    var email = document.getElementById('newUserEmail').value;
+    var name = document.getElementById('newUserName').value;
+    var password = document.getElementById('newUserPassword').value;
+    var role = document.getElementById('newUserRole').value;
+    if (!email || !password || !role || !name) { alert('Please fill all required fields.'); return; }
+
+    fetch('/api/users/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, fullName: name, password, role })
+    }).then(r => {
+        if (r.ok) { closeModal('createUserModal'); loadUsers(); alert('User created successfully!'); }
+        else r.json().then(d => alert(d.message || 'Failed to create user'));
+    }).catch(() => alert('Error creating user'));
+}
+
+function toggleUser(id, isActive) {
+    if (!confirm(`Are you sure you want to ${isActive ? 'deactivate' : 'activate'} this user?`)) return;
+    fetch(`/api/users/${id}/toggle`, { method: 'POST' }).then(r => { if (r.ok) loadUsers(); else alert('Failed'); }).catch(() => alert('Error'));
+}
+
+function editUser(id) {
+    fetch(`/api/users/${id}`).then(r => r.json()).then(user => {
+        // Create edit modal
+        var modalHtml = `
+            <div class="modal-overlay active" id="editUserModal">
+                <div class="modal-box">
+                    <div class="modal-header">
+                        <h3>Edit User</h3>
+                        <button class="modal-close" onclick="closeModal('editUserModal')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editUserForm">
+                            <div class="form-group">
+                                <label class="form-label">Email Address</label>
+                                <input type="email" class="form-control" id="editUserEmail" value="${user.email}" />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="editUserName" value="${user.fullName || ''}" />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Role</label>
+                                <select class="form-select" id="editUserRole">
+                                    <option value="">Select Role</option>
+                                    <option value="HRManager" ${user.role === 'HRManager' ? 'selected' : ''}>HR Manager</option>
+                                    <option value="Employee" ${user.role === 'Employee' ? 'selected' : ''}>Employee</option>
+                                </select>
+                            </div>
+                            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:var(--radius);padding:0.75rem;margin-top:1rem;">
+                                <p style="font-size:0.8rem;color:#dc2626;margin:0;"><i class="fas fa-exclamation-triangle"></i> Changing email will affect login credentials. Leave blank to keep unchanged.</p>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-secondary" onclick="closeModal('editUserModal')">Cancel</button>
+                        <button class="btn-danger" onclick="deleteUser('${id}')" style="margin-right:auto;"><i class="fas fa-trash"></i> Delete</button>
+                        <button class="btn-primary" onclick="saveUser('${id}')"><i class="fas fa-save"></i> Save Changes</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if any
+        var existing = document.getElementById('editUserModal');
+        if (existing) existing.remove();
+        
+        // Add modal to body
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }).catch(() => alert('Failed to load user details'));
+}
+
+function saveUser(id) {
+    var email = document.getElementById('editUserEmail').value.trim();
+    var name = document.getElementById('editUserName').value.trim();
+    var role = document.getElementById('editUserRole').value;
+    
+    fetch(`/api/users/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            email: email || null,
+            fullName: name || null,
+            role: role || null
+        })
+    }).then(r => {
+        if (r.ok) {
+            closeModal('editUserModal');
+            loadUsers();
+            alert('User updated successfully!');
+        } else {
+            r.json().then(d => alert(d.message || 'Failed to update user'));
+        }
+    }).catch(() => alert('Error updating user'));
+}
+
+function deleteUser(id) {
+    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+    
+    fetch(`/api/users/${id}`, {
+        method: 'DELETE'
+    }).then(r => {
+        if (r.ok) {
+            closeModal('editUserModal');
+            loadUsers();
+            alert('User deleted successfully!');
+        } else {
+            r.json().then(d => alert(d.message || 'Failed to delete user'));
+        }
+    }).catch(() => alert('Error deleting user'));
+}
+</script>
+}

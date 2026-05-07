@@ -219,6 +219,30 @@ namespace HR_Management_System.Controllers
             }
         }
 
+        [HttpGet("monthly-total")]
+        public async Task<IActionResult> GetCurrentMonthlyPayrollTotal()
+        {
+            try
+            {
+                var now = DateTime.UtcNow;
+                var month = now.Month;
+                var year = now.Year;
+                
+                var total = await _payrollService.GetTotalMonthlyPayrollAsync(month, year);
+                return Ok(new
+                {
+                    month,
+                    year,
+                    totalPayrollAmount = total
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching current monthly payroll total");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
         [HttpGet("stats/monthly-total/{month}/{year}")]
         public async Task<IActionResult> GetMonthlyPayrollTotal(int month, int year)
         {

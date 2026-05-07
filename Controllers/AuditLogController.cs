@@ -25,7 +25,7 @@ namespace HR_Management_System.Controllers
             try
             {
                 var logs = await _auditLogService.GetAuditLogsAsync(filter);
-                return Ok(logs);
+                return Ok(logs.Logs);
             }
             catch (Exception ex)
             {

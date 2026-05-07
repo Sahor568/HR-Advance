@@ -1,0 +1,108 @@
+@{
+    ViewData["Title"] = "System Logs";
+}
+
+<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+        <h1 class="page-title">System Logs</h1>
+        <p class="page-subtitle">Audit trail and system activity logs</p>
+    </div>
+    <button class="btn-secondary" onclick="refreshLogs()"><i class="fas fa-sync"></i> Refresh</button>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+    <div class="card-body" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+        <input type="date" class="form-control" id="logDateFrom" style="max-width:160px;" />
+        <input type="date" class="form-control" id="logDateTo" style="max-width:160px;" />
+        <select class="form-select" id="logLevel" style="max-width:150px;">
+            <option value="">All Levels</option>
+            <option value="Information">Info</option>
+            <option value="Warning">Warning</option>
+            <option value="Error">Error</option>
+        </select>
+        <input type="text" class="form-control" placeholder="Search user or action..." id="logSearch" style="max-width:250px;" />
+        <button class="btn-primary btn-sm" onclick="loadLogs()"><i class="fas fa-filter"></i> Filter</button>
+    </div>
+</div>
+
+<!-- Log Stats -->
+<div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:1.5rem;">
+    <div class="kpi-card"><div class="kpi-icon blue"><i class="fas fa-list"></i></div><div class="kpi-info"><div class="kpi-value" id="logTotal">0</div><div class="kpi-label">Total Logs</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon green"><i class="fas fa-info-circle"></i></div><div class="kpi-info"><div class="kpi-value" id="logInfo">0</div><div class="kpi-label">Info</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon orange"><i class="fas fa-exclamation-triangle"></i></div><div class="kpi-info"><div class="kpi-value" id="logWarn">0</div><div class="kpi-label">Warnings</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon red"><i class="fas fa-times-circle"></i></div><div class="kpi-info"><div class="kpi-value" id="logError">0</div><div class="kpi-label">Errors</div></div></div>
+</div>
+
+<!-- Log Table -->
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Level</th>
+                <th>User</th>
+                <th>Action</th>
+                <th>Controller</th>
+                <th>Method</th>
+                <th>Message</th>
+            </tr>
+        </thead>
+        <tbody id="logBody">
+            <tr><td colspan="7" class="text-center" style="padding:2rem;">Loading...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var today=new Date();
+    document.getElementById('logDateFrom').value=new Date(today.getFullYear(),today.getMonth(),1).toISOString().split('T')[0];
+    document.getElementById('logDateTo').value=today.toISOString().split('T')[0];
+    loadLogs();
+});
+
+function loadLogs() {
+    fetch('/api/auditlog').then(r=>r.json()).then(data => {
+        renderLogs(data);
+        updateLogStats(data);
+    }).catch(()=>{ document.getElementById('logBody').innerHTML='<tr><td colspan="7" class="text-center">Failed to load logs</td></tr>'; });
+}
+
+function renderLogs(data) {
+    var tbody=document.getElementById('logBody');
+    var level=document.getElementById('logLevel').value;
+    var search=document.getElementById('logSearch').value.toLowerCase();
+
+    var filtered=data;
+    if(level) filtered=filtered.filter(l=>l.level===level);
+    if(search) filtered=filtered.filter(l=>(l.userName||'').toLowerCase().includes(search)||(l.action||'').toLowerCase().includes(search)||(l.message||'').toLowerCase().includes(search));
+
+    if(!filtered||filtered.length===0){tbody.innerHTML='<tr><td colspan="7"><div class="empty-state"><i class="fas fa-file-alt"></i><h4>No logs found</h4></div></td></tr>';return;}
+    tbody.innerHTML=filtered.slice(0,100).map(l=>{
+        var badge=l.level==='Error'?'badge-danger':l.level==='Warning'?'badge-warning':'badge-info';
+        // Use timeStamp (camelCase) instead of timestamp
+        var timestamp = l.timeStamp || l.timestamp;
+        return `<tr>
+            <td style="white-space:nowrap;font-size:0.75rem;">${timestamp?new Date(timestamp).toLocaleString():'-'}</td>
+            <td><span class="badge-status ${badge}">${l.level||'-'}</span></td>
+            <td>${l.userName||'-'}</td>
+            <td>${l.action||'-'}</td>
+            <td>${l.controller||'-'}</td>
+            <td>${l.httpMethod||'-'}</td>
+            <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.message||'-'}</td>
+        </tr>`;
+    }).join('');
+}
+
+function updateLogStats(data) {
+    document.getElementById('logTotal').textContent=data.length;
+    document.getElementById('logInfo').textContent=data.filter(l=>l.level==='Information').length;
+    document.getElementById('logWarn').textContent=data.filter(l=>l.level==='Warning').length;
+    document.getElementById('logError').textContent=data.filter(l=>l.level==='Error').length;
+}
+
+function refreshLogs() { loadLogs(); }
+</script>
+}

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using HR_Management_System.Models.ViewModels;
 using HR_Management_System.Services.Interfaces;
+using Microsoft.AspNetCore.Http;
 
 namespace HR_Management_System.Controllers
 {
@@ -11,11 +12,13 @@ namespace HR_Management_System.Controllers
     public class EmployeeController : ControllerBase
     {
         private readonly IEmployeeService _employeeService;
+        private readonly IFileUploadService _fileUploadService;
         private readonly ILogger<EmployeeController> _logger;
 
-        public EmployeeController(IEmployeeService employeeService, ILogger<EmployeeController> logger)
+        public EmployeeController(IEmployeeService employeeService, IFileUploadService fileUploadService, ILogger<EmployeeController> logger)
         {
             _employeeService = employeeService;
+            _fileUploadService = fileUploadService;
             _logger = logger;
         }
 
@@ -53,12 +56,32 @@ namespace HR_Management_System.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateEmployee([FromBody] EmployeeCreateViewModel model)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> CreateEmployee([FromForm] EmployeeCreateViewModel model,
+                                                       [FromForm] IFormFile? photoFile,
+                                                       [FromForm] IFormFile? cvFile,
+                                                       [FromForm] IFormFile? experienceCertificateFile)
         {
             try
             {
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
+
+                // Handle file uploads
+                if (photoFile != null && photoFile.Length > 0)
+                {
+                    model.PhotoPath = await _fileUploadService.UploadFileAsync(photoFile, "employee-photos");
+                }
+
+                if (cvFile != null && cvFile.Length > 0)
+                {
+                    model.CVPath = await _fileUploadService.UploadFileAsync(cvFile, "employee-cvs");
+                }
+
+                if (experienceCertificateFile != null && experienceCertificateFile.Length > 0)
+                {
+                    model.ExperienceCertificatePath = await _fileUploadService.UploadFileAsync(experienceCertificateFile, "employee-certificates");
+                }
 
                 var employee = await _employeeService.CreateEmployeeAsync(model);
                 return CreatedAtAction(nameof(GetEmployeeById), new { id = employee.Id }, employee);
@@ -71,7 +94,12 @@ namespace HR_Management_System.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateEmployee(int id, [FromBody] EmployeeEditViewModel model)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UpdateEmployee(int id,
+                                                       [FromForm] EmployeeEditViewModel model,
+                                                       [FromForm] IFormFile? photoFile,
+                                                       [FromForm] IFormFile? cvFile,
+                                                       [FromForm] IFormFile? experienceCertificateFile)
         {
             try
             {
@@ -80,6 +108,22 @@ namespace HR_Management_System.Controllers
 
                 if (id != model.Id)
                     return BadRequest("ID mismatch");
+
+                // Handle file uploads
+                if (photoFile != null && photoFile.Length > 0)
+                {
+                    model.PhotoPath = await _fileUploadService.UploadFileAsync(photoFile, "employee-photos");
+                }
+
+                if (cvFile != null && cvFile.Length > 0)
+                {
+                    model.CVPath = await _fileUploadService.UploadFileAsync(cvFile, "employee-cvs");
+                }
+
+                if (experienceCertificateFile != null && experienceCertificateFile.Length > 0)
+                {
+                    model.ExperienceCertificatePath = await _fileUploadService.UploadFileAsync(experienceCertificateFile, "employee-certificates");
+                }
 
                 var employee = await _employeeService.UpdateEmployeeAsync(model);
                 return Ok(employee);
@@ -230,7 +274,9 @@ namespace HR_Management_System.Controllers
                 return Ok(new
                 {
                     TotalActiveEmployees = totalActive,
-                    EmployeesOnProbation = onProbation
+                    EmployeesOnProbation = onProbation,
+                    totalActive = totalActive,
+                    onProbation = onProbation
                 });
             }
             catch (Exception ex)

@@ -17,7 +17,10 @@ namespace HR_Management_System.Services.Interfaces
         Task<bool> AccrueHomeLeaveAsync(int employeeId, int workingDays);
         Task<IEnumerable<PublicHoliday>> GetPublicHolidaysAsync(int year);
         Task<PublicHoliday> AddPublicHolidayAsync(PublicHoliday holiday);
+        Task<PublicHoliday> UpdatePublicHolidayAsync(int id, PublicHoliday holiday);
+        Task<bool> DeletePublicHolidayAsync(int id);
         Task<int> GetPendingLeaveCountAsync();
+        Task<Dictionary<string, int>> GetLeaveStatsByStatusAsync();
         Task<LeaveRequest> CreateLeaveRequestAsync(LeaveRequest leaveRequest);
         Task<LeaveRequest?> GetLeaveRequestByIdAsync(int id);
         Task<bool> CancelLeaveRequestAsync(int id);

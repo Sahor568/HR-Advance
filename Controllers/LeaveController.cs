@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using HR_Management_System.Models;
 using HR_Management_System.Models.ViewModels;
 using HR_Management_System.Services.Interfaces;
 
@@ -235,6 +236,79 @@ namespace HR_Management_System.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching public holidays for year: {Year}", year);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpPost("holidays")]
+        [Authorize(Roles = "Admin,HRManager")]
+        public async Task<IActionResult> CreatePublicHoliday([FromBody] PublicHoliday holiday)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var createdHoliday = await _leaveService.AddPublicHolidayAsync(holiday);
+                return CreatedAtAction(nameof(GetPublicHolidays), new { year = holiday.HolidayDate.Year }, createdHoliday);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating public holiday");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpPut("holidays/{id}")]
+        [Authorize(Roles = "Admin,HRManager")]
+        public async Task<IActionResult> UpdatePublicHoliday(int id, [FromBody] PublicHoliday holiday)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                if (id != holiday.Id)
+                {
+                    return BadRequest("ID mismatch");
+                }
+
+                var updatedHoliday = await _leaveService.UpdatePublicHolidayAsync(id, holiday);
+                return Ok(updatedHoliday);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                _logger.LogWarning(ex, "Public holiday not found: {Id}", id);
+                return NotFound($"Public holiday with ID {id} not found");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating public holiday");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpDelete("holidays/{id}")]
+        [Authorize(Roles = "Admin,HRManager")]
+        public async Task<IActionResult> DeletePublicHoliday(int id)
+        {
+            try
+            {
+                var result = await _leaveService.DeletePublicHolidayAsync(id);
+                if (!result)
+                {
+                    return NotFound($"Public holiday with ID {id} not found");
+                }
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting public holiday");
                 return StatusCode(500, "Internal server error");
             }
         }

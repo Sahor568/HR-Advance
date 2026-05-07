@@ -1,152 +1,191 @@
 @{
-    ViewData["Title"] = "Holidays Management";
+    ViewData["Title"] = "Holidays";
+    var isAdminOrHR = User.IsInRole("Admin") || User.IsInRole("HRManager");
 }
 
-<div class="page-header">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <h1 class="page-title">Holidays Management</h1>
-            <p class="page-subtitle">Manage public holidays and company holidays</p>
-        </div>
-        <div style="display: flex; gap: 0.5rem;">
-            <button class="btn btn-outline-primary" onclick="openBulkModal()">
-                <i class="fas fa-upload"></i> Bulk Import
-            </button>
-            <button class="btn btn-primary" onclick="openCreateModal()">
-                <i class="fas fa-plus"></i> Add Holiday
-            </button>
+<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+        <h1 class="page-title">Holidays</h1>
+        <p class="page-subtitle">Public holidays and calendar (holidays count as working days)</p>
+    </div>
+    @if (isAdminOrHR)
+    {
+        <button class="btn-primary" onclick="openAddHoliday()"><i class="fas fa-plus"></i> Add Holiday</button>
+    }
+</div>
+
+<!-- Today's Holiday Banner -->
+<div id="todayHolidayBanner" style="display:none;"></div>
+
+<!-- Holiday List -->
+<div class="table-container">
+    <div class="table-header">
+        <h3 style="font-size:1rem;font-weight:600;margin:0;">Holiday Calendar</h3>
+        <div class="filter-bar">
+            <input type="number" class="form-control" id="holidayYear" value="2026" style="width:100px;" onchange="loadHolidays()" />
         </div>
     </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Holiday Name</th>
+                <th>Date</th>
+                <th>Nepali Date</th>
+                <th>Day</th>
+                <th>Women Only</th>
+                <th>Status</th>
+                @if (isAdminOrHR) { <th>Actions</th> }
+            </tr>
+        </thead>
+        <tbody id="holidayBody">
+            <tr><td colspan="7" class="text-center" style="padding:2rem;">Loading...</td></tr>
+        </tbody>
+    </table>
 </div>
 
-<!-- Year Filter -->
-<div class="year-filter">
-    <label style="font-weight: 600; margin: 0;">Year:</label>
-    <select id="yearFilter" class="form-control" onchange="loadHolidays()">
-    </select>
-</div>
-
-<!-- Upcoming Holidays -->
-<div class="upcoming-holidays">
-    <h5 style="margin-top: 0;">
-        <i class="fas fa-calendar-check"></i> Upcoming Holidays
-    </h5>
-    <div id="upcoming-holidays-list">
-        <div class="text-center" style="padding: 1rem;">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
+<!-- Add/Edit Holiday Modal -->
+@if (isAdminOrHR)
+{
+    <div class="modal-overlay" id="holidayModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="holidayModalTitle">Add Holiday</h3>
+                <button class="modal-close" onclick="closeModal('holidayModal')">X</button>
+            </div>
+            <div class="modal-body">
+                <form id="holidayForm">
+                    <input type="hidden" id="holidayId" />
+                    <div class="form-group"><label class="form-label">Holiday Name *</label><input type="text" class="form-control" id="holidayName" required /></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                        <div class="form-group"><label class="form-label">Date *</label><input type="date" class="form-control" id="holidayDate" required /></div>
+                        <div class="form-group"><label class="form-label">Nepali Date</label><input type="text" class="form-control" id="holidayNepaliDate" placeholder="e.g. 2081-01-01" /></div>
+                    </div>
+                    <div class="form-group"><label class="form-label">Description</label><textarea class="form-control" id="holidayDesc" rows="2"></textarea></div>
+                    <div class="form-group">
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;cursor:pointer;">
+                            <input type="checkbox" id="holidayWomenOnly" /> Women Only Holiday
+                        </label>
+                    </div>
+                    <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:var(--radius);padding:0.75rem;">
+                        <p style="font-size:0.8rem;color:#065f46;margin:0;"><i class="fas fa-info-circle"></i> Holidays are counted as working days for payroll and attendance purposes.</p>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('holidayModal')">Cancel</button>
+                <button class="btn-primary" onclick="saveHoliday()"><i class="fas fa-save"></i> Save</button>
             </div>
         </div>
     </div>
-</div>
+}
 
-<!-- Holiday Cards -->
-<h5 style="margin-bottom: 1.5rem;">
-    <i class="fas fa-list"></i> All Holidays <span id="holiday-count" class="badge bg-primary" style="font-size: 0.8rem;">0</span>
-</h5>
+@section Scripts {
+<script>
+var isAdminOrHR = @(isAdminOrHR ? "true" : "false");
+document.addEventListener('DOMContentLoaded', function() { loadHolidays(); checkTodayHoliday(); });
 
-<div id="holiday-list" class="holiday-list">
-    <div class="text-center" style="padding: 2rem; grid-column: 1 / -1;">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-        </div>
-    </div>
-</div>
+function loadHolidays() {
+    var year = document.getElementById('holidayYear').value;
+    fetch('/api/leave/holidays?year=' + year).then(r=>r.json()).then(data => {
+        renderHolidays(data);
+    }).catch(()=>{ document.getElementById('holidayBody').innerHTML='<tr><td colspan="7" class="text-center">Failed to load</td></tr>'; });
+}
 
-<!-- Holiday Statistics -->
-<div class="card" style="margin-top: 2rem;">
-    <div class="card-header">
-        <h5 style="margin: 0;">
-            <i class="fas fa-chart-bar"></i> Holiday Statistics
-        </h5>
-    </div>
-    <div class="card-body">
-        <div class="stat-grid">
-            <div class="stat-item">
-                <div class="stat-value" style="color: var(--primary-color);" id="stat-total">0</div>
-                <div class="stat-label">Total Holidays</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" style="color: var(--success-color);" id="stat-upcoming">0</div>
-                <div class="stat-label">Upcoming</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" style="color: var(--warning-color);" id="stat-this-month">0</div>
-                <div class="stat-label">This Month</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" style="color: var(--danger-color);" id="stat-past">0</div>
-                <div class="stat-label">Past Holidays</div>
-            </div>
-        </div>
-    </div>
-</div>
+function renderHolidays(data) {
+    var tbody = document.getElementById('holidayBody');
+    if(!data||data.length===0){tbody.innerHTML='<tr><td colspan="7"><div class="empty-state"><i class="fas fa-umbrella-beach"></i><h4>No holidays</h4></div></td></tr>';return;}
+    var today = new Date().toISOString().split('T')[0];
+    tbody.innerHTML=data.map(h=>{
+        var d=h.holidayDate?new Date(h.holidayDate):null;
+        var isToday=h.holidayDate&&h.holidayDate.split('T')[0]===today;
+        var isPast=d&&d<new Date()&&!isToday;
+        return `<tr style="${isToday?'background:#fef3c7;':''}">
+            <td style="font-weight:${isToday?'600':'400'};">${h.holidayName||'-'}</td>
+            <td>${d?d.toLocaleDateString():'-'}</td>
+            <td>${h.nepaliDate||'-'}</td>
+            <td>${d?d.toLocaleDateString('en-US',{weekday:'long'}):'-'}</td>
+            <td>${h.isForWomenOnly?'<span class="badge-status badge-info">Yes</span>':'-'}</td>
+            <td><span class="badge-status ${isToday?'badge-warning':isPast?'badge-secondary':'badge-success'}">${isToday?'Today':isPast?'Past':'Upcoming'}</span></td>
+            ${isAdminOrHR?`<td><div class="d-flex gap-1"><button class="btn-icon" title="Edit" onclick="editHoliday(${h.id})"><i class="fas fa-edit"></i></button><button class="btn-icon" title="Delete" onclick="deleteHoliday(${h.id})"><i class="fas fa-trash"></i></button></div></td>`:'<td></td>'}
+        </tr>`;
+    }).join('');
+}
 
-<!-- Create/Edit Holiday Modal -->
-<div class="modal-overlay" id="holidayModal">
-    <div class="modal-dialog">
-        <div class="modal-header-custom">
-            <h5 id="holidayModalTitle">Add Holiday</h5>
-            <button class="close-btn" onclick="closeModal('holidayModal')">&times;</button>
-        </div>
-        <div class="modal-body-custom">
-            <form id="holidayForm">
-                <input type="hidden" id="holidayId" />
-                <div class="mb-3">
-                    <label for="holidayName" class="form-label">Holiday Name <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="holidayName" required placeholder="e.g., Independence Day" />
-                </div>
-                <div class="mb-3">
-                    <label for="holidayDate" class="form-label">Date <span class="text-danger">*</span></label>
-                    <input type="date" class="form-control" id="holidayDate" required />
-                </div>
-            </form>
-        </div>
-        <div class="modal-footer-custom">
-            <button class="btn btn-outline-secondary" onclick="closeModal('holidayModal')">Cancel</button>
-            <button class="btn btn-primary" onclick="saveHoliday()">
-                <i class="fas fa-save"></i> Save Holiday
-            </button>
-        </div>
-    </div>
-</div>
+function checkTodayHoliday() {
+    var currentYear = new Date().getFullYear();
+    fetch('/api/leave/holidays?year=' + currentYear).then(r=>r.json()).then(holidays=>{
+        var today=new Date().toISOString().split('T')[0];
+        var h=holidays.find(x=>x.holidayDate&&x.holidayDate.split('T')[0]===today);
+        if(h){
+            document.getElementById('todayHolidayBanner').style.display='block';
+            document.getElementById('todayHolidayBanner').innerHTML='<div class="holiday-today"><i class="fas fa-umbrella-beach"></i><h3>Today is a Holiday!</h3><p>'+h.holidayName+'</p></div>';
+        }
+    }).catch(()=>{});
+}
 
-<!-- Bulk Import Modal -->
-<div class="modal-overlay" id="bulkModal">
-    <div class="modal-dialog">
-        <div class="modal-header-custom">
-            <h5>Bulk Import Holidays</h5>
-            <button class="close-btn" onclick="closeModal('bulkModal')">&times;</button>
-        </div>
-        <div class="modal-body-custom">
-            <p class="text-muted">Add multiple holidays at once. One holiday per line with format: <strong>Name, YYYY-MM-DD</strong></p>
-            <textarea id="bulkHolidays" class="form-control" rows="8" placeholder="New Year's Day, 2027-01-01&#10;Independence Day, 2027-07-04&#10;Christmas Day, 2027-12-25"></textarea>
-        </div>
-        <div class="modal-footer-custom">
-            <button class="btn btn-outline-secondary" onclick="closeModal('bulkModal')">Cancel</button>
-            <button class="btn btn-primary" onclick="saveBulkHolidays()">
-                <i class="fas fa-upload"></i> Import Holidays
-            </button>
-        </div>
-    </div>
-</div>
+function openAddHoliday() {
+    document.getElementById('holidayModalTitle').textContent='Add Holiday';
+    document.getElementById('holidayForm').reset();
+    document.getElementById('holidayId').value='';
+    document.getElementById('holidayModal').classList.add('active');
+}
 
-<!-- Delete Confirmation Modal -->
-<div class="modal-overlay" id="deleteModal">
-    <div class="modal-dialog" style="max-width: 400px;">
-        <div class="modal-header-custom">
-            <h5>Confirm Delete</h5>
-            <button class="close-btn" onclick="closeModal('deleteModal')">&times;</button>
-        </div>
-        <div class="modal-body-custom">
-            <p>Are you sure you want to delete <strong id="deleteHolidayName"></strong>?</p>
-            <p class="text-muted">This action cannot be undone.</p>
-        </div>
-        <div class="modal-footer-custom">
-            <button class="btn btn-outline-secondary" onclick="closeModal('deleteModal')">Cancel</button>
-            <button class="btn btn-danger" onclick="confirmDelete()">
-                <i class="fas fa-trash"></i> Delete
-            </button>
-        </div>
-    </div>
-</div>
+function editHoliday(id) {
+    var year = document.getElementById('holidayYear').value;
+    fetch('/api/leave/holidays?year=' + year).then(r=>r.json()).then(holidays=>{
+        var h=holidays.find(x=>x.id===id);
+        if(h){
+            document.getElementById('holidayModalTitle').textContent='Edit Holiday';
+            document.getElementById('holidayId').value=h.id;
+            document.getElementById('holidayName').value=h.holidayName||'';
+            document.getElementById('holidayDate').value=h.holidayDate?h.holidayDate.split('T')[0]:'';
+            document.getElementById('holidayNepaliDate').value=h.nepaliDate||'';
+            document.getElementById('holidayDesc').value=h.description||'';
+            document.getElementById('holidayWomenOnly').checked=h.isForWomenOnly||false;
+            document.getElementById('holidayModal').classList.add('active');
+        }
+    }).catch(()=>alert('Failed'));
+}
+
+function saveHoliday() {
+    var id=document.getElementById('holidayId').value;
+    var holidayDate = document.getElementById('holidayDate').value;
+    
+    // Create the holiday object
+    var body={
+        holidayName: document.getElementById('holidayName').value,
+        holidayDate: holidayDate,
+        nepaliDate: document.getElementById('holidayNepaliDate').value,
+        description: document.getElementById('holidayDesc').value,
+        isForWomenOnly: document.getElementById('holidayWomenOnly').checked,
+        isActive: true
+    };
+    
+    // Only include id for updates
+    if (id) {
+        body.id = parseInt(id);
+    }
+    
+    var url=id ? `/api/leave/holidays/${id}` : '/api/leave/holidays';
+    var method=id ? 'PUT' : 'POST';
+    fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>{
+        if(r.ok){closeModal('holidayModal');loadHolidays();alert('Holiday saved!');}
+        else r.text().then(t=>alert('Error: '+t));
+    }).catch(()=>alert('Failed'));
+}
+
+function deleteHoliday(id) {
+    if(!confirm('Delete this holiday?'))return;
+    fetch(`/api/leave/holidays/${id}`,{method:'DELETE'}).then(r=>{
+        if(r.ok || r.status === 204) {
+            loadHolidays();
+            alert('Holiday deleted!');
+        } else {
+            alert('Failed to delete holiday');
+        }
+    }).catch(()=>alert('Error'));
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('active');}
+</script>
+}

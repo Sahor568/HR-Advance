@@ -1,0 +1,285 @@
+@model HR_Management_System.Models.ViewModels.TeamDetailViewModel
+
+@{
+    ViewData["Title"] = "Team Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-action="Index">Teams</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">@Model.Name</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">Team: @Model.Name</h1>
+            <p class="text-muted">@Model.Description</p>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group" role="group">
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary">
+                    <i class="fas fa-edit"></i> Edit Team
+                </a>
+                <a asp-action="CreateTask" asp-route-teamId="@Model.Id" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add Task
+                </a>
+                @if (Model.IsActive)
+                {
+                    <form asp-action="Deactivate" asp-route-id="@Model.Id" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to deactivate this team?');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-warning">
+                            <i class="fas fa-pause"></i> Deactivate
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <form asp-action="Activate" asp-route-id="@Model.Id" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to activate this team?');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-success">
+                            <i class="fas fa-play"></i> Activate
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Team Information Card -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Team Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-5">Department:</dt>
+                        <dd class="col-sm-7">@Model.DepartmentName</dd>
+
+                        <dt class="col-sm-5">Created By:</dt>
+                        <dd class="col-sm-7">@Model.CreatorName</dd>
+
+                        <dt class="col-sm-5">Created Date:</dt>
+                        <dd class="col-sm-7">@Model.CreatedAt.ToString("dd MMM yyyy HH:mm")</dd>
+
+                        <dt class="col-sm-5">Last Updated:</dt>
+                        <dd class="col-sm-7">@(Model.UpdatedAt?.ToString("dd MMM yyyy HH:mm") ?? "Never")</dd>
+
+                        <dt class="col-sm-5">Status:</dt>
+                        <dd class="col-sm-7">
+                            @if (Model.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">Inactive</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-5">Total Members:</dt>
+                        <dd class="col-sm-7">@Model.Members.Count</dd>
+
+                        <dt class="col-sm-5">Total Tasks:</dt>
+                        <dd class="col-sm-7">@Model.Tasks.Count</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Members Card -->
+        <div class="col-md-8 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Team Members (@Model.Members.Count)</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Members.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Employee Code</th>
+                                        <th>Designation</th>
+                                        <th>Role</th>
+                                        <th>Joined Date</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var member in Model.Members)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>@member.EmployeeName</strong>
+                                            </td>
+                                            <td>@member.EmployeeCode</td>
+                                            <td>@member.Designation</td>
+                                            <td>
+                                                <span class="badge @(member.Role == "Team Lead" ? "bg-primary" : "bg-secondary")">
+                                                    @member.Role
+                                                </span>
+                                            </td>
+                                            <td>@member.JoinedAt.ToString("dd MMM yyyy")</td>
+                                            <td>
+                                                @if (member.IsActive)
+                                                {
+                                                    <span class="badge bg-success">Active</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger">Inactive</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No members in this team yet.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tasks Card -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Team Tasks (@Model.Tasks.Count)</h5>
+                    <a asp-action="CreateTask" asp-route-teamId="@Model.Id" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus"></i> Add New Task
+                    </a>
+                </div>
+                <div class="card-body">
+                    @if (Model.Tasks.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Task Title</th>
+                                        <th>Assigned To</th>
+                                        <th>Start Date</th>
+                                        <th>Deadline</th>
+                                        <th>Priority</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var task in Model.Tasks)
+                                    {
+                                        <tr class="@(task.IsOverdue ? "table-danger" : "")">
+                                            <td>
+                                                <strong>@task.Title</strong>
+                                                @if (!string.IsNullOrEmpty(task.Description))
+                                                {
+                                                    <br />
+                                                    <small class="text-muted">@task.Description</small>
+                                                }
+                                            </td>
+                                            <td>@(task.AssignedEmployeeName ?? "Unassigned")</td>
+                                            <td>@task.StartDate.ToString("dd MMM yyyy")</td>
+                                            <td>
+                                                @task.Deadline.ToString("dd MMM yyyy")
+                                                @if (task.IsOverdue)
+                                                {
+                                                    <br />
+                                                    <small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Overdue</small>
+                                                }
+                                            </td>
+                                            <td>
+                                                @{
+                                                    var priorityClass = task.Priority switch
+                                                    {
+                                                        1 => "bg-secondary",
+                                                        2 => "bg-info",
+                                                        3 => "bg-warning",
+                                                        4 => "bg-danger",
+                                                        _ => "bg-secondary"
+                                                    };
+                                                    var priorityText = task.Priority switch
+                                                    {
+                                                        1 => "Low",
+                                                        2 => "Medium",
+                                                        3 => "High",
+                                                        4 => "Critical",
+                                                        _ => "Low"
+                                                    };
+                                                }
+                                                <span class="badge @priorityClass">@priorityText</span>
+                                            </td>
+                                            <td>
+                                                @{
+                                                    var statusClass = task.Status switch
+                                                    {
+                                                        "Completed" => "bg-success",
+                                                        "In Progress" => "bg-primary",
+                                                        "Pending" => "bg-warning",
+                                                        "Cancelled" => "bg-danger",
+                                                        _ => "bg-secondary"
+                                                    };
+                                                }
+                                                <span class="badge @statusClass">@task.Status</span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    @if (User.IsInRole("Admin") || User.IsInRole("HRManager"))
+                                                    {
+                                                        <a asp-action="EditTask" asp-route-id="@task.Id" class="btn btn-sm btn-outline-secondary" title="Edit Task">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                    }
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No tasks assigned to this team yet.</p>
+                            <a asp-action="CreateTask" asp-route-teamId="@Model.Id" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Create First Task
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

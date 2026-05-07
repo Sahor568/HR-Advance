@@ -1,130 +1,407 @@
 @{
     ViewData["Title"] = "Dashboard";
+    var isAdmin = User.IsInRole("Admin");
+    var isHR = User.IsInRole("HRManager");
+    var isAdminOrHR = isAdmin || isHR;
 }
-<div class="page-header">
-    <h1 class="page-title">Dashboard</h1>
-    <p class="page-subtitle">Welcome to HR Management System - Overview of your organization</p>
+
+<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">Welcome back! Here's what's happening today.</p>
+    </div>
+    <div style="font-size:0.8rem;color:var(--secondary);">
+        <i class="fas fa-calendar"></i> <span id="todayDate"></span>
+    </div>
 </div>
 
-<!-- Key Metrics -->
-<div class="dashboard-grid" id="dashboard-stats">
+<!-- Holiday Banner -->
+<div id="holidayBanner" style="display:none;"></div>
+
+<!-- KPI Cards -->
+<div class="kpi-grid" id="kpiGrid">
     <div class="kpi-card">
-        <div class="kpi-icon" style="background: linear-gradient(135deg, #2563eb15 0%, #0ea5e915 100%); color: var(--primary-color);">
-            <i class="fas fa-users"></i>
-        </div>
-        <h5 class="kpi-label">Total Employees</h5>
-        <div class="kpi-value" id="total-employees">--</div>
-        <div class="stat-change positive" id="employee-change">
-            <i class="fas fa-users"></i> Active workforce
+        <div class="kpi-icon blue"><i class="fas fa-users"></i></div>
+        <div class="kpi-info">
+            <div class="kpi-value" id="totalEmployees">--</div>
+            <div class="kpi-label">Total Employees</div>
         </div>
     </div>
-
     <div class="kpi-card">
-        <div class="kpi-icon" style="background: linear-gradient(135deg, #10b98115 0%, #059e0a15 100%); color: var(--success-color);">
-            <i class="fas fa-check-circle"></i>
-        </div>
-        <h5 class="kpi-label">Present Today</h5>
-        <div class="kpi-value" id="present-today">--</div>
-        <div class="stat-change positive" id="attendance-percent">
-            <i class="fas fa-arrow-up"></i> --% attendance
+        <div class="kpi-icon green"><i class="fas fa-user-check"></i></div>
+        <div class="kpi-info">
+            <div class="kpi-value" id="presentToday">--</div>
+            <div class="kpi-label">Present Today</div>
         </div>
     </div>
-
     <div class="kpi-card">
-        <div class="kpi-icon" style="background: linear-gradient(135deg, #f59e0b15 0%, #d9790015 100%); color: var(--warning-color);">
-            <i class="fas fa-calendar-alt"></i>
+        <div class="kpi-icon orange"><i class="fas fa-calendar-minus"></i></div>
+        <div class="kpi-info">
+            <div class="kpi-value" id="pendingLeaves">--</div>
+            <div class="kpi-label">Pending Leaves</div>
         </div>
-        <h5 class="kpi-label">Pending Leaves</h5>
-        <div class="kpi-value" id="pending-leaves">--</div>
-        <div class="stat-change negative" id="leaves-change">
-            <i class="fas fa-clock"></i> Awaiting approval
+    </div>
+    @if (isAdminOrHR)
+    {
+        <div class="kpi-card">
+            <div class="kpi-icon purple"><i class="fas fa-money-bill-wave"></i></div>
+            <div class="kpi-info">
+                <div class="kpi-value" id="monthlyPayroll">--</div>
+                <div class="kpi-label">Monthly Payroll</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon teal"><i class="fas fa-sitemap"></i></div>
+            <div class="kpi-info">
+                <div class="kpi-value" id="departments">--</div>
+                <div class="kpi-label">Departments</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon indigo"><i class="fas fa-user-friends"></i></div>
+            <div class="kpi-info">
+                <div class="kpi-value" id="totalTeams">--</div>
+                <div class="kpi-label">Active Teams</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon red"><i class="fas fa-user-clock"></i></div>
+            <div class="kpi-info">
+                <div class="kpi-value" id="onProbation">--</div>
+                <div class="kpi-label">On Probation</div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="kpi-card">
+            <div class="kpi-icon purple"><i class="fas fa-calendar-check"></i></div>
+            <div class="kpi-info">
+                <div class="kpi-value" id="myLeaveBalance">--</div>
+                <div class="kpi-label">Leave Balance</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon teal"><i class="fas fa-clock"></i></div>
+            <div class="kpi-info">
+                <div class="kpi-value" id="myAttendance">--</div>
+                <div class="kpi-label">This Month Attendance</div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Charts Row -->
+@if (isAdminOrHR)
+{
+    <div class="grid-2 mb-3">
+        <div class="chart-container">
+            <div class="chart-header">
+                <h4>Attendance Overview (Last 7 Days)</h4>
+            </div>
+            <canvas id="attendanceChart" height="200"></canvas>
+        </div>
+        <div class="chart-container">
+            <div class="chart-header">
+                <h4>Leave Status</h4>
+            </div>
+            <canvas id="leaveChart" height="200"></canvas>
+        </div>
+    </div>
+}
+
+<!-- Bottom Row -->
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header">
+            <h3 style="font-size:0.95rem;font-weight:600;margin:0;">Recent Activities</h3>
+            <a href="@Url.Action("Index", "Notifications")" style="font-size:0.8rem;color:var(--primary);text-decoration:none;">View All</a>
+        </div>
+        <div class="card-body" style="padding:0;">
+            <ul class="activity-list" id="activityList" style="padding:0.5rem 1.25rem;">
+                <li class="activity-item">
+                    <div class="activity-dot" style="background:var(--success);"></div>
+                    <div><div class="activity-text">Loading activities...</div></div>
+                </li>
+            </ul>
         </div>
     </div>
 
-    <div class="kpi-card" id="payroll-card">
-        <div class="kpi-icon" style="background: linear-gradient(135deg, #ef444415 0%, #dc263015 100%); color: var(--danger-color);">
-            <i class="fas fa-money-bill-wave"></i>
+    <div class="card">
+        <div class="card-header">
+            <h3 style="font-size:0.95rem;font-weight:600;margin:0;">Quick Actions</h3>
         </div>
-        <h5 class="kpi-label">Monthly Payroll</h5>
-        <div class="kpi-value" id="monthly-payroll">--</div>
-        <div class="stat-change" id="payroll-period">
-            <i class="fas fa-calendar"></i> Current Month
-        </div>
-    </div>
-
-    <div class="kpi-card">
-        <div class="kpi-icon" style="background: linear-gradient(135deg, #8b5cf615 0%, #7c3aed15 100%); color: #7c3aed;">
-            <i class="fas fa-sitemap"></i>
-        </div>
-        <h5 class="kpi-label">Departments</h5>
-        <div class="kpi-value" id="total-departments">--</div>
-        <div class="stat-change">
-            <i class="fas fa-building"></i> Active
-        </div>
-    </div>
-
-    <div class="kpi-card" id="avg-salary-card">
-        <div class="kpi-icon" style="background: linear-gradient(135deg, #06b6d415 0%, #0891b215 100%); color: #0891b2;">
-            <i class="fas fa-chart-pie"></i>
-        </div>
-        <h5 class="kpi-label">Avg. Salary</h5>
-        <div class="kpi-value" id="avg-salary">--</div>
-        <div class="stat-change">
-            <i class="fas fa-arrow-right"></i> Per Employee
+        <div class="card-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                @if (isAdminOrHR)
+                {
+                    <a href="@Url.Action("Index", "Employees")" class="btn-secondary" style="justify-content:center;"><i class="fas fa-user-plus"></i> Add Employee</a>
+                    <a href="@Url.Action("Index", "Leaves")" class="btn-secondary" style="justify-content:center;"><i class="fas fa-check-circle"></i> Approve Leaves</a>
+                    <a href="@Url.Action("Index", "Payrolls")" class="btn-secondary" style="justify-content:center;"><i class="fas fa-file-invoice-dollar"></i> Payroll</a>
+                    <a href="@Url.Action("Index", "Holidays")" class="btn-secondary" style="justify-content:center;"><i class="fas fa-calendar-plus"></i> Add Holiday</a>
+                    <a href="@Url.Action("Index", "MasterSheet")" class="btn-secondary" style="justify-content:center;"><i class="fas fa-table"></i> Master Sheet</a>
+                    <a href="@Url.Action("Index", "Logs")" class="btn-secondary" style="justify-content:center;"><i class="fas fa-file-alt"></i> View Logs</a>
+                }
+                else
+                {
+                    <a href="@Url.Action("Index", "Attendances")" class="btn-secondary" style="justify-content:center;"><i class="fas fa-clock"></i> Check In</a>
+                    <a href="@Url.Action("Index", "Leaves")" class="btn-secondary" style="justify-content:center;"><i class="fas fa-calendar-minus"></i> Apply Leave</a>
+                    <a href="@Url.Action("Index", "Payrolls")" class="btn-secondary" style="justify-content:center;"><i class="fas fa-money-bill"></i> My Payslips</a>
+                    <a href="@Url.Action("Profile", "Home")" class="btn-secondary" style="justify-content:center;"><i class="fas fa-user"></i> My Profile</a>
+                }
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Charts Section -->
-<div class="row-cards">
-    <!-- Attendance Trend Chart -->
-    <div class="chart-container">
-        <h5 class="chart-title">
-            <i class="fas fa-chart-line"></i> Attendance Trend (Last 7 Days)
-        </h5>
-        <div class="bar-chart" id="attendance-chart">
-            <div class="text-center text-muted w-100">Loading...</div>
-        </div>
-        <div style="margin-top: 10px; padding-top: 1rem; border-top: 1px solid var(--border-color);">
-            <small class="text-muted" id="avg-attendance-text">Average attendance: --</small>
-        </div>
-    </div>
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    var isAdminOrHR = @Json.Serialize(isAdminOrHR);
+    
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    loadDashboardData();
+    loadCharts();
+    loadActivities();
+    checkHoliday();
+});
 
-    <!-- Leave Status -->
-    <div class="chart-container">
-        <h5 class="chart-title">
-            <i class="fas fa-calendar-check"></i> Leave Status
-        </h5>
-        <div style="padding: 1rem;" id="leave-status-container">
-            <div class="text-center text-muted">Loading...</div>
-        </div>
-    </div>
+function loadDashboardData() {
+    // Call endpoints that work for all authenticated users
+    fetch('/api/attendance/today-count').then(r=>r.json()).then(data => {
+        document.getElementById('presentToday').textContent=data.count || '0';
+    }).catch(()=>{ document.getElementById('presentToday').textContent='0'; });
 
-    <!-- Employee Distribution -->
-    <div class="chart-container">
-        <h5 class="chart-title">
-            <i class="fas fa-users"></i> Department Distribution
-        </h5>
-        <div id="dept-distribution-container">
-            <div class="text-center text-muted">Loading...</div>
-        </div>
-    </div>
-</div>
+    // Admin/HR only calls
+    if (isAdminOrHR) {
+        fetch('/api/employee/stats').then(r=>r.json()).then(data => {
+            if(data.totalActive!==undefined) document.getElementById('totalEmployees').textContent=data.totalActive;
+            if(data.onProbation!==undefined && document.getElementById('onProbation')) document.getElementById('onProbation').textContent=data.onProbation;
+        }).catch(()=>{ document.getElementById('totalEmployees').textContent='0'; });
 
-<!-- Recent Activities -->
-<div class="card" style="margin-top: 2rem;">
-    <div class="card-header">
-        <h5 style="margin: 0;">
-            <i class="fas fa-clock"></i> Recent Activities
-        </h5>
-    </div>
-    <div class="card-body">
-        <div style="max-height: 300px; overflow-y: auto;" id="recent-activities">
-            <div class="text-center text-muted">Loading...</div>
-        </div>
-    </div>
-</div>
+        fetch('/api/leave/pending').then(r=>r.json()).then(data => {
+            document.getElementById('pendingLeaves').textContent=Array.isArray(data)?data.length:'0';
+        }).catch(()=>{ document.getElementById('pendingLeaves').textContent='0'; });
 
-<!-- Quick Actions -->
-<div style="margin-top: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;" id="quick-actions">
-</div>
+        fetch('/api/departments').then(r=>r.json()).then(data => {
+            if(document.getElementById('departments')) document.getElementById('departments').textContent=Array.isArray(data)?data.length:'0';
+        }).catch(()=>{});
+
+        fetch('/api/teams/active-count').then(r=>r.json()).then(data => {
+            if(document.getElementById('totalTeams')) document.getElementById('totalTeams').textContent=data.count || '0';
+        }).catch(()=>{ if(document.getElementById('totalTeams')) document.getElementById('totalTeams').textContent='0'; });
+
+        fetch('/api/payroll/monthly-total').then(r=>r.json()).then(data => {
+            if(document.getElementById('monthlyPayroll')) document.getElementById('monthlyPayroll').textContent='Rs.'+(data.totalPayrollAmount||0).toLocaleString();
+        }).catch(()=>{ if(document.getElementById('monthlyPayroll')) document.getElementById('monthlyPayroll').textContent='Rs.0'; });
+    } else {
+        // For non-Admin/HR users, show basic info
+        document.getElementById('totalEmployees').textContent = '--';
+        document.getElementById('pendingLeaves').textContent = '--';
+    }
+}
+
+function loadCharts() {
+    // Only load charts for Admin/HR users
+    if (!isAdminOrHR) {
+        // Hide chart containers for non-Admin/HR users
+        var chartContainers = document.querySelectorAll('.chart-container');
+        chartContainers.forEach(function(container) {
+            container.style.display = 'none';
+        });
+        return;
+    }
+    
+    // Load attendance chart data
+    fetch('/api/dashboard/attendance-stats')
+        .then(r => r.json())
+        .then(attendanceData => {
+            var ctx1 = document.getElementById('attendanceChart');
+            if (ctx1) {
+                new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: attendanceData.labels || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                        datasets: [
+                            {
+                                label: 'Present',
+                                data: attendanceData.present || [0, 0, 0, 0, 0, 0, 0],
+                                backgroundColor: '#10b981',
+                                borderRadius: 4
+                            },
+                            {
+                                label: 'Absent',
+                                data: attendanceData.absent || [0, 0, 0, 0, 0, 0, 0],
+                                backgroundColor: '#ef4444',
+                                borderRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 12,
+                                    font: { size: 11 }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: '#f1f5f9' }
+                            },
+                            x: {
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            }
+        })
+        .catch(err => {
+            console.error('Error loading attendance chart:', err);
+            // Fallback to static data if API fails
+            var ctx1 = document.getElementById('attendanceChart');
+            if (ctx1) {
+                var days = [];
+                for (var i = 6; i >= 0; i--) {
+                    var d = new Date();
+                    d.setDate(d.getDate() - i);
+                    days.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
+                }
+                new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: days,
+                        datasets: [
+                            { label: 'Present', data: [12, 15, 14, 13, 16, 10, 14], backgroundColor: '#10b981', borderRadius: 4 },
+                            { label: 'Absent', data: [3, 0, 1, 2, 0, 5, 1], backgroundColor: '#ef4444', borderRadius: 4 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 12,
+                                    font: { size: 11 }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            }
+        });
+
+    // Load leave chart data
+    fetch('/api/dashboard/leave-stats')
+        .then(r => r.json())
+        .then(leaveData => {
+            var ctx2 = document.getElementById('leaveChart');
+            if (ctx2) {
+                new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Approved', 'Pending', 'Rejected'],
+                        datasets: [{
+                            data: [
+                                leaveData.approved || 0,
+                                leaveData.pending || 0,
+                                leaveData.rejected || 0
+                            ],
+                            backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 12,
+                                    font: { size: 11 }
+                                }
+                            }
+                        },
+                        cutout: '65%'
+                    }
+                });
+            }
+        })
+        .catch(err => {
+            console.error('Error loading leave chart:', err);
+            // Fallback to static data if API fails
+            var ctx2 = document.getElementById('leaveChart');
+            if (ctx2) {
+                new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Approved', 'Pending', 'Rejected'],
+                        datasets: [{
+                            data: [24, 5, 3],
+                            backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 12,
+                                    font: { size: 11 }
+                                }
+                            }
+                        },
+                        cutout: '65%'
+                    }
+                });
+            }
+        });
+}
+
+function loadActivities() {
+    var list=document.getElementById('activityList');
+    var activities=[{text:'System initialized',time:'Just now',color:'var(--success)'},{text:'Dashboard loaded',time:'Just now',color:'var(--info)'}];
+    
+    // Only fetch pending leaves for Admin/HR users
+    if (isAdminOrHR) {
+        fetch('/api/leave/pending').then(r=>r.json()).then(data => {
+            if(Array.isArray(data)&&data.length>0) activities.unshift({text:data.length+' leave request(s) pending approval',time:'Today',color:'var(--warning)'});
+            renderActivities(list,activities);
+        }).catch(()=>renderActivities(list,activities));
+    } else {
+        // For non-Admin/HR users, just show basic activities
+        renderActivities(list,activities);
+    }
+}
+
+function renderActivities(list,activities){
+    list.innerHTML=activities.map(a=>'<li class="activity-item"><div class="activity-dot" style="background:'+a.color+';"></div><div><div class="activity-text">'+a.text+'</div><div class="activity-time">'+a.time+'</div></div></li>').join('');
+}
+
+function checkHoliday(){
+    var currentYear = new Date().getFullYear();
+    fetch('/api/leave/holidays?year=' + currentYear).then(r=>r.json()).then(holidays=>{
+        var today=new Date().toISOString().split('T')[0];
+        var h=holidays.find(x=>x.holidayDate&&x.holidayDate.split('T')[0]===today);
+        if(h){document.getElementById('holidayBanner').style.display='block';document.getElementById('holidayBanner').innerHTML='<div class="holiday-today"><i class="fas fa-umbrella-beach"></i><h3>Today is a Holiday!</h3><p>'+h.holidayName+'</p></div>';}
+    }).catch(()=>{});
+}
+</script>
+}

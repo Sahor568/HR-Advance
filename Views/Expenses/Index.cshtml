@@ -1,0 +1,192 @@
+@{
+    ViewData["Title"] = "Expense Management";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    
+    var travelRequests = ViewBag.TravelRequests as IEnumerable<HR_Management_System.Models.TravelRequest>;
+    var reimbursements = ViewBag.Reimbursements as IEnumerable<HR_Management_System.Models.Reimbursement>;
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3 mb-0">Expense Management</h1>
+            <p class="text-muted">Payout advances, streamline travel and expense accounting</p>
+        </div>
+        <div class="col-auto">
+            <a href="/Expenses/CreateTravel" class="btn btn-primary">
+                <i class="fas fa-plane"></i> New Travel Request
+            </a>
+            <a href="/Expenses/CreateReimbursement" class="btn btn-outline-primary">
+                <i class="fas fa-receipt"></i> New Reimbursement
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-3 mb-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Travel</h5>
+                    <h2 class="mb-0">@(travelRequests?.Count(t => t.Status.ToString() == "Pending") ?? 0)</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Approved Travel</h5>
+                    <h2 class="mb-0">@(travelRequests?.Count(t => t.Status.ToString() == "Approved") ?? 0)</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Reimbursements</h5>
+                    <h2 class="mb-0">@(reimbursements?.Count(r => r.Status.ToString() == "Submitted") ?? 0)</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total This Month</h5>
+                    <h2 class="mb-0">@{
+                        var total = (travelRequests?.Where(t => t.CreatedAt.Month == DateTime.Now.Month).Sum(t => t.EstimatedCost) ?? 0) +
+                                   (reimbursements?.Where(r => r.CreatedAt.Month == DateTime.Now.Month).Sum(r => r.ClaimAmount) ?? 0);
+                        <text>@total.ToString("C")</text>
+                    }</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Travel Requests</h5>
+                </div>
+                <div class="card-body">
+                    @if (travelRequests != null && travelRequests.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Destination</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var travel in travelRequests.OrderByDescending(t => t.CreatedAt).Take(5))
+                                    {
+                                        <tr>
+                                            <td>@travel.EmployeeId</td>
+                                            <td>@travel.Destination</td>
+                                            <td>@travel.EstimatedCost.ToString("C")</td>
+                                            <td>
+                                                <span class="badge bg-@(travel.Status.ToString() == "Approved" ? "success" : travel.Status.ToString() == "Rejected" ? "danger" : "warning")">
+                                                    @travel.Status
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <a href="/Expenses/Travel" class="btn btn-outline-primary btn-sm">View All Travel</a>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No travel requests found.</p>
+                        <a href="/Expenses/CreateTravel" class="btn btn-primary btn-sm">Create Travel Request</a>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Reimbursements</h5>
+                </div>
+                <div class="card-body">
+                    @if (reimbursements != null && reimbursements.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Description</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var reimbursement in reimbursements.OrderByDescending(r => r.CreatedAt).Take(5))
+                                    {
+                                        <tr>
+                                            <td>@reimbursement.EmployeeId</td>
+                                            <td>@reimbursement.Description</td>
+                                            <td>@reimbursement.ClaimAmount.ToString("C")</td>
+                                            <td>
+                                                <span class="badge bg-@(reimbursement.Status.ToString() == "Approved" ? "success" : reimbursement.Status.ToString() == "Rejected" ? "danger" : "warning")">
+                                                    @reimbursement.Status
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <a href="/Expenses/Reimbursements" class="btn btn-outline-primary btn-sm">View All Reimbursements</a>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No reimbursements found.</p>
+                        <a href="/Expenses/CreateReimbursement" class="btn btn-primary btn-sm">Create Reimbursement</a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Travel Advances</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Request travel advances for upcoming business trips.</p>
+                    <a href="/Expenses/TravelAdvances" class="btn btn-outline-primary">Request Advance</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Expense Reports</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Generate expense reports and analytics.</p>
+                    <a href="/Expenses/Reports" class="btn btn-outline-primary">View Reports</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">My Expenses</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">View and manage your personal expense claims.</p>
+                    <a href="/Expenses/MyExpenses" class="btn btn-outline-primary">View My Expenses</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

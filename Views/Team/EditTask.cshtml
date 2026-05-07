@@ -1,0 +1,209 @@
+@model HR_Management_System.Models.ViewModels.ProjectTaskEditViewModel
+
+@{
+    ViewData["Title"] = "Edit Task";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-action="Index">Teams</a></li>
+                    <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@Model.TeamId">@Model.TeamName</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Edit Task</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">Edit Task: @Model.Title</h1>
+            <p class="text-muted">Update task information and assignment</p>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Task Information</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="EditTask" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="Id" />
+                        <input type="hidden" asp-for="TeamId" />
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label asp-for="Title" class="form-label">Task Title *</label>
+                                <input asp-for="Title" class="form-control" placeholder="Enter task title" />
+                                <span asp-validation-for="Title" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label asp-for="Description" class="form-label">Description</label>
+                                <textarea asp-for="Description" class="form-control" rows="4" placeholder="Enter task description (optional)"></textarea>
+                                <span asp-validation-for="Description" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="AssignedTo" class="form-label">Assign To (Optional)</label>
+                                <select asp-for="AssignedTo" class="form-select">
+                                    <option value="">-- Unassigned (Team Task) --</option>
+                                    @if (Model.AvailableTeamMembers != null)
+                                    {
+                                        foreach (var member in Model.AvailableTeamMembers)
+                                        {
+                                            <option value="@member.Key" selected="@(Model.AssignedTo == member.Key)">@member.Value</option>
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="AssignedTo" class="text-danger"></span>
+                                <small class="text-muted">Leave unassigned for team-wide tasks</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Status" class="form-label">Status *</label>
+                                <select asp-for="Status" class="form-select">
+                                    <option value="Pending">Pending</option>
+                                    <option value="In Progress">In Progress</option>
+                                    <option value="Completed">Completed</option>
+                                    <option value="Cancelled">Cancelled</option>
+                                </select>
+                                <span asp-validation-for="Status" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="StartDate" class="form-label">Start Date *</label>
+                                <input asp-for="StartDate" type="date" class="form-control" />
+                                <span asp-validation-for="StartDate" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Deadline" class="form-label">Deadline *</label>
+                                <input asp-for="Deadline" type="date" class="form-control" />
+                                <span asp-validation-for="Deadline" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Priority" class="form-label">Priority *</label>
+                                <select asp-for="Priority" class="form-select">
+                                    <option value="1">Low</option>
+                                    <option value="2">Medium</option>
+                                    <option value="3">High</option>
+                                    <option value="4">Critical</option>
+                                </select>
+                                <span asp-validation-for="Priority" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Task Information</h6>
+                                        <dl class="row mb-0">
+                                            <dt class="col-sm-4">Team:</dt>
+                                            <dd class="col-sm-8">@Model.TeamName</dd>
+                                            
+                                            <dt class="col-sm-4">Currently Assigned:</dt>
+                                            <dd class="col-sm-8">@(Model.AssignedEmployeeName ?? "Unassigned")</dd>
+                                            
+                                            <dt class="col-sm-4">Created Date:</dt>
+                                            <dd class="col-sm-8">@Model.CreatedAt.ToString("dd MMM yyyy HH:mm")</dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="d-flex justify-content-between">
+                                    <a asp-action="Details" asp-route-id="@Model.TeamId" class="btn btn-outline-secondary">Cancel</a>
+                                    <button type="submit" class="btn btn-primary">Update Task</button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Task Management</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle"></i> Editing Task</h6>
+                        <ul class="mb-0">
+                            <li>Changing assignment will notify the new assignee</li>
+                            <li>Status changes will update task tracking</li>
+                            <li>Deadline changes affect overdue calculations</li>
+                            <li>Priority changes may affect team focus</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-exclamation-triangle"></i> Important</h6>
+                        <p class="mb-0">Changing task assignment or deadline may require notifying the affected team members.</p>
+                    </div>
+
+                    <div class="alert alert-success">
+                        <h6><i class="fas fa-check-circle"></i> Status Guidelines</h6>
+                        <ul class="mb-0">
+                            <li><strong>Pending:</strong> Task not yet started</li>
+                            <li><strong>In Progress:</strong> Task being worked on</li>
+                            <li><strong>Completed:</strong> Task finished</li>
+                            <li><strong>Cancelled:</strong> Task will not be completed</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    
+    <script>
+        $(document).ready(function () {
+            // Set minimum date for deadline to start date
+            $('#StartDate').change(function() {
+                $('#Deadline').attr('min', $(this).val());
+            });
+            
+            // Initialize select2 for better dropdown experience
+            $('#AssignedTo').select2({
+                placeholder: '-- Unassigned (Team Task) --',
+                width: '100%'
+            });
+            
+            $('#Status').select2({
+                width: '100%'
+            });
+            
+            $('#Priority').select2({
+                width: '100%'
+            });
+        });
+    </script>
+}

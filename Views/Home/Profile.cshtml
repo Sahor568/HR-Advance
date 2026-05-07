@@ -2,173 +2,219 @@
     ViewData["Title"] = "My Profile";
 }
 
-<div class="container-fluid">
-    <div class="page-header">
-        <h1 class="page-title"><i class="fas fa-user me-2"></i>My Profile</h1>
-        <p class="page-subtitle">View your personal information</p>
-    </div>
-    
-    <div class="row">
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <div class="mb-4">
-                        <div class="avatar-profile mx-auto">
-                            <div class="avatar-initials" id="profile-initials">--</div>
-                        </div>
-                        <h4 class="mt-3 mb-0" id="profile-name">Loading...</h4>
-                        <p class="text-muted" id="profile-role">-</p>
-                    </div>
-                    
-                    <div class="list-group list-group-flush text-start">
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <span><i class="fas fa-envelope me-2 text-primary"></i>Email</span>
-                            <span class="text-muted" id="profile-email">-</span>
-                        </div>
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <span><i class="fas fa-phone me-2 text-primary"></i>Phone</span>
-                            <span class="text-muted" id="profile-phone">-</span>
-                        </div>
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <span><i class="fas fa-building me-2 text-primary"></i>Department</span>
-                            <span class="text-muted" id="profile-department">-</span>
-                        </div>
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <span><i class="fas fa-user-tie me-2 text-primary"></i>Supervisor</span>
-                            <span class="text-muted" id="profile-supervisor">-</span>
-                        </div>
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <span><i class="fas fa-shield-alt me-2 text-primary"></i>Status</span>
-                            <span class="badge bg-success">Active</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Quick Stats</h6>
-                </div>
-                <div class="card-body" id="quick-stats-body">
-                    <div class="text-center text-muted">
-                        <div class="spinner-border spinner-border-sm" role="status"></div>
-                        <span class="ms-2">Loading stats...</span>
-                    </div>
-                </div>
-            </div>
+<div class="page-header">
+    <h1 class="page-title">My Profile</h1>
+    <p class="page-subtitle">View your personal and employment details</p>
+</div>
+
+<!-- Profile Header -->
+<div class="profile-header" id="profileHeader">
+    <div class="profile-avatar" id="profileAvatar"><i class="fas fa-user"></i></div>
+    <div class="profile-info">
+        <h2 id="profileName">Loading...</h2>
+        <p id="profileDesignation">--</p>
+        <div class="profile-stats">
+            <div class="profile-stat"><div class="profile-stat-value" id="profileJoinDate">--</div><div class="profile-stat-label">Join Date</div></div>
+            <div class="profile-stat"><div class="profile-stat-value" id="profileDaysWorked">--</div><div class="profile-stat-label">Days Worked</div></div>
+            <div class="profile-stat"><div class="profile-stat-value" id="profileDept">--</div><div class="profile-stat-label">Department</div></div>
         </div>
-        
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
-                    <ul class="nav nav-tabs card-header-tabs">
-                        <li class="nav-item">
-                            <a class="nav-link active" data-bs-toggle="tab" href="#personal">Personal Info</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" data-bs-toggle="tab" href="#employment">Employment</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" data-bs-toggle="tab" href="#leaves">My Leaves</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" data-bs-toggle="tab" href="#payroll">Payroll</a>
-                        </li>
-                    </ul>
-                </div>
-                <div class="card-body">
-                    <div class="tab-content">
-                        <!-- Personal Info Tab -->
-                        <div class="tab-pane fade show active" id="personal">
-                            <form id="personalInfoForm">
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Full Name</label>
-                                        <input type="text" class="form-control" id="edit-fullName" disabled>
-                                        <div class="form-text">Contact HR to update your name.</div>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Email</label>
-                                        <input type="email" class="form-control" id="edit-email" disabled>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Phone</label>
-                                        <input type="tel" class="form-control" id="edit-phone" disabled>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Age</label>
-                                        <input type="number" class="form-control" id="edit-age" disabled>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Address</label>
-                                    <textarea class="form-control" rows="3" id="edit-address" disabled></textarea>
-                                </div>
-                                <div class="alert alert-info mb-0">
-                                    <i class="fas fa-info-circle me-2"></i>
-                                    To update your personal information, please go to <a href="/Home/Settings">Settings</a> or contact HR.
-                                </div>
-                            </form>
-                        </div>
-                        
-                        <!-- Employment Tab -->
-                        <div class="tab-pane fade" id="employment">
-                            <div class="table-responsive">
-                                <table class="table table-borderless">
-                                    <tbody id="employment-details">
-                                        <tr>
-                                            <th width="30%">Employee ID</th>
-                                            <td id="emp-id">-</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Department</th>
-                                            <td id="emp-department">-</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Supervisor</th>
-                                            <td id="emp-supervisor">-</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Salary</th>
-                                            <td id="emp-salary">-</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Role</th>
-                                            <td id="emp-role">-</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>
-                                Employment details are managed by HR department. Contact HR for any changes.
-                            </div>
-                        </div>
-                        
-                        <!-- Leaves Tab -->
-                        <div class="tab-pane fade" id="leaves">
-                            <div id="my-leaves-container">
-                                <div class="text-center text-muted py-4">
-                                    <div class="spinner-border spinner-border-sm" role="status"></div>
-                                    <span class="ms-2">Loading leaves...</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Payroll Tab -->
-                        <div class="tab-pane fade" id="payroll">
-                            <div id="my-payroll-container">
-                                <div class="text-center text-muted py-4">
-                                    <div class="spinner-border spinner-border-sm" role="status"></div>
-                                    <span class="ms-2">Loading payroll...</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+    <button class="tab-btn active" onclick="switchProfileTab(this,'personal')">Personal Info</button>
+    <button class="tab-btn" onclick="switchProfileTab(this,'employment')">Employment</button>
+    <button class="tab-btn" onclick="switchProfileTab(this,'leave')">Leave Balance</button>
+    <button class="tab-btn" onclick="switchProfileTab(this,'payroll')">Payroll</button>
+    <button class="tab-btn" onclick="switchProfileTab(this,'history')">History</button>
+</div>
+
+<!-- Personal Info -->
+<div class="tab-content active" id="tab-personal">
+    <div class="card">
+        <div class="card-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;" id="personalInfo">
+                <div><div class="form-label">Full Name</div><div id="pName">--</div></div>
+                <div><div class="form-label">Email</div><div id="pEmail">--</div></div>
+                <div><div class="form-label">Phone</div><div id="pPhone">--</div></div>
+                <div><div class="form-label">Gender</div><div id="pGender">--</div></div>
+                <div><div class="form-label">Date of Birth</div><div id="pDob">--</div></div>
+                <div><div class="form-label">Marital Status</div><div id="pMarital">--</div></div>
+                <div><div class="form-label">Address</div><div id="pAddress">--</div></div>
+                <div><div class="form-label">Citizenship No.</div><div id="pCitizenship">--</div></div>
+                <div><div class="form-label">PAN No.</div><div id="pPan">--</div></div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Employment -->
+<div class="tab-content" id="tab-employment">
+    <div class="card">
+        <div class="card-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;" id="employmentInfo">
+                <div><div class="form-label">Employee ID</div><div id="eId">--</div></div>
+                <div><div class="form-label">Department</div><div id="eDept">--</div></div>
+                <div><div class="form-label">Designation</div><div id="eDesig">--</div></div>
+                <div><div class="form-label">Employment Type</div><div id="eType">--</div></div>
+                <div><div class="form-label">Join Date</div><div id="eJoin">--</div></div>
+                <div><div class="form-label">Grade</div><div id="eGrade">--</div></div>
+                <div><div class="form-label">Base Salary</div><div id="eSalary">--</div></div>
+                <div><div class="form-label">Supervisor</div><div id="eSupervisor">--</div></div>
+                <div><div class="form-label">Probation Status</div><div id="eProbation">--</div></div>
+                <div><div class="form-label">Last Promotion</div><div id="ePromotion">--</div></div>
+                <div><div class="form-label">Position Change</div><div id="ePositionChange">--</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leave Balance -->
+<div class="tab-content" id="tab-leave">
+    <div class="leave-balance-grid" id="profileLeaveBalance"></div>
+</div>
+
+<!-- Payroll -->
+<div class="tab-content" id="tab-payroll">
+    <div class="table-container">
+        <div class="table-header"><h3 style="font-size:1rem;font-weight:600;margin:0;">Recent Payslips</h3></div>
+        <table class="data-table">
+            <thead><tr><th>Period</th><th>Base Salary</th><th>Allowances</th><th>Deductions</th><th>Net Pay</th><th>Status</th></tr></thead>
+            <tbody id="profilePayroll"><tr><td colspan="6" class="text-center">Loading...</td></tr></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- History -->
+<div class="tab-content" id="tab-history">
+    <div class="card">
+        <div class="card-header"><h3 style="font-size:0.95rem;font-weight:600;margin:0;">Employment History</h3></div>
+        <div class="card-body" style="padding:0;">
+            <ul class="activity-list" id="profileHistory" style="padding:0.75rem 1.25rem;">
+                <li class="activity-item"><div class="activity-dot" style="background:var(--secondary);"></div><div><div class="activity-text">Loading history...</div></div></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', loadProfile);
+
+function loadProfile() {
+    fetch('/api/employee/my-profile').then(r=>r.json()).then(emp => {
+        populateProfile(emp);
+    }).catch(()=>{
+        fetch('/api/employee').then(r=>r.json()).then(data=>{
+            if(data&&data.length>0) populateProfile(data[0]);
+        }).catch(()=>{});
+    });
+}
+
+function populateProfile(emp) {
+    var genders=['Male','Female','Other'];
+    var marital=['Single','Married','Divorced','Widowed'];
+    var types=['Regular','Time Bound','Task Based','Casual','Part Time'];
+    var probation=['Active','Completed','Extended','Terminated'];
+
+    document.getElementById('profileName').textContent=(emp.firstName||'')+' '+(emp.middleName||'')+' '+(emp.lastName||'');
+    document.getElementById('profileDesignation').textContent=(emp.designation||'Employee')+' | '+(emp.departmentName||'');
+    document.getElementById('profileJoinDate').textContent=emp.joinDate?new Date(emp.joinDate).toLocaleDateString():'--';
+    document.getElementById('profileDept').textContent=emp.departmentName||'--';
+
+    if(emp.joinDate){
+        var days=Math.floor((new Date()-new Date(emp.joinDate))/(1000*60*60*24));
+        document.getElementById('profileDaysWorked').textContent=days+' days';
+    }
+
+    if(emp.firstName) document.getElementById('profileAvatar').textContent=emp.firstName[0]+(emp.lastName?emp.lastName[0]:'');
+
+    document.getElementById('pName').textContent=(emp.firstName||'')+' '+(emp.middleName||'')+' '+(emp.lastName||'');
+    document.getElementById('pEmail').textContent=emp.email||'--';
+    document.getElementById('pPhone').textContent=emp.phone||'--';
+    document.getElementById('pGender').textContent=genders[emp.gender]||'--';
+    document.getElementById('pDob').textContent=emp.dateOfBirth?new Date(emp.dateOfBirth).toLocaleDateString():'--';
+    document.getElementById('pMarital').textContent=marital[emp.maritalStatus]||'--';
+    document.getElementById('pAddress').textContent=emp.address||'--';
+    document.getElementById('pCitizenship').textContent=emp.citizenshipNumber||'--';
+    document.getElementById('pPan').textContent=emp.paN_No||'--';
+
+
+    document.getElementById('eId').textContent=emp.emp_ID||'--';
+    document.getElementById('eDept').textContent=emp.departmentName||'--';
+    document.getElementById('eDesig').textContent=emp.designation||'--';
+    document.getElementById('eType').textContent=types[emp.employmentType]||'--';
+    document.getElementById('eJoin').textContent=emp.joinDate?new Date(emp.joinDate).toLocaleDateString():'--';
+    document.getElementById('eGrade').textContent=emp.grade||'--';
+    document.getElementById('eSalary').textContent=emp.baseSalary?'Rs.'+emp.baseSalary.toLocaleString():'--';
+    document.getElementById('eSupervisor').textContent=emp.supervisorName||'None';
+    document.getElementById('eProbation').textContent=probation[emp.probationStatus]||'--';
+    document.getElementById('ePromotion').textContent=emp.lastPromotionDate?new Date(emp.lastPromotionDate).toLocaleDateString():'N/A';
+    document.getElementById('ePositionChange').textContent=emp.lastPositionChange||'N/A';
+
+    loadLeaveBalance(emp.id);
+    loadPayslips(emp.id);
+    loadHistory(emp);
+}
+
+function loadLeaveBalance(empId) {
+    fetch('/api/leave/balance'+(empId?'?employeeId='+empId:'')).then(r=>r.json()).then(data=>{
+        var grid=document.getElementById('profileLeaveBalance');
+        grid.innerHTML=`
+            <div class="leave-balance-card"><h4>Home Leave</h4><div class="balance-value">${data.homeLeaveBalance||0}</div><div class="balance-detail">Used: ${data.homeLeaveUsed||0}</div></div>
+            <div class="leave-balance-card"><h4>Sick Leave</h4><div class="balance-value">${data.sickLeaveBalance||0}</div><div class="balance-detail">Used: ${data.sickLeaveUsed||0}</div></div>
+            <div class="leave-balance-card"><h4>Maternity</h4><div class="balance-value">${data.maternityLeaveBalance||0}</div><div class="balance-detail">98 days total</div></div>
+            <div class="leave-balance-card"><h4>Paternity</h4><div class="balance-value">${data.paternityLeaveBalance||0}</div><div class="balance-detail">15 days total</div></div>
+            <div class="leave-balance-card"><h4>Mourning</h4><div class="balance-value">${data.mourningLeaveBalance||0}</div><div class="balance-detail">13 days total</div></div>
+            <div class="leave-balance-card"><h4>Public Holidays</h4><div class="balance-value">${data.publicHolidayBalance||0}</div><div class="balance-detail">13-14 days</div></div>
+        `;
+    }).catch(()=>{});
+}
+
+function loadPayslips(empId) {
+    fetch('/api/payroll/employee/'+(empId||'me')).then(r=>r.json()).then(data=>{
+        var tbody=document.getElementById('profilePayroll');
+        if(!data||data.length===0){tbody.innerHTML='<tr><td colspan="6" class="text-center">No payslips yet</td></tr>';return;}
+        var statuses=['Draft','Generated','Approved','Paid'];
+        tbody.innerHTML=data.slice(0,12).map(p=>`
+            <tr>
+                <td>${p.month}/${p.year}</td>
+                <td>Rs.${(p.baseSalary||0).toLocaleString()}</td>
+                <td>Rs.${((p.otherAllowances||0)+(p.festivalAllowance||0)).toLocaleString()}</td>
+                <td>Rs.${(p.totalDeductions||0).toLocaleString()}</td>
+                <td style="font-weight:600;">Rs.${(p.netPay||0).toLocaleString()}</td>
+                <td><span class="badge-status ${p.status===3?'badge-success':'badge-warning'}">${statuses[p.status]||'--'}</span></td>
+            </tr>
+        `).join('');
+    }).catch(()=>{});
+}
+
+function loadHistory(emp) {
+    var list=document.getElementById('profileHistory');
+    var history=[];
+    if(emp.joinDate) history.push({text:'Joined as '+emp.designation,date:emp.joinDate,color:'var(--success)'});
+    if(emp.lastPromotionDate) history.push({text:'Promoted',date:emp.lastPromotionDate,color:'var(--primary)'});
+    if(emp.probationStatus===1&&emp.probationEndDate) history.push({text:'Probation completed',date:emp.probationEndDate,color:'var(--info)'});
+    if(history.length===0) history.push({text:'No history records yet',date:null,color:'var(--secondary)'});
+    history.sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
+    list.innerHTML=history.map(h=>`<li class="activity-item"><div class="activity-dot" style="background:${h.color};"></div><div><div class="activity-text">${h.text}</div><div class="activity-time">${h.date?new Date(h.date).toLocaleDateString():''}</div></div></li>`).join('');
+}
+
+function switchProfileTab(btn,tabId){
+    btn.parentElement.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+    document.getElementById('tab-'+tabId).classList.add('active');
+}
+
+function showProfile(emp_id) {
+    var url = '/employee/profile';
+    if (emp_id) url += '?id=' + emp_id;
+    if id = HR or Admin, else show own profile;
+    var list = document.getElementById('profileHistory');
+    list.innerHTML = '<li class="activity-item"><div class="activity-dot" style="background:var(--secondary);"></div><div><div class="activity-text">Loading profile...</div></div></li>';
+}
+</script>
+
+}

@@ -27,13 +27,30 @@ namespace HR_Management_System.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
-                var attendance = await _attendanceService.ClockInAsync(model.EmployeeId);
+                // Validate location
+                if (!model.IsLocationEnabled)
+                {
+                    return BadRequest("Location must be enabled to check-in. Please enable location services.");
+                }
+
+                if (!model.ValidateLocation())
+                {
+                    return BadRequest("Valid location coordinates or address is required for check-in.");
+                }
+
+                var attendance = await _attendanceService.ClockInAsync(
+                    model.EmployeeId,
+                    model.Latitude,
+                    model.Longitude,
+                    model.LocationAddress);
+                
                 return Ok(new
                 {
                     message = "Clock-in successful",
                     attendanceId = attendance.Id,
                     clockInTime = attendance.Clock_In,
-                    date = attendance.Date
+                    date = attendance.Date,
+                    locationRecorded = attendance.Latitude != null && attendance.Longitude != null
                 });
             }
             catch (InvalidOperationException ex)
@@ -93,6 +110,37 @@ namespace HR_Management_System.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching today's attendance for employee ID: {EmployeeId}", employeeId);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpGet("today")]
+        [Authorize(Roles = "Admin,HRManager")]
+        public async Task<IActionResult> GetTodayAttendances()
+        {
+            try
+            {
+                var attendances = await _attendanceService.GetTodayAttendancesAsync();
+                return Ok(attendances);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching today's attendances");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpGet("today-count")]
+        public async Task<IActionResult> GetTodayAttendanceCount()
+        {
+            try
+            {
+                var attendances = await _attendanceService.GetTodayAttendancesAsync();
+                return Ok(new { count = attendances.Count() });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching today's attendance count");
                 return StatusCode(500, "Internal server error");
             }
         }
