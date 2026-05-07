@@ -33,7 +33,9 @@ namespace HR_Management_System.Services.Implementations
                     EmploymentType = e.EmploymentType.ToString(),
                     ProbationStatus = e.ProbationStatus.ToString(),
                     IsActive = e.IsActive,
-                    Join_Date = e.Join_Date
+                    Join_Date = e.Join_Date,
+                    CVPath = e.CVPath,
+                    ExperienceCertificatePath = e.ExperienceCertificatePath
                 })
                 .OrderByDescending(e => e.Join_Date)
                 .ToListAsync();
@@ -100,10 +102,12 @@ namespace HR_Management_System.Services.Implementations
                 CitizenshipIssuedDistrict = model.CitizenshipIssuedDistrict,
                 CitizenshipIssuedDate = model.CitizenshipIssuedDate,
                 PAN_No = model.PAN_No,
+                SocialSecurityNumber = model.SocialSecurityNumber,
                 Join_Date = model.Join_Date,
                 EmploymentType = (EmploymentType)model.EmploymentType,
                 Designation = model.Designation,
                 Department = model.Department,
+                DepartmentId = model.DepartmentId,
                 Grade = model.Grade,
                 BaseSalary = model.BaseSalary,
                 GradeAmount = model.GradeAmount,
@@ -178,9 +182,11 @@ namespace HR_Management_System.Services.Implementations
             employee.CitizenshipIssuedDistrict = model.CitizenshipIssuedDistrict;
             employee.CitizenshipIssuedDate = model.CitizenshipIssuedDate;
             employee.PAN_No = model.PAN_No;
+            employee.SocialSecurityNumber = model.SocialSecurityNumber;
             employee.EmploymentType = (EmploymentType)model.EmploymentType;
             employee.Designation = model.Designation;
             employee.Department = model.Department;
+            employee.DepartmentId = model.DepartmentId;
             employee.Grade = model.Grade;
             employee.BaseSalary = model.BaseSalary;
             employee.GradeAmount = model.GradeAmount;

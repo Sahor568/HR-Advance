@@ -45,11 +45,12 @@
                 <th>Designation</th>
                 <th>Join Date</th>
                 <th>Status</th>
+                <th>Documents</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody id="empTableBody">
-            <tr><td colspan="7" class="text-center" style="padding:2rem;">Loading...</td></tr>
+            <tr><td colspan="8" class="text-center" style="padding:2rem;">Loading...</td></tr>
         </tbody>
     </table>
 </div>
@@ -98,23 +99,33 @@
                         <div class="form-group"><label class="form-label">Date of Birth *</label><input type="date" class="form-control" id="dob" required /></div>
                         <div class="form-group"><label class="form-label">Marital Status</label><select class="form-select" id="maritalStatus"><option value="0">Single</option><option value="1">Married</option><option value="2">Divorced</option><option value="3">Widowed</option></select></div>
                         <div class="form-group"><label class="form-label">Email *</label><input type="email" class="form-control" id="empEmail" required /></div>
-                        <div class="form-group"><label class="form-label">Phone</label><input type="text" class="form-control" id="empPhone" /></div>
-                        <div class="form-group"><label class="form-label">Address</label><input type="text" class="form-control" id="empAddress" /></div>
+                        <div class="form-group"><label class="form-label">Phone *</label><input type="text" class="form-control" id="empPhone" required /></div>
+                        <div class="form-group"><label class="form-label">Alternate Phone</label><input type="text" class="form-control" id="alternatePhone" /></div>
+                        <div class="form-group"><label class="form-label">Permanent Address *</label><input type="text" class="form-control" id="empAddress" required /></div>
+                        <div class="form-group"><label class="form-label">Temporary Address</label><input type="text" class="form-control" id="tempAddress" /></div>
                     </div>
                 </div>
 
                 <!-- Employment Tab -->
                 <div class="tab-content" id="tab-employment">
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0.75rem;">
                         <div class="form-group"><label class="form-label">Employee ID</label><input type="text" class="form-control" id="empCode" placeholder="Auto-generated" readonly /></div>
                         <div class="form-group"><label class="form-label">Department *</label><select class="form-select" id="empDept" required><option value="">Select</option></select></div>
                         <div class="form-group"><label class="form-label">Designation *</label><input type="text" class="form-control" id="empDesignation" required /></div>
                         <div class="form-group"><label class="form-label">Employment Type</label><select class="form-select" id="empType"><option value="0">Regular</option><option value="1">Time Bound</option><option value="2">Task Based</option><option value="3">Casual</option><option value="4">Part Time</option></select></div>
                         <div class="form-group"><label class="form-label">Join Date *</label><input type="date" class="form-control" id="joinDate" required /></div>
-                        <div class="form-group"><label class="form-label">Grade</label><input type="text" class="form-control" id="empGrade" /></div>
-                        <div class="form-group"><label class="form-label">Base Salary (NPR)</label><input type="number" class="form-control" id="baseSalary" /></div>
+                        <div class="form-group"><label class="form-label">Grade *</label><input type="text" class="form-control" id="empGrade" required /></div>
+                        <div class="form-group"><label class="form-label">Base Salary (NPR) *</label><input type="number" class="form-control" id="baseSalary" required /></div>
+                        <div class="form-group"><label class="form-label">Grade Amount (NPR)</label><input type="number" class="form-control" id="gradeAmount" value="0" /></div>
                         <div class="form-group"><label class="form-label">Supervisor</label><select class="form-select" id="empSupervisor"><option value="">None (Optional)</option></select></div>
                         <div class="form-group"><label class="form-label">Assign User Account</label><select class="form-select" id="empUserId"><option value="">None</option></select></div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                <input type="checkbox" id="hasProbation" checked />
+                                <label class="form-label" style="margin:0;">Has Probation Period</label>
+                            </div>
+                        </div>
+                        <div class="form-group"><label class="form-label">Probation Months</label><input type="number" class="form-control" id="probationMonths" value="6" min="1" max="24" /></div>
                     </div>
                 </div>
 
@@ -122,8 +133,8 @@
                 <div class="tab-content" id="tab-documents">
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
                         <div class="form-group"><label class="form-label">Citizenship Number *</label><input type="text" class="form-control" id="citizenshipNo" required /></div>
-                        <div class="form-group"><label class="form-label">Citizenship District</label><input type="text" class="form-control" id="citizenshipDistrict" /></div>
-                        <div class="form-group"><label class="form-label">Citizenship Issue Date</label><input type="date" class="form-control" id="citizenshipDate" /></div>
+                        <div class="form-group"><label class="form-label">Citizenship District *</label><input type="text" class="form-control" id="citizenshipDistrict" required /></div>
+                        <div class="form-group"><label class="form-label">Citizenship Issue Date *</label><input type="date" class="form-control" id="citizenshipDate" required /></div>
                         <div class="form-group"><label class="form-label">PAN Number</label><input type="text" class="form-control" id="panNo" /></div>
                         <div class="form-group"><label class="form-label">SSN</label><input type="text" class="form-control" id="ssn" /></div>
                     </div>
@@ -157,9 +168,10 @@
                         <div class="form-group"><label class="form-label">Spouse Name</label><input type="text" class="form-control" id="spouseName" /></div>
                     </div>
                     <h4 style="font-size:0.9rem;font-weight:600;margin:1.5rem 0 1rem;">Emergency Contact</h4>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
                         <div class="form-group"><label class="form-label">Contact Name</label><input type="text" class="form-control" id="emergencyName" /></div>
                         <div class="form-group"><label class="form-label">Contact Phone</label><input type="text" class="form-control" id="emergencyPhone" /></div>
+                        <div class="form-group"><label class="form-label">Relation</label><input type="text" class="form-control" id="emergencyRelation" placeholder="e.g., Father, Spouse" /></div>
                     </div>
                 </div>
             </form>
@@ -193,7 +205,7 @@ function updateStats(data) {
 
 function renderEmployees(data) {
     var tbody = document.getElementById('empTableBody');
-    if(!data||data.length===0){tbody.innerHTML='<tr><td colspan="7"><div class="empty-state"><i class="fas fa-users"></i><h4>No employees</h4></div></td></tr>';return;}
+    if(!data||data.length===0){tbody.innerHTML='<tr><td colspan="8"><div class="empty-state"><i class="fas fa-users"></i><h4>No employees</h4></div></td></tr>';return;}
     tbody.innerHTML = data.map(e=>`
         <tr data-dept="${e.departmentId||''}" data-status="${!e.isActive?'inactive':e.probationStatus===0?'probation':'active'}" data-name="${(e.firstName+' '+e.lastName).toLowerCase()}">
             <td><div class="d-flex align-center gap-1"><div class="avatar avatar-sm">${(e.firstName||'?')[0]}</div><div><div style="font-weight:500;">${e.firstName} ${e.lastName||''}</div><div style="font-size:0.7rem;color:var(--secondary);">${e.email||''}</div></div></div></td>
@@ -202,6 +214,11 @@ function renderEmployees(data) {
             <td>${e.designation||'-'}</td>
             <td>${e.joinDate?new Date(e.joinDate).toLocaleDateString():'-'}</td>
             <td><span class="badge-status ${!e.isActive?'badge-danger':e.probationStatus===0?'badge-warning':'badge-success'}">${!e.isActive?'Inactive':e.probationStatus===0?'Probation':'Active'}</span></td>
+            <td><div class="d-flex gap-1">
+                ${e.cvPath?`<a href="${e.cvPath}" target="_blank" class="btn-icon" title="Download CV"><i class="fas fa-file-pdf"></i></a>`:''}
+                ${e.experienceCertificatePath?`<a href="${e.experienceCertificatePath}" target="_blank" class="btn-icon" title="Download Experience Certificate"><i class="fas fa-file-contract"></i></a>`:''}
+                ${!e.cvPath&&!e.experienceCertificatePath?'<span style="color:var(--secondary);font-size:0.8rem;">No docs</span>':''}
+            </div></td>
             <td><div class="d-flex gap-1">
                 <button class="btn-icon" title="View" onclick="viewEmployee(${e.id})"><i class="fas fa-eye"></i></button>
                 <button class="btn-icon" title="Edit" onclick="editEmployee(${e.id})"><i class="fas fa-edit"></i></button>
@@ -220,14 +237,48 @@ function filterEmployees() {
 }
 
 function loadDepartments() {
-    fetch('/api/departments').then(r=>r.json()).then(depts=>{
-        var sel=document.getElementById('deptFilter');
-        var sel2=document.getElementById('empDept');
-        depts.forEach(d=>{
-            sel.innerHTML+=`<option value="${d.id}">${d.name}</option>`;
-            sel2.innerHTML+=`<option value="${d.id}">${d.name}</option>`;
+    console.log('Loading departments...');
+    fetch('/api/departments')
+        .then(r => {
+            console.log('Departments API response status:', r.status);
+            if (!r.ok) {
+                throw new Error(`Failed to load departments: ${r.status} ${r.statusText}`);
+            }
+            return r.json();
+        })
+        .then(depts => {
+            console.log('Departments loaded:', depts.length, 'departments');
+            var sel = document.getElementById('deptFilter');
+            var sel2 = document.getElementById('empDept');
+            if (sel) {
+                sel.innerHTML = '<option value="">All Departments</option>';
+                depts.forEach(d => {
+                    sel.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+                });
+            }
+            if (sel2) {
+                sel2.innerHTML = '<option value="">Select</option>';
+                depts.forEach(d => {
+                    sel2.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+                });
+            }
+            if (depts.length === 0) {
+                console.warn('No departments found in the system');
+            }
+        })
+        .catch(err => {
+            console.error('Error loading departments:', err);
+            // Show error in UI
+            var errorDiv = document.getElementById('deptError');
+            if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.id = 'deptError';
+                errorDiv.style.cssText = 'background:#fee;color:#c00;padding:0.5rem;margin:0.5rem 0;border-radius:4px;font-size:0.85rem;';
+                var container = document.querySelector('.table-container') || document.body;
+                container.insertBefore(errorDiv, container.firstChild);
+            }
+            errorDiv.innerHTML = `<strong>Warning:</strong> Could not load departments. Some features may not work. Error: ${err.message}`;
         });
-    }).catch(()=>{});
 }
 
 function loadSupervisors() {
@@ -246,21 +297,52 @@ function openAddEmployee() {
 
 function editEmployee(id) {
     fetch(`/api/employee/${id}`).then(r=>r.json()).then(e=>{
+        // Handle both EmployeeDetailViewModel (with employee property) and flattened Employee
+        var emp = e.employee || e;
+        
         document.getElementById('empModalTitle').textContent='Edit Employee';
-        document.getElementById('empId').value=e.id;
-        document.getElementById('firstName').value=e.firstName||'';
-        document.getElementById('middleName').value=e.middleName||'';
-        document.getElementById('lastName').value=e.lastName||'';
-        document.getElementById('gender').value=e.gender!=null?e.gender:'';
-        document.getElementById('dob').value=e.dateOfBirth?e.dateOfBirth.split('T')[0]:'';
-        document.getElementById('empEmail').value=e.email||'';
-        document.getElementById('empDept').value=e.departmentId||'';
-        document.getElementById('empDesignation').value=e.designation||'';
-        document.getElementById('joinDate').value=e.joinDate?e.joinDate.split('T')[0]:'';
-        document.getElementById('baseSalary').value=e.baseSalary||'';
-        document.getElementById('citizenshipNo').value=e.citizenshipNumber||'';
-        document.getElementById('panNo').value=e.paN_No||'';
-        document.getElementById('empSupervisor').value=e.supervisorId||'';
+        document.getElementById('empId').value=emp.id||emp.Id||'';
+        document.getElementById('firstName').value=emp.firstName||'';
+        document.getElementById('middleName').value=emp.middleName||'';
+        document.getElementById('lastName').value=emp.lastName||'';
+        document.getElementById('gender').value=emp.gender!=null?emp.gender:'';
+        document.getElementById('dob').value=emp.dateOfBirth?emp.dateOfBirth.split('T')[0]:'';
+        document.getElementById('empEmail').value=emp.email||'';
+        document.getElementById('empPhone').value=emp.phoneNumber||'';
+        document.getElementById('alternatePhone').value=emp.alternatePhone||'';
+        document.getElementById('empAddress').value=emp.permanentAddress||'';
+        document.getElementById('tempAddress').value=emp.temporaryAddress||'';
+        document.getElementById('maritalStatus').value=emp.maritalStatus!=null?emp.maritalStatus:'0';
+        document.getElementById('empDept').value=emp.departmentId||'';
+        document.getElementById('empDesignation').value=emp.designation||'';
+        document.getElementById('empType').value=emp.employmentType!=null?emp.employmentType:'0';
+        document.getElementById('joinDate').value=emp.joinDate?emp.joinDate.split('T')[0]:'';
+        document.getElementById('empGrade').value=emp.grade||'';
+        document.getElementById('baseSalary').value=emp.baseSalary||'';
+        document.getElementById('gradeAmount').value=emp.gradeAmount||'0';
+        document.getElementById('citizenshipNo').value=emp.citizenshipNumber||'';
+        document.getElementById('citizenshipDistrict').value=emp.citizenshipIssuedDistrict||'';
+        document.getElementById('citizenshipDate').value=emp.citizenshipIssuedDate?emp.citizenshipIssuedDate.split('T')[0]:'';
+        document.getElementById('panNo').value=emp.paN_No||emp.pAN_No||'';
+        document.getElementById('ssn').value=emp.socialSecurityNumber||'';
+        document.getElementById('empSupervisor').value=emp.supervisorId||'';
+        document.getElementById('bankName').value=emp.bankName||'';
+        document.getElementById('bankAccount').value=emp.bankAccountNumber||'';
+        document.getElementById('emergencyName').value=emp.emergencyContactName||'';
+        document.getElementById('emergencyPhone').value=emp.emergencyContactPhone||'';
+        document.getElementById('emergencyRelation').value=emp.emergencyContactRelation||'';
+        document.getElementById('fatherName').value=emp.fatherName||'';
+        document.getElementById('motherName').value=emp.motherName||'';
+        document.getElementById('spouseName').value=emp.spouseName||'';
+        
+        // Probation fields
+        document.getElementById('hasProbation').checked = emp.hasProbation !== false;
+        document.getElementById('probationMonths').value = emp.probationMonths || '6';
+        
+        // Set employee ID field if available
+        var empCode = document.getElementById('empCode');
+        if (empCode && emp.emp_ID) empCode.value = emp.emp_ID;
+        
         document.getElementById('empModal').classList.add('active');
     }).catch(()=>alert('Failed to load employee'));
 }
@@ -282,8 +364,12 @@ function saveEmployee() {
     // Department is a string in the model, but we have departmentId from dropdown
     // We need to get the department name from the selected option
     var deptSelect = document.getElementById('empDept');
+    var deptId = deptSelect.value || '';
     var deptName = deptSelect.options[deptSelect.selectedIndex]?.text || '';
     formData.append('Department', deptName);
+    if (deptId) {
+        formData.append('DepartmentId', deptId);
+    }
     
     formData.append('Designation', document.getElementById('empDesignation').value);
     formData.append('Join_Date', document.getElementById('joinDate').value);
@@ -291,14 +377,19 @@ function saveEmployee() {
     formData.append('CitizenshipNumber', document.getElementById('citizenshipNo').value);
     formData.append('PAN_No', document.getElementById('panNo').value);
     formData.append('EmploymentType', document.getElementById('empType').value || '0');
-    formData.append('SupervisorId', document.getElementById('empSupervisor').value || '');
     
     // Add other fields with correct property names
     var phone = document.getElementById('empPhone');
     if (phone) formData.append('PhoneNumber', phone.value);
     
+    var alternatePhone = document.getElementById('alternatePhone');
+    if (alternatePhone) formData.append('AlternatePhone', alternatePhone.value);
+    
     var address = document.getElementById('empAddress');
     if (address) formData.append('PermanentAddress', address.value);
+    
+    var tempAddress = document.getElementById('tempAddress');
+    if (tempAddress) formData.append('TemporaryAddress', tempAddress.value);
     
     var maritalStatus = document.getElementById('maritalStatus');
     if (maritalStatus) formData.append('MaritalStatus', maritalStatus.value);
@@ -310,10 +401,51 @@ function saveEmployee() {
     if (citizenshipDate) formData.append('CitizenshipIssuedDate', citizenshipDate.value);
     
     var ssn = document.getElementById('ssn');
-    if (ssn) formData.append('SSN', ssn.value);
+    if (ssn) formData.append('SocialSecurityNumber', ssn.value);
     
     var empGrade = document.getElementById('empGrade');
     if (empGrade) formData.append('Grade', empGrade.value);
+    
+    var gradeAmount = document.getElementById('gradeAmount');
+    if (gradeAmount) formData.append('GradeAmount', gradeAmount.value || '0');
+    
+    // Add missing fields
+    var bankName = document.getElementById('bankName');
+    if (bankName) formData.append('BankName', bankName.value);
+    
+    var bankAccount = document.getElementById('bankAccount');
+    if (bankAccount) formData.append('BankAccountNumber', bankAccount.value);
+    
+    var emergencyName = document.getElementById('emergencyName');
+    if (emergencyName) formData.append('EmergencyContactName', emergencyName.value);
+    
+    var emergencyPhone = document.getElementById('emergencyPhone');
+    if (emergencyPhone) formData.append('EmergencyContactPhone', emergencyPhone.value);
+    
+    var emergencyRelation = document.getElementById('emergencyRelation');
+    if (emergencyRelation) formData.append('EmergencyContactRelation', emergencyRelation.value);
+    
+    var fatherName = document.getElementById('fatherName');
+    if (fatherName) formData.append('FatherName', fatherName.value);
+    
+    var motherName = document.getElementById('motherName');
+    if (motherName) formData.append('MotherName', motherName.value);
+    
+    var spouseName = document.getElementById('spouseName');
+    if (spouseName) formData.append('SpouseName', spouseName.value);
+    
+    // Probation values from UI
+    var hasProbation = document.getElementById('hasProbation');
+    formData.append('HasProbation', hasProbation?.checked ? 'true' : 'false');
+    
+    var probationMonths = document.getElementById('probationMonths');
+    formData.append('ProbationMonths', probationMonths?.value || '6');
+    
+    // Handle SupervisorId - convert empty string to null
+    var supervisorId = document.getElementById('empSupervisor').value;
+    if (supervisorId) {
+        formData.append('SupervisorId', supervisorId);
+    }
     
     // Add file uploads - note: parameter names must match controller parameter names
     var photoFile = document.getElementById('empPhoto');
@@ -341,6 +473,12 @@ function saveEmployee() {
     var url = id ? `/api/employee/${id}` : '/api/employee';
     var method = id ? 'PUT' : 'POST';
     
+    // Debug: Log form data keys
+    console.log('Saving employee with ID:', id);
+    for (var pair of formData.entries()) {
+        console.log(pair[0] + ': ' + pair[1]);
+    }
+    
     fetch(url, {
         method: method,
         body: formData
@@ -349,11 +487,35 @@ function saveEmployee() {
         if (r.ok) {
             closeModal('empModal');
             loadEmployees();
-            alert('Employee saved!');
+            alert('Employee saved successfully!');
         } else {
-            r.text().then(t => alert('Error: ' + t));
+            // Try to parse as JSON first, then fall back to text
+            r.json().then(jsonError => {
+                console.error('Server error (JSON):', jsonError);
+                // Handle ModelState errors
+                if (jsonError.errors) {
+                    let errorMsg = 'Validation errors:\n';
+                    for (let field in jsonError.errors) {
+                        errorMsg += `${field}: ${jsonError.errors[field].join(', ')}\n`;
+                    }
+                    alert(errorMsg);
+                } else if (jsonError.title || jsonError.detail) {
+                    alert(`Error: ${jsonError.title || ''} - ${jsonError.detail || ''}`);
+                } else {
+                    alert('Error saving employee: ' + JSON.stringify(jsonError));
+                }
+            }).catch(() => {
+                // If not JSON, read as text
+                r.text().then(t => {
+                    console.error('Server error (text):', t);
+                    alert('Error saving employee: ' + (t || r.statusText));
+                });
+            });
         }
-    }).catch(() => alert('Failed to save'));
+    }).catch(err => {
+        console.error('Fetch error:', err);
+        alert('Failed to save: ' + err.message);
+    });
 }
 
 function closeModal(id){document.getElementById(id).classList.remove('active');}

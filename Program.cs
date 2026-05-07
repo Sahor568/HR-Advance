@@ -18,7 +18,12 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    });
 
 // Configure Entity Framework with MSSQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -114,7 +119,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 // Add custom audit logging middleware BEFORE routing to catch all requests
-app.UseMiddleware<HR_Management_System.Middleware.SimpleAuditLoggingMiddleware>();
+app.UseMiddleware<HR_Management_System.Middleware.WorkingAuditLoggingMiddleware>();
 
 app.UseRouting();
 

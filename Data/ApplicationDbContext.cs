@@ -376,8 +376,65 @@ namespace HR_Management_System.Data
                       .OnDelete(DeleteBehavior.Restrict);
             });
 
+            // Seed departments
+            SeedDepartments(modelBuilder);
+            
             // Seed roles
             SeedRoles(modelBuilder);
+        }
+
+        private static void SeedDepartments(ModelBuilder modelBuilder)
+        {
+            var departments = new[]
+            {
+                new Department
+                {
+                    Id = 1,
+                    Name = "Human Resources",
+                    Code = "HR",
+                    Description = "Human Resources Department",
+                    IsActive = true,
+                    CreatedDate = DateTime.UtcNow
+                },
+                new Department
+                {
+                    Id = 2,
+                    Name = "Information Technology",
+                    Code = "IT",
+                    Description = "Information Technology Department",
+                    IsActive = true,
+                    CreatedDate = DateTime.UtcNow
+                },
+                new Department
+                {
+                    Id = 3,
+                    Name = "Finance",
+                    Code = "FIN",
+                    Description = "Finance and Accounting Department",
+                    IsActive = true,
+                    CreatedDate = DateTime.UtcNow
+                },
+                new Department
+                {
+                    Id = 4,
+                    Name = "Marketing",
+                    Code = "MKT",
+                    Description = "Marketing and Sales Department",
+                    IsActive = true,
+                    CreatedDate = DateTime.UtcNow
+                },
+                new Department
+                {
+                    Id = 5,
+                    Name = "Operations",
+                    Code = "OPS",
+                    Description = "Operations Department",
+                    IsActive = true,
+                    CreatedDate = DateTime.UtcNow
+                }
+            };
+            
+            modelBuilder.Entity<Department>().HasData(departments);
         }
 
         private static void SeedRoles(ModelBuilder modelBuilder)

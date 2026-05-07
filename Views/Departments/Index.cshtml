@@ -122,26 +122,111 @@ function openAddDept() {
 
 function editDept(id) {
     fetch(`/api/departments/${id}`).then(r=>r.json()).then(d=>{
+        console.log('Department data received:', d);
         document.getElementById('deptModalTitle').textContent='Edit Department';
-        document.getElementById('deptId').value=d.id;
+        // Try both 'id' and 'Id' property names (camelCase vs PascalCase)
+        var departmentId = d.id !== undefined ? d.id : d.Id;
+        console.log('Department ID:', departmentId);
+        document.getElementById('deptId').value=departmentId;
         document.getElementById('deptName').value=d.name||'';
         document.getElementById('deptCode').value=d.code||'';
         document.getElementById('deptHead').value=d.departmentHead||'';
         document.getElementById('deptDesc').value=d.description||'';
         document.getElementById('deptActive').checked=d.isActive!==false;
         document.getElementById('deptModal').classList.add('active');
-    }).catch(()=>alert('Failed'));
+    }).catch((err)=>{
+        console.error('Failed to fetch department:', err);
+        alert('Failed to load department details');
+    });
 }
 
 function saveDept() {
-    var id=document.getElementById('deptId').value;
-    var body={name:document.getElementById('deptName').value,code:document.getElementById('deptCode').value,departmentHead:document.getElementById('deptHead').value,description:document.getElementById('deptDesc').value,isActive:document.getElementById('deptActive').checked};
-    var url=id?`/api/departments/${id}`:'/api/departments';
-    var method=id?'PUT':'POST';
-    fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>{
-        if(r.ok){closeModal('deptModal');loadDepartments();alert('Department saved!');}
-        else r.text().then(t=>alert('Error: '+t));
-    }).catch(()=>alert('Failed'));
+    var idValue = document.getElementById('deptId').value;
+    console.log('Saving department, ID value:', idValue);
+    
+    // Validate required fields
+    var name = document.getElementById('deptName').value.trim();
+    var code = document.getElementById('deptCode').value.trim();
+    if (!name) {
+        alert('Department Name is required');
+        return;
+    }
+    if (!code) {
+        alert('Department Code is required');
+        return;
+    }
+    
+    var body = {
+        name: name,
+        code: code,
+        departmentHead: document.getElementById('deptHead').value,
+        description: document.getElementById('deptDesc').value,
+        isActive: document.getElementById('deptActive').checked
+    };
+    
+    var url, method;
+    var idNum = parseInt(idValue);
+    
+    if (idValue && !isNaN(idNum) && idNum > 0) {
+        // Update existing department
+        url = `/api/departments/${idNum}`;
+        method = 'PUT';
+        // Include ID in request body - try both casings
+        body.Id = idNum;  // PascalCase
+        body.id = idNum;  // camelCase
+        console.log('Updating department with ID:', idNum);
+    } else {
+        // Create new department
+        url = '/api/departments';
+        method = 'POST';
+        console.log('Creating new department');
+    }
+    
+    console.log('URL:', url, 'Method:', method);
+    console.log('Request body:', body);
+    console.log('Request body JSON:', JSON.stringify(body));
+    
+    fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    }).then(r => {
+        console.log('Response status:', r.status, r.statusText);
+        if (r.ok) {
+            closeModal('deptModal');
+            loadDepartments();
+            alert('Department saved successfully!');
+        } else {
+            console.error('Server responded with error status:', r.status);
+            // Try to parse as JSON for validation errors
+            r.json().then(data => {
+                console.error('Error response JSON:', data);
+                if (data.errors) {
+                    // ModelState errors
+                    var errorMsg = 'Validation errors:\n';
+                    for (var key in data.errors) {
+                        errorMsg += key + ': ' + data.errors[key].join(', ') + '\n';
+                    }
+                    alert(errorMsg);
+                } else if (data.title) {
+                    alert('Error: ' + data.title);
+                } else if (typeof data === 'string') {
+                    alert('Error: ' + data);
+                } else {
+                    alert('Error: ' + JSON.stringify(data));
+                }
+            }).catch(() => {
+                // Not JSON, try text
+                r.text().then(t => {
+                    console.error('Error response text:', t);
+                    alert('Error: ' + t);
+                });
+            });
+        }
+    }).catch(err => {
+        console.error('Fetch error:', err);
+        alert('Failed to save department: ' + err.message);
+    });
 }
 
 function deleteDept(id) {

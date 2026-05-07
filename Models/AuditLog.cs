@@ -24,10 +24,10 @@ namespace HR_Management_System.Models
         [StringLength(200)]
         public string? SourceContext { get; set; }
 
-        [StringLength(50)]
+        [StringLength(100)]
         public string? RequestId { get; set; }
 
-        [StringLength(50)]
+        [StringLength(100)]
         public string? TraceId { get; set; }
 
         [StringLength(50)]

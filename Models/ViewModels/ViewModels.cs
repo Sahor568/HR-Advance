@@ -56,6 +56,9 @@ namespace HR_Management_System.Models.ViewModels
         [StringLength(50)]
         public string? PAN_No { get; set; }
 
+        [StringLength(50)]
+        public string? SocialSecurityNumber { get; set; }
+
         [Required]
         public DateTime Join_Date { get; set; }
 
@@ -69,6 +72,8 @@ namespace HR_Management_System.Models.ViewModels
         [Required]
         [StringLength(100)]
         public string Department { get; set; } = string.Empty;
+
+        public int? DepartmentId { get; set; }
 
         [Required]
         [StringLength(100)]
@@ -143,6 +148,8 @@ namespace HR_Management_System.Models.ViewModels
         public string ProbationStatus { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public DateTime Join_Date { get; set; }
+        public string? CVPath { get; set; }
+        public string? ExperienceCertificatePath { get; set; }
     }
 
     public class EmployeeDetailViewModel
