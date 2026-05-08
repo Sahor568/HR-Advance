@@ -22,18 +22,27 @@ namespace HR_Management_System.Services.Implementations
         {
             _logger.LogInformation("Fetching all employees");
             return await _context.Employees
+                .Include(e => e.Supervisor)
                 .Where(e => e.IsActive)
                 .Select(e => new EmployeeListViewModel
                 {
                     Id = e.Id,
                     Emp_ID = e.Emp_ID,
                     FullName = e.FullName,
+                    FirstName = e.FirstName,
+                    LastName = e.LastName,
+                    Email = e.Email,
                     Designation = e.Designation,
+                    DepartmentId = e.DepartmentId,
                     Department = e.Department,
                     EmploymentType = e.EmploymentType.ToString(),
                     ProbationStatus = e.ProbationStatus.ToString(),
+                    BaseSalary = e.BaseSalary,
+                    SupervisorName = e.Supervisor != null ? e.Supervisor.FirstName + " " + e.Supervisor.LastName : null,
                     IsActive = e.IsActive,
                     Join_Date = e.Join_Date,
+                    PhotoPath = e.PhotoPath,
+                    UserId = _context.Users.FirstOrDefault(u => u.EmployeeId == e.Id) != null ? _context.Users.FirstOrDefault(u => u.EmployeeId == e.Id).Id : null,
                     CVPath = e.CVPath,
                     ExperienceCertificatePath = e.ExperienceCertificatePath
                 })
@@ -59,6 +68,7 @@ namespace HR_Management_System.Services.Implementations
             return new EmployeeDetailViewModel
             {
                 Employee = employee,
+                UserId = await _context.Users.Where(u => u.EmployeeId == id).Select(u => u.Id).FirstOrDefaultAsync(),
                 CurrentLeaveBalance = await _context.LeaveBalances
                     .FirstOrDefaultAsync(lb => lb.EmployeeId == id && lb.Year == currentYear),
                 ActiveContract = await _context.EmploymentContracts
@@ -136,6 +146,17 @@ namespace HR_Management_System.Services.Implementations
             // Initialize leave balance for current year
             await InitializeLeaveBalanceForEmployee(employee.Id, model.Join_Date.Year);
 
+            // Link user account if provided
+            if (!string.IsNullOrEmpty(model.UserId))
+            {
+                var user = await _context.Users.FindAsync(model.UserId);
+                if (user != null)
+                {
+                    user.EmployeeId = employee.Id;
+                    await _context.SaveChangesAsync();
+                }
+            }
+
             // Create employment contract
             var contract = new EmploymentContract
             {
@@ -161,6 +182,24 @@ namespace HR_Management_System.Services.Implementations
         public async Task<Employee> UpdateEmployeeAsync(EmployeeEditViewModel model)
         {
             _logger.LogInformation("Updating employee ID: {EmployeeId}", model.Id);
+
+            // Handle user link update
+            var existingUserWithLink = await _context.Users.FirstOrDefaultAsync(u => u.EmployeeId == model.Id);
+            if (existingUserWithLink != null && existingUserWithLink.Id != model.UserId)
+            {
+                existingUserWithLink.EmployeeId = null;
+            }
+
+            if (!string.IsNullOrEmpty(model.UserId))
+            {
+                var newUser = await _context.Users.FindAsync(model.UserId);
+                if (newUser != null)
+                {
+                    newUser.EmployeeId = model.Id;
+                    _context.Users.Update(newUser);
+                    await _context.SaveChangesAsync(); // Explicit save for the user link
+                }
+            }
 
             var employee = await _context.Employees.FindAsync(model.Id);
             if (employee == null)
@@ -203,6 +242,8 @@ namespace HR_Management_System.Services.Implementations
             employee.CVPath = model.CVPath;
             employee.ExperienceCertificatePath = model.ExperienceCertificatePath;
             employee.SupervisorId = model.SupervisorId;
+            employee.IsActive = model.IsActive;
+            employee.ProbationStatus = (ProbationStatus)model.ProbationStatus;
             employee.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -393,8 +434,9 @@ namespace HR_Management_System.Services.Implementations
         {
             _logger.LogInformation("Searching employees with term: {SearchTerm}", searchTerm);
             var lowerTerm = searchTerm.ToLower();
-
+            
             return await _context.Employees
+                .Include(e => e.Supervisor)
                 .Where(e => e.IsActive && (
                     e.FirstName.ToLower().Contains(lowerTerm) ||
                     e.LastName.ToLower().Contains(lowerTerm) ||
@@ -408,12 +450,20 @@ namespace HR_Management_System.Services.Implementations
                     Id = e.Id,
                     Emp_ID = e.Emp_ID,
                     FullName = e.FullName,
+                    FirstName = e.FirstName,
+                    LastName = e.LastName,
+                    Email = e.Email,
                     Designation = e.Designation,
+                    DepartmentId = e.DepartmentId,
                     Department = e.Department,
                     EmploymentType = e.EmploymentType.ToString(),
                     ProbationStatus = e.ProbationStatus.ToString(),
+                    BaseSalary = e.BaseSalary,
+                    SupervisorName = e.Supervisor != null ? e.Supervisor.FirstName + " " + e.Supervisor.LastName : null,
                     IsActive = e.IsActive,
-                    Join_Date = e.Join_Date
+                    Join_Date = e.Join_Date,
+                    PhotoPath = e.PhotoPath,
+                    UserId = _context.Users.FirstOrDefault(u => u.EmployeeId == e.Id) != null ? _context.Users.FirstOrDefault(u => u.EmployeeId == e.Id).Id : null
                 })
                 .Take(50)
                 .ToListAsync();
@@ -455,10 +505,16 @@ namespace HR_Management_System.Services.Implementations
             }
         }
 
-        public async Task<Employee?> GetEmployeeByUserIdAsync(string userId)
+        public async Task<Employee?> GetEmployeeByUserIdAsync(string userEmail)
         {
-            _logger.LogInformation("Fetching employee by user ID: {UserId}", userId);
-            return await _context.Employees.FirstOrDefaultAsync(e => e.Email == userId || e.Emp_ID == userId);
+            _logger.LogInformation("Fetching employee by user email: {UserEmail}", userEmail);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail || u.UserName == userEmail);
+            if (user == null || user.EmployeeId == null)
+            {
+                // Fallback to email match if no direct link exists
+                return await _context.Employees.FirstOrDefaultAsync(e => e.Email == userEmail);
+            }
+            return await _context.Employees.FirstOrDefaultAsync(e => e.Id == user.EmployeeId);
         }
     }
 }

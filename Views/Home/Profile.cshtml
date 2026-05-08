@@ -1,226 +1,744 @@
+@using HR_Management_System.Models.Identity
+@using HR_Management_System.Services.Interfaces
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<ApplicationUser> UserManager
+@inject IEmployeeService EmployeeService
+
 @{
-    ViewData["Title"] = "My Profile";
+    ViewData["Title"] = "Profile";
+    var user = await UserManager.GetUserAsync(User);
+    var selfEmp = user != null ? await EmployeeService.GetEmployeeByUserIdAsync(user.Email) : null;
+    var selfEmpJson = selfEmp != null ? System.Text.Json.JsonSerializer.Serialize(selfEmp, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }) : "null";
+    
+    bool isAdmin = User.IsInRole("Admin") || User.IsInRole("HRManager");
+    var urlParams = Context.Request.Query;
+    bool isViewingSelf = !urlParams.ContainsKey("empId");
 }
 
-<div class="page-header">
-    <h1 class="page-title">My Profile</h1>
-    <p class="page-subtitle">View your personal and employment details</p>
-</div>
+<style>
+    :root {
+        --glass: rgba(255, 255, 255, 0.1);
+        --glass-border: rgba(255, 255, 255, 0.2);
+        --glass-blur: blur(12px);
+    }
 
-<!-- Profile Header -->
-<div class="profile-header" id="profileHeader">
-    <div class="profile-avatar" id="profileAvatar"><i class="fas fa-user"></i></div>
-    <div class="profile-info">
-        <h2 id="profileName">Loading...</h2>
-        <p id="profileDesignation">--</p>
-        <div class="profile-stats">
-            <div class="profile-stat"><div class="profile-stat-value" id="profileJoinDate">--</div><div class="profile-stat-label">Join Date</div></div>
-            <div class="profile-stat"><div class="profile-stat-value" id="profileDaysWorked">--</div><div class="profile-stat-label">Days Worked</div></div>
-            <div class="profile-stat"><div class="profile-stat-value" id="profileDept">--</div><div class="profile-stat-label">Department</div></div>
-        </div>
-    </div>
-</div>
+    .profile-hero {
+        position: relative;
+        border-radius: 1.5rem;
+        padding: 3rem;
+        color: white;
+        overflow: hidden;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-lg);
+        background: linear-gradient(135deg, #1e1b4b 0%, #4f46e5 100%);
+    }
 
-<!-- Tabs -->
-<div class="tabs">
-    <button class="tab-btn active" onclick="switchProfileTab(this,'personal')">Personal Info</button>
-    <button class="tab-btn" onclick="switchProfileTab(this,'employment')">Employment</button>
-    <button class="tab-btn" onclick="switchProfileTab(this,'leave')">Leave Balance</button>
-    <button class="tab-btn" onclick="switchProfileTab(this,'payroll')">Payroll</button>
-    <button class="tab-btn" onclick="switchProfileTab(this,'history')">History</button>
-</div>
+    .admin-hero {
+        background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+    }
 
-<!-- Personal Info -->
-<div class="tab-content active" id="tab-personal">
-    <div class="card">
-        <div class="card-body">
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;" id="personalInfo">
-                <div><div class="form-label">Full Name</div><div id="pName">--</div></div>
-                <div><div class="form-label">Email</div><div id="pEmail">--</div></div>
-                <div><div class="form-label">Phone</div><div id="pPhone">--</div></div>
-                <div><div class="form-label">Gender</div><div id="pGender">--</div></div>
-                <div><div class="form-label">Date of Birth</div><div id="pDob">--</div></div>
-                <div><div class="form-label">Marital Status</div><div id="pMarital">--</div></div>
-                <div><div class="form-label">Address</div><div id="pAddress">--</div></div>
-                <div><div class="form-label">Citizenship No.</div><div id="pCitizenship">--</div></div>
-                <div><div class="form-label">PAN No.</div><div id="pPan">--</div></div>
+    .hero-glass-overlay {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 70% 30%, rgba(79, 70, 229, 0.4), transparent 70%);
+        pointer-events: none;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 2.5rem;
+    }
+
+    .hero-avatar-container {
+        position: relative;
+    }
+
+    .hero-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 2rem;
+        background: var(--glass);
+        backdrop-filter: var(--glass-blur);
+        border: 2px solid var(--glass-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: 700;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+    }
+
+    .hero-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 2rem;
+    }
+
+    .hero-badge {
+        position: absolute;
+        bottom: -10px;
+        right: -10px;
+        background: var(--success);
+        color: white;
+        padding: 0.35rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        border: 4px solid #1e1b4b;
+        box-shadow: var(--shadow-md);
+    }
+
+    .hero-text h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: -0.025em;
+    }
+
+    .hero-text p {
+        font-size: 1.1rem;
+        opacity: 0.8;
+        margin: 0.5rem 0 1.5rem;
+    }
+
+    .hero-stats {
+        display: flex;
+        gap: 3rem;
+    }
+
+    .h-stat-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .h-stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+
+    .h-stat-label {
+        font-size: 0.75rem;
+        opacity: 0.6;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .management-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .cmd-card {
+        background: white;
+        border-radius: 1.25rem;
+        padding: 1.5rem;
+        border: 1px solid var(--border);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+    }
+
+    .cmd-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+        border-color: var(--primary-light);
+    }
+
+    .cmd-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .cmd-info h3 {
+        font-size: 1rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .cmd-info p {
+        font-size: 0.85rem;
+        color: var(--secondary);
+        margin: 0.25rem 0 0;
+    }
+
+    /* Tabs Styling */
+    .premium-tabs {
+        display: flex;
+        gap: 1rem;
+        background: #e2e8f0;
+        padding: 0.5rem;
+        border-radius: 1rem;
+        width: fit-content;
+        margin-bottom: 2rem;
+    }
+
+    .p-tab {
+        padding: 0.65rem 1.5rem;
+        border-radius: 0.75rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--secondary);
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .p-tab.active {
+        background: white;
+        color: var(--primary);
+        box-shadow: var(--shadow);
+    }
+
+    .tab-pane {
+        display: none;
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    .tab-pane.active {
+        display: block;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+<div class="profile-page-wrapper">
+    <!-- Hero Section -->
+    <div class="profile-hero @(isAdmin && isViewingSelf ? "admin-hero" : "")">
+        <div class="hero-glass-overlay"></div>
+        <div class="hero-content">
+            <div class="hero-avatar-container">
+                <div class="hero-avatar" id="profileAvatar">
+                    @if (selfEmp != null && !string.IsNullOrEmpty(selfEmp.PhotoPath))
+                    {
+                        <img src="@(selfEmp.PhotoPath.StartsWith("/") ? selfEmp.PhotoPath : "/" + selfEmp.PhotoPath)" />
+                    }
+                    else if (selfEmp != null)
+                    {
+                        @selfEmp.FirstName[0]
+                    }
+                    else
+                    {
+                        <i class="fas fa-user-shield"></i>
+                    }
+                </div>
+                <div class="hero-badge">@(isAdmin ? "ADMIN" : "EMPLOYEE")</div>
+            </div>
+            <div class="hero-text">
+                <h1 id="profileName">@(selfEmp != null ? $"{selfEmp.FirstName} {selfEmp.LastName}" : (isAdmin ? "System Administrator" : "Loading..."))</h1>
+                <p id="profileDesignation">@(selfEmp?.Designation ?? (isAdmin ? "HR Management Specialist" : "--")) | @(selfEmp?.Department ?? "Corporate")</p>
+                <div class="hero-stats">
+                    <div class="h-stat-item">
+                        <span class="h-stat-value" id="profileJoinDate">@(selfEmp?.Join_Date.ToShortDateString() ?? "N/A")</span>
+                        <span class="h-stat-label">Member Since</span>
+                    </div>
+                    <div class="h-stat-item">
+                        <span class="h-stat-value" id="profileId">@(selfEmp?.Emp_ID ?? "SYS-ADM")</span>
+                        <span class="h-stat-label">Employee ID</span>
+                    </div>
+                    @if (isAdmin)
+                    {
+                        <div class="h-stat-item">
+                            <span class="h-stat-value">Active</span>
+                            <span class="h-stat-label">System Access</span>
+                        </div>
+                    }
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Employment -->
-<div class="tab-content" id="tab-employment">
-    <div class="card">
-        <div class="card-body">
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;" id="employmentInfo">
-                <div><div class="form-label">Employee ID</div><div id="eId">--</div></div>
-                <div><div class="form-label">Department</div><div id="eDept">--</div></div>
-                <div><div class="form-label">Designation</div><div id="eDesig">--</div></div>
-                <div><div class="form-label">Employment Type</div><div id="eType">--</div></div>
-                <div><div class="form-label">Join Date</div><div id="eJoin">--</div></div>
-                <div><div class="form-label">Grade</div><div id="eGrade">--</div></div>
-                <div><div class="form-label">Base Salary</div><div id="eSalary">--</div></div>
-                <div><div class="form-label">Supervisor</div><div id="eSupervisor">--</div></div>
-                <div><div class="form-label">Probation Status</div><div id="eProbation">--</div></div>
-                <div><div class="form-label">Last Promotion</div><div id="ePromotion">--</div></div>
-                <div><div class="form-label">Position Change</div><div id="ePositionChange">--</div></div>
+    @if (isAdmin && isViewingSelf)
+    {
+        <!-- ADMIN COMMAND CENTER UI -->
+        <div class="page-section-title mb-3">
+            <h2 style="font-size: 1.25rem; font-weight: 700;">Command Center Overview</h2>
+        </div>
+        
+        <div class="management-grid">
+            <a href="/Employees" class="cmd-card" style="text-decoration: none; color: inherit;">
+                <div class="cmd-icon" style="background: #eff6ff; color: #3b82f6;"><i class="fas fa-users"></i></div>
+                <div class="cmd-info">
+                    <h3>Employee Directory</h3>
+                    <p>Manage all staff records and documents</p>
+                </div>
+            </a>
+            <a href="/Leaves" class="cmd-card" style="text-decoration: none; color: inherit;">
+                <div class="cmd-icon" style="background: #fff7ed; color: #f97316;"><i class="fas fa-calendar-check"></i></div>
+                <div class="cmd-info">
+                    <h3>Approval Queue</h3>
+                    <p>Review leave requests and attendance</p>
+                </div>
+            </a>
+            <a href="/Payrolls" class="cmd-card" style="text-decoration: none; color: inherit;">
+                <div class="cmd-icon" style="background: #f0fdf4; color: #10b981;"><i class="fas fa-money-check-alt"></i></div>
+                <div class="cmd-info">
+                    <h3>Payroll Center</h3>
+                    <p>Process salaries and generate reports</p>
+                </div>
+            </a>
+        </div>
+
+        <div class="premium-tabs">
+            <button class="p-tab active" onclick="switchPremiumTab('admin-overview')">Management Overview</button>
+            <button class="p-tab" onclick="switchPremiumTab('admin-personal')">Personal Details</button>
+            <button class="p-tab" onclick="switchPremiumTab('admin-activity')">Recent Activity</button>
+        </div>
+
+        <div id="admin-overview" class="tab-pane active">
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header"><h3>Recent Approvals</h3></div>
+                    <div class="card-body">
+                        <div class="empty-state">
+                            <i class="fas fa-check-circle"></i>
+                            <h4>No pending approvals</h4>
+                            <p>You're all caught up for today!</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Team Performance</h3></div>
+                    <div class="card-body">
+                        <canvas id="performanceMiniChart" style="height: 200px;"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
 
-<!-- Leave Balance -->
-<div class="tab-content" id="tab-leave">
-    <div class="leave-balance-grid" id="profileLeaveBalance"></div>
-</div>
-
-<!-- Payroll -->
-<div class="tab-content" id="tab-payroll">
-    <div class="table-container">
-        <div class="table-header"><h3 style="font-size:1rem;font-weight:600;margin:0;">Recent Payslips</h3></div>
-        <table class="data-table">
-            <thead><tr><th>Period</th><th>Base Salary</th><th>Allowances</th><th>Deductions</th><th>Net Pay</th><th>Status</th></tr></thead>
-            <tbody id="profilePayroll"><tr><td colspan="6" class="text-center">Loading...</td></tr></tbody>
-        </table>
-    </div>
-</div>
-
-<!-- History -->
-<div class="tab-content" id="tab-history">
-    <div class="card">
-        <div class="card-header"><h3 style="font-size:0.95rem;font-weight:600;margin:0;">Employment History</h3></div>
-        <div class="card-body" style="padding:0;">
-            <ul class="activity-list" id="profileHistory" style="padding:0.75rem 1.25rem;">
-                <li class="activity-item"><div class="activity-dot" style="background:var(--secondary);"></div><div><div class="activity-text">Loading history...</div></div></li>
-            </ul>
+        <div id="admin-personal" class="tab-pane">
+            <div class="card">
+                <div class="card-body" id="personalInfoContainer">
+                    <!-- Loaded via JS populateProfile -->
+                    <div class="loading-spinner">Loading personal data...</div>
+                </div>
+            </div>
         </div>
-    </div>
+        
+        <div id="admin-activity" class="tab-pane">
+            <div class="card">
+                <div class="card-body">
+                    <ul class="activity-list" id="adminAuditLog">
+                        <li class="activity-item">
+                            <div class="avatar-sm" style="background: #e2e8f0; color: #64748b;"><i class="fas fa-sign-in-alt"></i></div>
+                            <div class="flex-1">
+                                <div class="d-flex align-center justify-between">
+                                    <span class="font-600">Admin Login</span>
+                                    <span class="text-xs text-muted">Just now</span>
+                                </div>
+                                <p class="text-sm text-muted">Successfully logged into the Command Center.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- STANDARD EMPLOYEE PROFILE UI -->
+        <div class="premium-tabs">
+            <button class="p-tab active" onclick="switchPremiumTab('p-personal')">Personal Info</button>
+            <button class="p-tab" onclick="switchPremiumTab('p-employment')">Employment</button>
+            <button class="p-tab" onclick="switchPremiumTab('p-leave')">Leave Balance</button>
+            <button class="p-tab" onclick="switchPremiumTab('p-payroll')">Payroll</button>
+        </div>
+
+        <div id="p-personal" class="tab-pane active">
+            <div class="grid-3" id="personalGrid">
+                <!-- Info cards will be injected here -->
+            </div>
+        </div>
+
+        <div id="p-employment" class="tab-pane">
+            <div class="card">
+                <div class="card-body" id="employmentGrid"></div>
+            </div>
+        </div>
+
+        <div id="p-leave" class="tab-pane">
+            <div class="leave-balance-grid" id="leaveGrid">
+                <div class="loading-spinner">Loading leave data...</div>
+            </div>
+        </div>
+
+        <div id="p-payroll" class="tab-pane">
+            <div class="card">
+                <div class="card-body" id="payrollList">
+                    <div class="empty-state"><i class="fas fa-file-invoice-dollar"></i><p>No payslips found for this year.</p></div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 @section Scripts {
-<script>
-document.addEventListener('DOMContentLoaded', loadProfile);
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        var initialSelfData = @Html.Raw(selfEmpJson);
+        var isAdminView = @(isAdmin && isViewingSelf ? "true" : "false");
 
-function loadProfile() {
-    fetch('/api/employee/my-profile').then(r=>r.json()).then(emp => {
-        populateProfile(emp);
-    }).catch(()=>{
-        fetch('/api/employee').then(r=>r.json()).then(data=>{
-            if(data&&data.length>0) populateProfile(data[0]);
-        }).catch(()=>{});
-    });
-}
+        document.addEventListener('DOMContentLoaded', function() {
+            var urlParams = new URLSearchParams(window.location.search);
+            var empId = urlParams.get('empId');
+            loadProfile(empId);
+            
+            if (isAdminView) {
+                initAdminCharts();
+            }
+        });
 
-function populateProfile(emp) {
-    var genders=['Male','Female','Other'];
-    var marital=['Single','Married','Divorced','Widowed'];
-    var types=['Regular','Time Bound','Task Based','Casual','Part Time'];
-    var probation=['Active','Completed','Extended','Terminated'];
+        function switchPremiumTab(tabId) {
+            const pane = document.getElementById(tabId);
+            if (!pane) return;
 
-    document.getElementById('profileName').textContent=(emp.firstName||'')+' '+(emp.middleName||'')+' '+(emp.lastName||'');
-    document.getElementById('profileDesignation').textContent=(emp.designation||'Employee')+' | '+(emp.departmentName||'');
-    document.getElementById('profileJoinDate').textContent=emp.joinDate?new Date(emp.joinDate).toLocaleDateString():'--';
-    document.getElementById('profileDept').textContent=emp.departmentName||'--';
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.p-tab').forEach(b => b.classList.remove('active'));
+            
+            pane.classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
 
-    if(emp.joinDate){
-        var days=Math.floor((new Date()-new Date(emp.joinDate))/(1000*60*60*24));
-        document.getElementById('profileDaysWorked').textContent=days+' days';
-    }
+        function loadProfile(empId) {
+            console.log('Loading profile for ID:', empId || 'Self');
+            
+            const handleData = (data) => {
+                if (!data) {
+                    showNotFoundError();
+                    return;
+                }
+                const emp = data.employee || data.Employee || data;
+                if (!emp || (!emp.id && !emp.Id && !emp.emp_ID)) {
+                    showNotFoundError();
+                } else {
+                    populateProfile(emp);
+                }
+            };
 
-    // Display profile photo if available
-    var avatarElement = document.getElementById('profileAvatar');
-    if (emp.photoPath) {
-        avatarElement.innerHTML = '<img src="' + emp.photoPath + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" />';
-    } else if (emp.firstName) {
-        avatarElement.textContent = emp.firstName[0] + (emp.lastName ? emp.lastName[0] : '');
-    }
+            if (empId) {
+                fetch('/api/employee/' + empId)
+                    .then(r => r.ok ? r.json() : null)
+                    .then(handleData)
+                    .catch(e => { console.error(e); showNotFoundError(); });
+            } else if (initialSelfData) {
+                console.log('Using pre-loaded self data');
+                populateProfile(initialSelfData);
+            } else {
+                fetch('/api/employee/me')
+                    .then(r => r.ok ? r.json() : null)
+                    .then(handleData)
+                    .catch(e => { console.error(e); showNotFoundError(); });
+            }
+        }
 
-    document.getElementById('pName').textContent=(emp.firstName||'')+' '+(emp.middleName||'')+' '+(emp.lastName||'');
-    document.getElementById('pEmail').textContent=emp.email||'--';
-    document.getElementById('pPhone').textContent=emp.phone||'--';
-    document.getElementById('pGender').textContent=genders[emp.gender]||'--';
-    document.getElementById('pDob').textContent=emp.dateOfBirth?new Date(emp.dateOfBirth).toLocaleDateString():'--';
-    document.getElementById('pMarital').textContent=marital[emp.maritalStatus]||'--';
-    document.getElementById('pAddress').textContent=emp.address||'--';
-    document.getElementById('pCitizenship').textContent=emp.citizenshipNumber||'--';
-    document.getElementById('pPan').textContent=emp.paN_No||'--';
+        function showNotFoundError() {
+            console.warn('Profile record not found in database.');
+            const containers = ['personalGrid', 'personalInfoContainer', 'employmentGrid', 'leaveGrid', 'payrollList'];
+            containers.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = `
+                    <div class="empty-state" style="padding: 2rem;">
+                        <i class="fas fa-user-slash" style="font-size: 2.5rem; color: var(--secondary); opacity: 0.5;"></i>
+                        <h3 style="margin-top: 1rem; font-size: 1.1rem;">Profile Not Linked</h3>
+                        <p style="font-size: 0.85rem; color: var(--secondary);">Your user account is not yet linked to an employee record.</p>
+                        ${isAdminView ? '<a href="/Employees" class="btn-primary btn-sm" style="margin-top:1rem;">Link Employee Now</a>' : ''}
+                    </div>
+                `;
+            });
+            
+            // If it's a regular employee and nothing was found, at least keep the name as "Guest"
+            if (document.getElementById('profileName').textContent === 'Loading...') {
+                document.getElementById('profileName').textContent = 'Profile Not Linked';
+            }
+        }
 
+        function populateProfile(emp) {
+            if (!emp) return;
+            console.log('Populating profile UI with:', emp);
 
-    document.getElementById('eId').textContent=emp.emp_ID||'--';
-    document.getElementById('eDept').textContent=emp.departmentName||'--';
-    document.getElementById('eDesig').textContent=emp.designation||'--';
-    document.getElementById('eType').textContent=types[emp.employmentType]||'--';
-    document.getElementById('eJoin').textContent=emp.joinDate?new Date(emp.joinDate).toLocaleDateString():'--';
-    document.getElementById('eGrade').textContent=emp.grade||'--';
-    document.getElementById('eSalary').textContent=emp.baseSalary?'Rs.'+emp.baseSalary.toLocaleString():'--';
-    document.getElementById('eSupervisor').textContent=emp.supervisorName||'None';
-    document.getElementById('eProbation').textContent=probation[emp.probationStatus]||'--';
-    document.getElementById('ePromotion').textContent=emp.lastPromotionDate?new Date(emp.lastPromotionDate).toLocaleDateString():'N/A';
-    document.getElementById('ePositionChange').textContent=emp.lastPositionChange||'N/A';
+            // Common header updates
+            var fName = emp.firstName || emp.FirstName || '';
+            var lName = emp.lastName || emp.LastName || '';
+            if (fName || lName) {
+                document.getElementById('profileName').textContent = fName + ' ' + lName;
+            }
+            
+            var desig = emp.designation || emp.Designation || 'Specialist';
+            var dept = emp.departmentName || emp.DepartmentName || emp.department || emp.Department || 'Operations';
+            document.getElementById('profileDesignation').textContent = desig + ' | ' + dept;
+            
+            var joinDate = emp.joinDate || emp.JoinDate || emp.join_Date || emp.Join_Date;
+            if (joinDate) {
+                document.getElementById('profileJoinDate').textContent = new Date(joinDate).toLocaleDateString();
+            }
+            
+            var empIdVal = emp.emp_ID || emp.Emp_ID || emp.employeeId || 'N/A';
+            if (document.getElementById('profileId')) {
+                document.getElementById('profileId').textContent = empIdVal;
+            }
 
-    loadLeaveBalance(emp.id);
-    loadPayslips(emp.id);
-    loadHistory(emp);
-}
+            // Photo fix
+            var avatarElement = document.getElementById('profileAvatar');
+            var photoPath = emp.photoPath || emp.PhotoPath;
+            if (photoPath) {
+                var src = photoPath.startsWith('/') ? photoPath : '/' + photoPath;
+                avatarElement.innerHTML = `<img src="${src}" style="width:100%;height:100%;border-radius:2rem;object-fit:cover;" />`;
+            } else if (fName) {
+                avatarElement.innerHTML = '';
+                avatarElement.textContent = fName[0] + (lName ? lName[0] : '');
+            }
 
-function loadLeaveBalance(empId) {
-    fetch('/api/leave/balance'+(empId?'?employeeId='+empId:'')).then(r=>r.json()).then(data=>{
-        var grid=document.getElementById('profileLeaveBalance');
-        grid.innerHTML=`
-            <div class="leave-balance-card"><h4>Home Leave</h4><div class="balance-value">${data.homeLeaveBalance||0}</div><div class="balance-detail">Used: ${data.homeLeaveUsed||0}</div></div>
-            <div class="leave-balance-card"><h4>Sick Leave</h4><div class="balance-value">${data.sickLeaveBalance||0}</div><div class="balance-detail">Used: ${data.sickLeaveUsed||0}</div></div>
-            <div class="leave-balance-card"><h4>Maternity</h4><div class="balance-value">${data.maternityLeaveBalance||0}</div><div class="balance-detail">98 days total</div></div>
-            <div class="leave-balance-card"><h4>Paternity</h4><div class="balance-value">${data.paternityLeaveBalance||0}</div><div class="balance-detail">15 days total</div></div>
-            <div class="leave-balance-card"><h4>Mourning</h4><div class="balance-value">${data.mourningLeaveBalance||0}</div><div class="balance-detail">13 days total</div></div>
-            <div class="leave-balance-card"><h4>Public Holidays</h4><div class="balance-value">${data.publicHolidayBalance||0}</div><div class="balance-detail">13-14 days</div></div>
-        `;
-    }).catch(()=>{});
-}
+            // Render Info Blocks
+            const contactHtml = `
+                <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+                    <div><label style="display:block; font-size:0.7rem; color:var(--secondary); text-transform:uppercase;">Email</label><span style="font-weight:600; font-size:0.9rem;">${emp.email || '--'}</span></div>
+                    <div><label style="display:block; font-size:0.7rem; color:var(--secondary); text-transform:uppercase;">Phone</label><span style="font-weight:600; font-size:0.9rem;">${emp.phoneNumber || emp.phone || '--'}</span></div>
+                    <div><label style="display:block; font-size:0.7rem; color:var(--secondary); text-transform:uppercase;">Address</label><span style="font-weight:600; font-size:0.9rem;">${emp.permanentAddress || emp.address || '--'}</span></div>
+                </div>
+            `;
 
-function loadPayslips(empId) {
-    fetch('/api/payroll/employee/'+(empId||'me')).then(r=>r.json()).then(data=>{
-        var tbody=document.getElementById('profilePayroll');
-        if(!data||data.length===0){tbody.innerHTML='<tr><td colspan="6" class="text-center">No payslips yet</td></tr>';return;}
-        var statuses=['Draft','Generated','Approved','Paid'];
-        tbody.innerHTML=data.slice(0,12).map(p=>`
-            <tr>
-                <td>${p.month}/${p.year}</td>
-                <td>Rs.${(p.baseSalary||0).toLocaleString()}</td>
-                <td>Rs.${((p.otherAllowances||0)+(p.festivalAllowance||0)).toLocaleString()}</td>
-                <td>Rs.${(p.totalDeductions||0).toLocaleString()}</td>
-                <td style="font-weight:600;">Rs.${(p.netPay||0).toLocaleString()}</td>
-                <td><span class="badge-status ${p.status===3?'badge-success':'badge-warning'}">${statuses[p.status]||'--'}</span></td>
-            </tr>
-        `).join('');
-    }).catch(()=>{});
-}
+            const detailsHtml = `
+                <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+                    <div><label style="display:block; font-size:0.7rem; color:var(--secondary); text-transform:uppercase;">Date of Birth</label><span style="font-weight:600; font-size:0.9rem;">${emp.dateOfBirth ? new Date(emp.dateOfBirth).toLocaleDateString() : '--'}</span></div>
+                    <div><label style="display:block; font-size:0.7rem; color:var(--secondary); text-transform:uppercase;">Gender</label><span style="font-weight:600; font-size:0.9rem;">${['Male', 'Female', 'Other'][emp.gender] || emp.gender || '--'}</span></div>
+                    <div><label style="display:block; font-size:0.7rem; color:var(--secondary); text-transform:uppercase;">PAN Number</label><span style="font-weight:600; font-size:0.9rem;">${emp.pan_No || emp.panNo || '--'}</span></div>
+                </div>
+            `;
 
-function loadHistory(emp) {
-    var list=document.getElementById('profileHistory');
-    var history=[];
-    if(emp.joinDate) history.push({text:'Joined as '+emp.designation,date:emp.joinDate,color:'var(--success)'});
-    if(emp.lastPromotionDate) history.push({text:'Promoted',date:emp.lastPromotionDate,color:'var(--primary)'});
-    if(emp.probationStatus===1&&emp.probationEndDate) history.push({text:'Probation completed',date:emp.probationEndDate,color:'var(--info)'});
-    if(history.length===0) history.push({text:'No history records yet',date:null,color:'var(--secondary)'});
-    history.sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
-    list.innerHTML=history.map(h=>`<li class="activity-item"><div class="activity-dot" style="background:${h.color};"></div><div><div class="activity-text">${h.text}</div><div class="activity-time">${h.date?new Date(h.date).toLocaleDateString():''}</div></div></li>`).join('');
-}
+            if (isAdminView) {
+                const adminContainer = document.getElementById('personalInfoContainer');
+                if (adminContainer) adminContainer.innerHTML = `
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                        <div><h4 style="margin-bottom:1rem; font-size:0.9rem; color:var(--primary);">Contact Information</h4>${contactHtml}</div>
+                        <div><h4 style="margin-bottom:1rem; font-size:0.9rem; color:var(--primary);">Personal Details</h4>${detailsHtml}</div>
+                    </div>
+                `;
+            } else {
+                const container = document.getElementById('personalGrid');
+                if (container) container.innerHTML = `
+                    <div class="card"><div class="card-body"><h4 style="margin-bottom:1.5rem; font-size:1rem; color:var(--primary);">Contact Info</h4>${contactHtml}</div></div>
+                    <div class="card"><div class="card-body"><h4 style="margin-bottom:1.5rem; font-size:1rem; color:var(--primary);">Personal Details</h4>${detailsHtml}</div></div>
+                    <div class="card"><div class="card-body"><h4 style="margin-bottom:1.5rem; font-size:1rem; color:var(--primary);">Identity</h4>
+                        <div><label style="display:block; font-size:0.7rem; color:var(--secondary); text-transform:uppercase;">Citizenship No.</label><span style="font-weight:600; font-size:0.9rem;">${emp.citizenshipNumber || '--'}</span></div>
+                        <div style="margin-top:1rem;"><label style="display:block; font-size:0.7rem; color:var(--secondary); text-transform:uppercase;">Marital Status</label><span style="font-weight:600; font-size:0.9rem;">${['Single', 'Married', 'Divorced', 'Widowed'][emp.maritalStatus] || emp.maritalStatus || '--'}</span></div>
+                    </div></div>
+                `;
+                
+                const empGrid = document.getElementById('employmentGrid');
+                if (empGrid) empGrid.innerHTML = `
+                    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 2rem;">
+                        <div><label style="display:block; font-size:0.7rem; color:var(--secondary); text-transform:uppercase;">Employee ID</label><span style="font-weight:600; font-size:1rem;">${empIdVal}</span></div>
+                        <div><label style="display:block; font-size:0.7rem; color:var(--secondary); text-transform:uppercase;">Department</label><span style="font-weight:600; font-size:1rem;">${dept}</span></div>
+                        <div><label style="display:block; font-size:0.7rem; color:var(--secondary); text-transform:uppercase;">Designation</label><span style="font-weight:600; font-size:1rem;">${desig}</span></div>
+                        <div><label style="display:block; font-size:0.7rem; color:var(--secondary); text-transform:uppercase;">Base Salary</label><span style="font-weight:600; font-size:1rem; color:var(--success);">Rs. ${(emp.baseSalary || 0).toLocaleString()}</span></div>
+                        <div><label style="display:block; font-size:0.7rem; color:var(--secondary); text-transform:uppercase;">Employment Type</label><span style="font-weight:600; font-size:1rem;">${['Regular', 'Contract', 'Intern'][emp.employmentType] || emp.employmentType || 'Regular'}</span></div>
+                        <div><label style="display:block; font-size:0.7rem; color:var(--secondary); text-transform:uppercase;">Probation Status</label><span style="font-weight:600; font-size:1rem;">${['Active', 'Completed', 'Extended'][emp.probationStatus] || emp.probationStatus || '--'}</span></div>
+                    </div>
+                `;
+            }
+            
+            var dbId = emp.id || emp.Id;
+            loadLeaveBalance(dbId);
+            loadPayslips(dbId);
+        }
 
-function switchProfileTab(btn,tabId){
-    btn.parentElement.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
-    document.getElementById('tab-'+tabId).classList.add('active');
-}
+        function loadLeaveBalance(empId) {
+            if (!empId) return;
+            
+            // 1. Load Balances
+            fetch('/api/leave/balance/' + empId).then(r => r.ok ? r.json() : null).then(data => {
+                const container = document.getElementById('leaveGrid');
+                if (!container) return;
+                
+                if (!data) {
+                    container.innerHTML = '<div class="empty-state"><p>No leave balances found.</p></div>';
+                    return;
+                }
 
-function showProfile(emp_id) {
-    var url = '/employee/profile';
-    if (emp_id) url += '?id=' + emp_id;
-    if id = HR or Admin, else show own profile;
-    var list = document.getElementById('profileHistory');
-    list.innerHTML = '<li class="activity-item"><div class="activity-dot" style="background:var(--secondary);"></div><div><div class="activity-text">Loading profile...</div></div></li>';
-}
-</script>
+                // Map the ViewModel object to a display-friendly array
+                const balances = [
+                    { name: 'Home Leave', remaining: data.homeLeaveBalance, used: data.homeLeaveUsed, total: data.homeLeaveAccrued, icon: 'fa-home', color: '#4f46e5' },
+                    { name: 'Sick Leave', remaining: data.sickLeaveBalance, used: data.sickLeaveTaken, total: data.sickLeaveTotal, icon: 'fa-thermometer-half', color: '#ef4444' },
+                    { name: 'Maternity/Paternity', remaining: (data.maternityLeaveTotal || data.paternityLeaveTotal) - (data.maternityLeaveUsed || data.paternityLeaveUsed), used: data.maternityLeaveUsed || data.paternityLeaveUsed, total: data.maternityLeaveTotal || data.paternityLeaveTotal, icon: 'fa-baby', color: '#ec4899' },
+                    { name: 'Mourning Leave', remaining: data.mourningLeaveTotal - data.mourningLeaveUsed, used: data.mourningLeaveUsed, total: data.mourningLeaveTotal, icon: 'fa-dove', color: '#6366f1' },
+                    { name: 'Public Holidays', remaining: data.publicHolidaysTotal - data.publicHolidaysUsed, used: data.publicHolidaysUsed, total: data.publicHolidaysTotal, icon: 'fa-calendar-day', color: '#10b981' }
+                ];
 
+                let balanceHtml = '<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; width:100%;">';
+                balanceHtml += balances.map(b => `
+                    <div class="card" style="padding:1.5rem; border-left:4px solid ${b.color}; background:white; position:relative; overflow:hidden;">
+                        <div style="position:absolute; right:-10px; top:-10px; font-size:3rem; opacity:0.05; color:${b.color};"><i class="fas ${b.icon}"></i></div>
+                        <div style="font-size:0.7rem; color:var(--secondary); text-transform:uppercase; font-weight:700; letter-spacing:0.05em;">${b.name}</div>
+                        <div style="font-size:1.75rem; font-weight:800; margin:0.5rem 0; color:var(--dark);">${b.remaining} <span style="font-size:0.8rem; font-weight:500; opacity:0.6;">Days Left</span></div>
+                        <div style="font-size:0.75rem; display:flex; justify-content:space-between; margin-top:0.5rem;">
+                            <span>Used: <strong>${b.used}</strong></span>
+                            <span>Total: <strong>${b.total}</strong></span>
+                        </div>
+                        <div style="margin-top:1rem; height:6px; background:#f1f5f9; border-radius:3px; overflow:hidden;">
+                            <div style="height:100%; background:${b.color}; width:${b.total > 0 ? (b.used/b.total)*100 : 0}%"></div>
+                        </div>
+                    </div>
+                `).join('');
+                balanceHtml += '</div>';
+                
+                // 2. Add Leave Rules Section
+                balanceHtml += `
+                    <div class="grid-2" style="margin-top: 2rem; gap: 2rem;">
+                        <div class="card">
+                            <div class="card-header"><h3 style="font-size:1rem; font-weight:700;"><i class="fas fa-gavel" style="margin-right:0.5rem;"></i> Leave Policies & Rules</h3></div>
+                            <div class="card-body">
+                                <ul style="list-style:none; padding:0; margin:0; display:grid; gap:1rem;">
+                                    <li style="display:flex; gap:1rem; align-items:start;">
+                                        <div style="width:24px; height:24px; border-radius:50%; background:#eff6ff; color:#3b82f6; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="fas fa-info-circle" style="font-size:0.7rem;"></i></div>
+                                        <div><strong style="font-size:0.85rem; display:block;">Home Leave Accrual</strong><p style="font-size:0.8rem; color:var(--secondary); margin:0;">You earn 1 day of home leave for every 20 working days. Max accumulation: 90 days.</p></div>
+                                    </li>
+                                    <li style="display:flex; gap:1rem; align-items:start;">
+                                        <div style="width:24px; height:24px; border-radius:50%; background:#fef2f2; color:#ef4444; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="fas fa-plus-circle" style="font-size:0.7rem;"></i></div>
+                                        <div><strong style="font-size:0.85rem; display:block;">Sick Leave Entitlement</strong><p style="font-size:0.8rem; color:var(--secondary); margin:0;">12 days of fully paid sick leave per year. Can be carried forward up to 45 days.</p></div>
+                                    </li>
+                                    <li style="display:flex; gap:1rem; align-items:start;">
+                                        <div style="width:24px; height:24px; border-radius:50%; background:#f5f3ff; color:#8b5cf6; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="fas fa-clock" style="font-size:0.7rem;"></i></div>
+                                        <div><strong style="font-size:0.85rem; display:block;">Approval Process</strong><p style="font-size:0.8rem; color:var(--secondary); margin:0;">Apply at least 2 days in advance for casual leave. Sick leave requires medical certificate if > 3 days.</p></div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><h3 style="font-size:1rem; font-weight:700;"><i class="fas fa-history" style="margin-right:0.5rem;"></i> Request History</h3></div>
+                            <div class="card-body" style="padding:0;">
+                                <div id="leaveRequestHistory">
+                                    <div class="loading-spinner">Loading history...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML = balanceHtml;
+                
+                // 3. Load History
+                loadLeaveHistory(empId);
+            }).catch(e => {
+                console.error('Leave load error:', e);
+                document.getElementById('leaveGrid').innerHTML = '<div class="alert alert-danger">Error loading leave data. Please try again later.</div>';
+            });
+        }
+
+        function loadLeaveHistory(empId) {
+            fetch('/api/leave/employee/' + empId).then(r => r.ok ? r.json() : []).then(data => {
+                const container = document.getElementById('leaveRequestHistory');
+                if (!container) return;
+                
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div class="empty-state" style="padding:3rem;"><i class="fas fa-calendar-times" style="font-size:2rem; opacity:0.2;"></i><p>No leave applications found.</p></div>';
+                    return;
+                }
+
+                const statusBadges = {
+                    0: '<span class="badge-status badge-warning"><i class="fas fa-clock"></i> Pending</span>',
+                    1: '<span class="badge-status badge-success"><i class="fas fa-check-circle"></i> Approved</span>',
+                    2: '<span class="badge-status badge-danger"><i class="fas fa-times-circle"></i> Rejected</span>',
+                    'Pending': '<span class="badge-status badge-warning"><i class="fas fa-clock"></i> Pending</span>',
+                    'Approved': '<span class="badge-status badge-success"><i class="fas fa-check-circle"></i> Approved</span>',
+                    'Rejected': '<span class="badge-status badge-danger"><i class="fas fa-times-circle"></i> Rejected</span>'
+                };
+
+                const leaveTypes = ['Casual', 'Sick', 'Annual', 'Maternity', 'Paternity', 'Loss of Pay', 'Home Leave'];
+
+                container.innerHTML = `
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Dates</th>
+                                <th>Days</th>
+                                <th>Status</th>
+                                <th>Applied On</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.map(r => `
+                                <tr>
+                                    <td><strong>${leaveTypes[r.leaveType] || r.leaveTypeName || 'Leave'}</strong></td>
+                                    <td>
+                                        <div style="font-size:0.85rem;">${new Date(r.startDate).toLocaleDateString()} - ${new Date(r.endDate).toLocaleDateString()}</div>
+                                    </td>
+                                    <td><span style="font-weight:600;">${r.numberOfDays}</span></td>
+                                    <td>${statusBadges[r.status] || statusBadges[r.leaveStatus] || r.status}</td>
+                                    <td style="font-size:0.75rem; color:var(--secondary);">${new Date(r.appliedDate || r.createdAt).toLocaleDateString()}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            });
+        }
+
+        function loadPayslips(empId) {
+            if (!empId) return;
+            fetch('/api/payroll/employee/' + empId).then(r => r.ok ? r.json() : []).then(data => {
+                const container = document.getElementById('payrollList');
+                if (!container) return;
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><i class="fas fa-file-invoice-dollar"></i><p>No payslips generated yet.</p></div>';
+                    return;
+                }
+                container.innerHTML = `
+                    <table class="data-table">
+                        <thead><tr><th>Month</th><th>Net Pay</th><th>Status</th><th>Action</th></tr></thead>
+                        <tbody>
+                            ${data.map(p => `
+                                <tr>
+                                    <td><strong>${p.month} ${p.year}</strong></td>
+                                    <td style="font-weight:700; color:var(--success);">Rs. ${p.netSalary.toLocaleString()}</td>
+                                    <td><span class="badge-status badge-success"><i class="fas fa-check-double"></i> Paid</span></td>
+                                    <td><button class="btn-sm btn-secondary" style="font-size:0.7rem; padding:0.25rem 0.75rem;" onclick="window.location.href='/Payrolls/Details/${p.id}'"><i class="fas fa-download"></i> View</button></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }).catch(e => console.error('Payroll load error:', e));
+        }
+
+        function initAdminCharts() {
+            const ctx = document.getElementById('performanceMiniChart')?.getContext('2d');
+            if (!ctx) return;
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Team Efficiency',
+                        data: [65, 78, 82, 75, 90, 85],
+                        borderColor: '#4f46e5',
+                        tension: 0.4,
+                        fill: true,
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { display: false }, x: { grid: { display: false } } }
+                }
+            });
+        }
+    </script>
 }

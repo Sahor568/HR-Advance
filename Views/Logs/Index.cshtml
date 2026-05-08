@@ -80,18 +80,20 @@ function renderLogs(data) {
     if(search) filtered=filtered.filter(l=>(l.userName||'').toLowerCase().includes(search)||(l.action||'').toLowerCase().includes(search)||(l.message||'').toLowerCase().includes(search));
 
     if(!filtered||filtered.length===0){tbody.innerHTML='<tr><td colspan="7"><div class="empty-state"><i class="fas fa-file-alt"></i><h4>No logs found</h4></div></td></tr>';return;}
-    tbody.innerHTML=filtered.slice(0,100).map(l=>{
+    tbody.innerHTML=filtered.map(l=>{
         var badge=l.level==='Error'?'badge-danger':l.level==='Warning'?'badge-warning':'badge-info';
-        // Use timeStamp (camelCase) instead of timestamp
         var timestamp = l.timeStamp || l.timestamp;
+        var uName = l.userName === 'Anonymous' ? '<span style="color:var(--secondary);opacity:0.6;">System/Anonymous</span>' : `<span style="font-weight:700;color:var(--primary);">${l.userName}</span>`;
         return `<tr>
             <td style="white-space:nowrap;font-size:0.75rem;">${timestamp?new Date(timestamp).toLocaleString():'-'}</td>
             <td><span class="badge-status ${badge}">${l.level||'-'}</span></td>
-            <td>${l.userName||'-'}</td>
-            <td>${l.action||'-'}</td>
+            <td>${uName}</td>
+            <td><span style="font-family:monospace;font-size:0.8rem;">${l.action||'-'}</span></td>
             <td>${l.controller||'-'}</td>
             <td>${l.httpMethod||'-'}</td>
-            <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.message||'-'}</td>
+            <td style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${l.message||''}">
+                <small>${l.message||'-'}</small>
+            </td>
         </tr>`;
     }).join('');
 }

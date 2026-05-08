@@ -15,6 +15,8 @@ namespace HR_Management_System.Controllers
         private readonly ILeaveService _leaveService;
         private readonly IPayrollService _payrollService;
         private readonly IComplianceService _complianceService;
+        private readonly IDepartmentService _departmentService;
+        private readonly ITeamService _teamService;
         private readonly ILogger<DashboardController> _logger;
 
         public DashboardController(
@@ -23,6 +25,8 @@ namespace HR_Management_System.Controllers
             ILeaveService leaveService,
             IPayrollService payrollService,
             IComplianceService complianceService,
+            IDepartmentService departmentService,
+            ITeamService teamService,
             ILogger<DashboardController> logger)
         {
             _employeeService = employeeService;
@@ -30,6 +34,8 @@ namespace HR_Management_System.Controllers
             _leaveService = leaveService;
             _payrollService = payrollService;
             _complianceService = complianceService;
+            _departmentService = departmentService;
+            _teamService = teamService;
             _logger = logger;
         }
 
@@ -46,6 +52,10 @@ namespace HR_Management_System.Controllers
                 var openAccidents = await _complianceService.GetOpenAccidentCountAsync();
                 var pendingInsuranceClaims = await _complianceService.GetPendingInsuranceClaimCountAsync();
                 var unresolvedDisciplinaryCases = await _complianceService.GetUnresolvedDisciplinaryCountAsync();
+                
+                var todayAttendances = await _attendanceService.GetTodayAttendancesAsync();
+                var departments = await _departmentService.GetAllDepartmentsAsync();
+                var teams = await _teamService.GetAllTeamsAsync();
 
                 var currentMonth = DateTime.UtcNow.Month;
                 var currentYear = DateTime.UtcNow.Year;
@@ -59,11 +69,13 @@ namespace HR_Management_System.Controllers
                     ActiveEmployees = totalEmployees,
                     EmployeesOnProbation = employeesOnProbation,
                     PendingLeaveRequests = pendingLeaveRequests,
-                    TodayAttendance = 0, // Would need to calculate from attendance service
+                    TodayAttendance = todayAttendances.Count(),
                     PendingPayrolls = pendingPayrolls,
                     OpenAccidentLogs = openAccidents,
                     PendingInsuranceClaims = pendingInsuranceClaims,
                     UnresolvedDisciplinaryCases = unresolvedDisciplinaryCases,
+                    TotalDepartments = departments.Count(),
+                    TotalTeams = teams.Count(),
                     TotalMonthlyPayroll = totalMonthlyPayroll,
                     UpcomingProbationExpiries = upcomingProbationExpiries.ToList()
                 };
@@ -117,6 +129,13 @@ namespace HR_Management_System.Controllers
                 var pendingLeaveRequests = await _leaveService.GetPendingLeaveCountAsync();
                 var pendingPayrolls = await _payrollService.GetPendingPayrollCountAsync();
                 var openAccidents = await _complianceService.GetOpenAccidentCountAsync();
+                var todayAttendances = await _attendanceService.GetTodayAttendancesAsync();
+                var departments = await _departmentService.GetAllDepartmentsAsync();
+                var teams = await _teamService.GetAllTeamsAsync();
+
+                var currentMonth = DateTime.UtcNow.Month;
+                var currentYear = DateTime.UtcNow.Year;
+                var totalMonthlyPayroll = await _payrollService.GetTotalMonthlyPayrollAsync(currentMonth, currentYear);
 
                 return Ok(new
                 {
@@ -124,7 +143,11 @@ namespace HR_Management_System.Controllers
                     EmployeesOnProbation = employeesOnProbation,
                     PendingLeaveRequests = pendingLeaveRequests,
                     PendingPayrolls = pendingPayrolls,
-                    OpenAccidents = openAccidents
+                    OpenAccidents = openAccidents,
+                    TodayAttendance = todayAttendances.Count(),
+                    TotalDepartments = departments.Count(),
+                    TotalTeams = teams.Count(),
+                    TotalMonthlyPayroll = totalMonthlyPayroll
                 });
             }
             catch (Exception ex)

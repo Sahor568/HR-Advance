@@ -71,8 +71,11 @@
                 <button class="tab-btn" onclick="switchTab(this,'bank')">Bank & Family</button>
             </div>
 
-            <form id="empForm" enctype="multipart/form-data">
+            <form id="empForm">
                 <input type="hidden" id="empId" />
+                <input type="hidden" id="hPhotoPath" />
+                <input type="hidden" id="hCVPath" />
+                <input type="hidden" id="hExpCertPath" />
 
                 <!-- Personal Info Tab -->
                 <div class="tab-content active" id="tab-personal">
@@ -119,6 +122,8 @@
                         <div class="form-group"><label class="form-label">Grade Amount (NPR)</label><input type="number" class="form-control" id="gradeAmount" value="0" /></div>
                         <div class="form-group"><label class="form-label">Supervisor</label><select class="form-select" id="empSupervisor"><option value="">None (Optional)</option></select></div>
                         <div class="form-group"><label class="form-label">Assign User Account</label><select class="form-select" id="empUserId"><option value="">None</option></select></div>
+                        <div class="form-group" id="statusGroup" style="display:none;"><label class="form-label">Employment Status</label><select class="form-select" id="empStatus"><option value="true">Active</option><option value="false">Inactive</option></select></div>
+                        <div class="form-group" id="probationGroup" style="display:none;"><label class="form-label">Probation Status</label><select class="form-select" id="empProbationStatus"><option value="0">Active</option><option value="1">Completed</option><option value="2">Extended</option><option value="3">Terminated</option></select></div>
                         <div class="form-group" style="grid-column: span 2;">
                             <div style="display:flex;align-items:center;gap:0.5rem;">
                                 <input type="checkbox" id="hasProbation" checked />
@@ -186,7 +191,20 @@
 @section Scripts {
 <script>
 var allEmployees = [];
-document.addEventListener('DOMContentLoaded', function() { loadEmployees(); loadDepartments(); loadSupervisors(); });
+var allUsers = [];
+document.addEventListener('DOMContentLoaded', function() { 
+    loadEmployees(); 
+    loadDepartments(); 
+    loadSupervisors(); 
+    loadUsers(); 
+    
+    // Check for editId in URL
+    var urlParams = new URLSearchParams(window.location.search);
+    var editId = urlParams.get('editId');
+    if (editId) {
+        setTimeout(() => editEmployee(editId), 500);
+    }
+});
 
 function loadEmployees() {
     fetch('/api/employee').then(r=>r.json()).then(data => {
@@ -208,7 +226,15 @@ function renderEmployees(data) {
     if(!data||data.length===0){tbody.innerHTML='<tr><td colspan="8"><div class="empty-state"><i class="fas fa-users"></i><h4>No employees</h4></div></td></tr>';return;}
     tbody.innerHTML = data.map(e=>`
         <tr data-dept="${e.departmentId||''}" data-status="${!e.isActive?'inactive':e.probationStatus===0?'probation':'active'}" data-name="${(e.firstName+' '+e.lastName).toLowerCase()}">
-            <td><div class="d-flex align-center gap-1"><div class="avatar avatar-sm">${(e.firstName||'?')[0]}</div><div><div style="font-weight:500;">${e.firstName} ${e.lastName||''}</div><div style="font-size:0.7rem;color:var(--secondary);">${e.email||''}</div></div></div></td>
+            <td><div class="d-flex align-center gap-1">
+                <div class="avatar avatar-sm">
+                    ${e.photoPath ? `<img src="${e.photoPath}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" />` : (e.firstName||'?')[0]}
+                </div>
+                <div>
+                    <div style="font-weight:500;"><a href="/Home/Profile?empId=${e.id}" style="color:inherit;text-decoration:none;">${e.firstName} ${e.lastName||''}</a></div>
+                    <div style="font-size:0.7rem;color:var(--secondary);">${e.email||''}</div>
+                </div>
+            </div></td>
             <td>${e.emp_ID||'-'}</td>
             <td>${e.departmentName||'-'}</td>
             <td>${e.designation||'-'}</td>
@@ -220,8 +246,8 @@ function renderEmployees(data) {
                 ${!e.cvPath&&!e.experienceCertificatePath?'<span style="color:var(--secondary);font-size:0.8rem;">No docs</span>':''}
             </div></td>
             <td><div class="d-flex gap-1">
-                <button class="btn-icon" title="View" onclick="viewEmployee(${e.id})"><i class="fas fa-eye"></i></button>
                 <button class="btn-icon" title="Edit" onclick="editEmployee(${e.id})"><i class="fas fa-edit"></i></button>
+                <button class="btn-icon" title="Delete" style="color:var(--danger);" onclick="deleteEmployee(${e.id})"><i class="fas fa-trash"></i></button>
             </div></td>
         </tr>`).join('');
 }
@@ -284,70 +310,157 @@ function loadDepartments() {
 function loadSupervisors() {
     fetch('/api/employee').then(r=>r.json()).then(emps=>{
         var sel=document.getElementById('empSupervisor');
+        sel.innerHTML = '<option value="">None (Optional)</option>';
         emps.forEach(e=>{ sel.innerHTML+=`<option value="${e.id}">${e.firstName} ${e.lastName} (${e.designation||''})</option>`; });
     }).catch(()=>{});
+}
+
+function loadUsers() {
+    fetch('/api/users').then(r=>r.json()).then(users=>{
+        allUsers = users;
+        // Don't populate yet, will be done when modal opens
+    }).catch(()=>{});
+}
+
+function populateUserDropdown(selectedUserId) {
+    var sel = document.getElementById('empUserId');
+    if (!sel) return;
+    
+    sel.innerHTML = '<option value="">None</option>';
+    
+    // Safety check for user list
+    var users = Array.isArray(allUsers) ? allUsers : [];
+    
+    users.forEach(u => {
+        var isAssignedToOther = u.employeeId && u.id !== selectedUserId;
+        if (!isAssignedToOther) {
+            var label = u.fullName || u.email;
+            if (u.id === selectedUserId) label += " (Current)";
+            sel.innerHTML += `<option value="${u.id}">${label} (${u.email})</option>`;
+        }
+    });
 }
 
 function openAddEmployee() {
     document.getElementById('empModalTitle').textContent='Add Employee';
     document.getElementById('empForm').reset();
     document.getElementById('empId').value='';
+    document.getElementById('statusGroup').style.display = 'none';
+    document.getElementById('probationGroup').style.display = 'none';
+    
+    // Clear paths
+    document.getElementById('hPhotoPath').value='';
+    document.getElementById('hCVPath').value='';
+    document.getElementById('hExpCertPath').value='';
+    document.getElementById('photoPreview').innerHTML = '<i class="fas fa-user"></i>';
+    
+    populateUserDropdown(null);
     document.getElementById('empModal').classList.add('active');
 }
 
 function editEmployee(id) {
-    fetch(`/api/employee/${id}`).then(r=>r.json()).then(e=>{
-        // Handle both EmployeeDetailViewModel (with employee property) and flattened Employee
+    if (!id) return;
+    
+    fetch(`/api/employee/${id}`).then(async r => {
+        if(!r.ok) {
+            const txt = await r.text();
+            throw new Error(`Server error ${r.status}: ${txt || r.statusText}`);
+        }
+        return r.json();
+    }).then(e => {
         var emp = e.employee || e;
+        if (!emp) return;
+
+        document.getElementById('empModalTitle').textContent = 'Edit Employee';
+        document.getElementById('empId').value = emp.id || emp.Id || '';
         
-        document.getElementById('empModalTitle').textContent='Edit Employee';
-        document.getElementById('empId').value=emp.id||emp.Id||'';
-        document.getElementById('firstName').value=emp.firstName||'';
-        document.getElementById('middleName').value=emp.middleName||'';
-        document.getElementById('lastName').value=emp.lastName||'';
-        document.getElementById('gender').value=emp.gender!=null?emp.gender:'';
-        document.getElementById('dob').value=emp.dateOfBirth?emp.dateOfBirth.split('T')[0]:'';
-        document.getElementById('empEmail').value=emp.email||'';
-        document.getElementById('empPhone').value=emp.phoneNumber||'';
-        document.getElementById('alternatePhone').value=emp.alternatePhone||'';
-        document.getElementById('empAddress').value=emp.permanentAddress||'';
-        document.getElementById('tempAddress').value=emp.temporaryAddress||'';
-        document.getElementById('maritalStatus').value=emp.maritalStatus!=null?emp.maritalStatus:'0';
-        document.getElementById('empDept').value=emp.departmentId||'';
-        document.getElementById('empDesignation').value=emp.designation||'';
-        document.getElementById('empType').value=emp.employmentType!=null?emp.employmentType:'0';
-        document.getElementById('joinDate').value=emp.joinDate?emp.joinDate.split('T')[0]:'';
-        document.getElementById('empGrade').value=emp.grade||'';
-        document.getElementById('baseSalary').value=emp.baseSalary||'';
-        document.getElementById('gradeAmount').value=emp.gradeAmount||'0';
-        document.getElementById('citizenshipNo').value=emp.citizenshipNumber||'';
-        document.getElementById('citizenshipDistrict').value=emp.citizenshipIssuedDistrict||'';
-        document.getElementById('citizenshipDate').value=emp.citizenshipIssuedDate?emp.citizenshipIssuedDate.split('T')[0]:'';
-        document.getElementById('panNo').value=emp.paN_No||emp.pAN_No||'';
-        document.getElementById('ssn').value=emp.socialSecurityNumber||'';
-        document.getElementById('empSupervisor').value=emp.supervisorId||'';
-        document.getElementById('bankName').value=emp.bankName||'';
-        document.getElementById('bankAccount').value=emp.bankAccountNumber||'';
-        document.getElementById('emergencyName').value=emp.emergencyContactName||'';
-        document.getElementById('emergencyPhone').value=emp.emergencyContactPhone||'';
-        document.getElementById('emergencyRelation').value=emp.emergencyContactRelation||'';
-        document.getElementById('fatherName').value=emp.fatherName||'';
-        document.getElementById('motherName').value=emp.motherName||'';
-        document.getElementById('spouseName').value=emp.spouseName||'';
+        // Map fields with safety checks for camelCase vs PascalCase vs underscore
+        document.getElementById('firstName').value = emp.firstName || '';
+        document.getElementById('middleName').value = emp.middleName || '';
+        document.getElementById('lastName').value = emp.lastName || '';
+        document.getElementById('gender').value = emp.gender !== undefined ? emp.gender : '';
+        document.getElementById('dob').value = (emp.dateOfBirth || '').split('T')[0];
+        document.getElementById('empEmail').value = emp.email || '';
+        document.getElementById('empPhone').value = emp.phoneNumber || '';
+        document.getElementById('alternatePhone').value = emp.alternatePhone || '';
+        document.getElementById('empAddress').value = emp.permanentAddress || '';
+        document.getElementById('tempAddress').value = emp.temporaryAddress || '';
+        document.getElementById('maritalStatus').value = emp.maritalStatus !== undefined ? emp.maritalStatus : '0';
+        document.getElementById('empDept').value = emp.departmentId || '';
+        document.getElementById('empDesignation').value = emp.designation || '';
+        document.getElementById('empType').value = emp.employmentType !== undefined ? emp.employmentType : '0';
         
-        // Probation fields
-        document.getElementById('hasProbation').checked = emp.hasProbation !== false;
-        document.getElementById('probationMonths').value = emp.probationMonths || '6';
+        // Important: Match server property naming (join_Date or joinDate)
+        var joinDate = emp.join_Date || emp.joinDate;
+        document.getElementById('joinDate').value = (joinDate || '').split('T')[0];
         
-        // Set employee ID field if available
-        var empCode = document.getElementById('empCode');
-        if (empCode && emp.emp_ID) empCode.value = emp.emp_ID;
+        document.getElementById('empGrade').value = emp.grade || '';
+        document.getElementById('baseSalary').value = emp.baseSalary || '';
+        document.getElementById('gradeAmount').value = emp.gradeAmount || '0';
+        document.getElementById('citizenshipNo').value = emp.citizenshipNumber || '';
+        document.getElementById('citizenshipDistrict').value = emp.citizenshipIssuedDistrict || '';
         
+        var citizenDate = emp.citizenshipIssuedDate;
+        document.getElementById('citizenshipDate').value = (citizenDate || '').split('T')[0];
+        
+        // Check both paN_No and panNo
+        document.getElementById('panNo').value = emp.paN_No || emp.panNo || '';
+        document.getElementById('ssn').value = emp.socialSecurityNumber || '';
+        document.getElementById('empSupervisor').value = emp.supervisorId || '';
+        document.getElementById('bankName').value = emp.bankName || '';
+        document.getElementById('bankAccount').value = emp.bankAccountNumber || '';
+        document.getElementById('emergencyName').value = emp.emergencyContactName || '';
+        document.getElementById('emergencyPhone').value = emp.emergencyContactPhone || '';
+        document.getElementById('emergencyRelation').value = emp.emergencyContactRelation || '';
+        document.getElementById('fatherName').value = emp.fatherName || '';
+        document.getElementById('motherName').value = emp.motherName || '';
+        document.getElementById('spouseName').value = emp.spouseName || '';
+        
+        // Hidden paths
+        document.getElementById('hPhotoPath').value = emp.photoPath || '';
+        document.getElementById('hCVPath').value = emp.cvPath || '';
+        document.getElementById('hExpCertPath').value = emp.experienceCertificatePath || '';
+        
+        if (emp.photoPath) {
+            document.getElementById('photoPreview').innerHTML = `<img src="${emp.photoPath}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" />`;
+        } else {
+            document.getElementById('photoPreview').innerHTML = '<i class="fas fa-user"></i>';
+        }
+
+        // Dropdown for user
+        var uId = e.userId || emp.userId || '';
+        populateUserDropdown(uId);
+        document.getElementById('empUserId').value = uId;
+        
+        // Status fields
+        document.getElementById('statusGroup').style.display = 'block';
+        document.getElementById('probationGroup').style.display = 'block';
+        document.getElementById('empStatus').value = emp.isActive ? 'true' : 'false';
+        document.getElementById('empProbationStatus').value = emp.probationStatus !== undefined ? emp.probationStatus : '0';
+        document.getElementById('hasProbation').checked = emp.probationStatus === 0;
+
         document.getElementById('empModal').classList.add('active');
-    }).catch(()=>alert('Failed to load employee'));
+    }).catch(err => {
+        console.error('Edit error:', err);
+        alert('Could not open employee editor. Error: ' + err.message);
+    });
 }
 
 function viewEmployee(id) { window.location.href='/Home/Profile?empId='+id; }
+
+function deleteEmployee(id) {
+    if(confirm('Are you sure you want to deactivate/delete this employee?')) {
+        fetch(`/api/employee/${id}`, { method: 'DELETE' })
+            .then(r => {
+                if(r.ok) {
+                    alert('Employee deactivated successfully');
+                    loadEmployees();
+                } else {
+                    alert('Failed to deactivate employee');
+                }
+            }).catch(() => alert('Error connecting to server'));
+    }
+}
 
 function saveEmployee() {
     var id = document.getElementById('empId').value;
@@ -408,6 +521,15 @@ function saveEmployee() {
     
     var gradeAmount = document.getElementById('gradeAmount');
     if (gradeAmount) formData.append('GradeAmount', gradeAmount.value || '0');
+
+    var userId = document.getElementById('empUserId').value;
+    if (userId) formData.append('UserId', userId);
+
+    var isActive = document.getElementById('empStatus').value;
+    if (isActive !== "") formData.append('IsActive', isActive);
+
+    var probStatus = document.getElementById('empProbationStatus').value;
+    if (probStatus !== "") formData.append('ProbationStatus', probStatus);
     
     // Add missing fields
     var bankName = document.getElementById('bankName');
@@ -461,6 +583,22 @@ function saveEmployee() {
     var expCertFile = document.getElementById('empExpCert');
     if (expCertFile && expCertFile.files[0]) {
         formData.append('experienceCertificateFile', expCertFile.files[0]);
+    } else if (id) {
+        formData.append('ExperienceCertificatePath', document.getElementById('hExpCertPath').value);
+    }
+    
+    if (id) {
+        if (!(photoFile && photoFile.files[0])) formData.append('PhotoPath', document.getElementById('hPhotoPath').value);
+        if (!(cvFile && cvFile.files[0])) formData.append('CVPath', document.getElementById('hCVPath').value);
+    }
+    
+    // Status fields for edit
+    if (id) {
+        formData.append('IsActive', document.getElementById('empStatus').value);
+        formData.append('ProbationStatus', document.getElementById('empProbationStatus').value);
+    } else {
+        formData.append('IsActive', 'true');
+        formData.append('ProbationStatus', '0');
     }
     
     // For update, need to add the ID to the model

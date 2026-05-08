@@ -142,137 +142,193 @@ var currentLeaveId = null;
 var leaveBalance = {};
 var currentTab = 'all';
 var isAdminOrHR = @(isAdminOrHR ? "true" : "false");
+var currentEmployeeId = null;
 
-document.addEventListener('DOMContentLoaded', function() { loadLeaveBalance(); loadLeaveRequests(); });
+document.addEventListener('DOMContentLoaded', function() {
+    // Get current employee ID first, then load data
+    fetch('/api/employee').then(r => r.json()).then(data => {
+        if (data && data.length > 0) {
+            currentEmployeeId = data[0].id;
+        }
+        loadLeaveBalance();
+        loadLeaveRequests();
+    }).catch(() => {
+        loadLeaveRequests();
+    });
+});
 
 function loadLeaveBalance() {
-    fetch('/api/leave/balance').then(r=>r.json()).then(data => {
+    if (!currentEmployeeId) return;
+    // Backend: GET /api/leave/balance/{employeeId}
+    fetch('/api/leave/balance/' + currentEmployeeId).then(r => {
+        if (!r.ok) throw new Error('Failed');
+        return r.json();
+    }).then(data => {
         leaveBalance = data;
-        document.getElementById('balHome').textContent = (data.homeLeaveBalance||0) + ' days';
-        document.getElementById('balSick').textContent = (data.sickLeaveBalance||0) + ' days';
-        document.getElementById('balMaternity').textContent = (data.maternityLeaveBalance||0) + ' days';
-        document.getElementById('balPaternity').textContent = (data.paternityLeaveBalance||0) + ' days';
-        document.getElementById('balMourning').textContent = (data.mourningLeaveBalance||0) + ' days';
-        document.getElementById('balPublic').textContent = (data.publicHolidayBalance||0) + ' days';
-    }).catch(()=>{});
+        document.getElementById('balHome').textContent = (data.homeLeaveBalance || 0) + ' days';
+        document.getElementById('balSick').textContent = (data.sickLeaveBalance || 0) + ' days';
+        document.getElementById('balMaternity').textContent = (data.maternityLeaveBalance || 0) + ' days';
+        document.getElementById('balPaternity').textContent = (data.paternityLeaveBalance || 0) + ' days';
+        document.getElementById('balMourning').textContent = (data.mourningLeaveBalance || 0) + ' days';
+        document.getElementById('balPublic').textContent = (data.publicHolidayBalance || 0) + ' days';
+    }).catch(() => {});
 }
 
 function loadLeaveRequests() {
-    var url = isAdminOrHR ? '/api/leave/pending' : '/api/leave/my-requests';
-    fetch(url).then(r=>r.json()).then(data => {
+    var url;
+    if (isAdminOrHR) {
+        // Admin/HR see pending requests
+        url = '/api/leave/pending';
+    } else if (currentEmployeeId) {
+        // Employee sees their own requests: GET /api/leave/employee/{employeeId}
+        url = '/api/leave/employee/' + currentEmployeeId;
+    } else {
+        document.getElementById('leaveTableBody').innerHTML = '<tr><td colspan="8" class="text-center">No employee profile found</td></tr>';
+        return;
+    }
+    fetch(url).then(r => {
+        if (!r.ok) throw new Error('Failed');
+        return r.json();
+    }).then(data => {
         renderLeaves(data);
-    }).catch(()=>{ document.getElementById('leaveTableBody').innerHTML='<tr><td colspan="8" class="text-center">Failed to load</td></tr>'; });
+    }).catch(() => {
+        document.getElementById('leaveTableBody').innerHTML = '<tr><td colspan="8" class="text-center">Failed to load</td></tr>';
+    });
 }
 
 function renderLeaves(data) {
     var tbody = document.getElementById('leaveTableBody');
-    if(!data||data.length===0){tbody.innerHTML='<tr><td colspan="8"><div class="empty-state"><i class="fas fa-calendar-minus"></i><h4>No leave requests</h4></div></td></tr>';return;}
-    var types=['Home','Sick','Maternity','Paternity','Mourning','PublicHoliday'];
-    var statuses=['Pending','Approved','Rejected','Cancelled'];
-    tbody.innerHTML=data.map(l=>{
-        var type=types[l.leaveType]||'Unknown';
-        var status=statuses[l.status]||'Unknown';
-        var badge=l.status===0?'badge-warning':l.status===1?'badge-success':'badge-danger';
+    if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><i class="fas fa-calendar-minus"></i><h4>No leave requests</h4></div></td></tr>';
+        return;
+    }
+    var types = ['Home', 'Sick', 'Maternity', 'Paternity', 'Mourning', 'PublicHoliday'];
+    var statuses = ['Pending', 'Approved', 'Rejected', 'Cancelled'];
+    tbody.innerHTML = data.map(l => {
+        var type = types[l.leaveType] || 'Unknown';
+        var status = statuses[l.status] || 'Unknown';
+        var badge = l.status === 0 ? 'badge-warning' : l.status === 1 ? 'badge-success' : 'badge-danger';
         return `<tr data-status="${status.toLowerCase()}" data-type="${type}">
-            ${isAdminOrHR?'<td>'+(l.employeeName||'Employee #'+l.employeeId)+'</td>':''}
+            ${isAdminOrHR ? '<td>' + (l.employeeName || 'Employee #' + l.employeeId) + '</td>' : ''}
             <td>${type}</td>
-            <td>${l.startDate?new Date(l.startDate).toLocaleDateString():'-'}</td>
-            <td>${l.endDate?new Date(l.endDate).toLocaleDateString():'-'}</td>
-            <td>${l.numberOfDays||'-'}</td>
-            <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.reason||'-'}</td>
+            <td>${l.startDate ? new Date(l.startDate).toLocaleDateString() : '-'}</td>
+            <td>${l.endDate ? new Date(l.endDate).toLocaleDateString() : '-'}</td>
+            <td>${l.numberOfDays || '-'}</td>
+            <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.reason || '-'}</td>
             <td><span class="badge-status ${badge}">${status}</span></td>
-            ${isAdminOrHR&&l.status===0?'<td><div class="d-flex gap-1"><button class="btn-icon" title="Review" onclick="reviewLeave('+l.id+')"><i class="fas fa-gavel"></i></button></div></td>':'<td></td>'}
+            ${isAdminOrHR && l.status === 0 ? '<td><div class="d-flex gap-1"><button class="btn-icon" title="Review" onclick="reviewLeave(' + l.id + ')"><i class="fas fa-gavel"></i></button></div></td>' : '<td></td>'}
         </tr>`;
     }).join('');
 }
 
 function switchLeaveTab(btn, tab) {
-    btn.parentElement.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.parentElement.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    currentTab=tab;
-    document.querySelectorAll('#leaveTableBody tr[data-status]').forEach(r=>{
-        r.style.display=(tab==='all'||r.dataset.status===tab)?'':'none';
+    currentTab = tab;
+    document.querySelectorAll('#leaveTableBody tr[data-status]').forEach(r => {
+        r.style.display = (tab === 'all' || r.dataset.status === tab) ? '' : 'none';
     });
 }
 
 function filterLeaves() {
-    var s=document.getElementById('searchLeave').value.toLowerCase();
-    var t=document.getElementById('leaveTypeFilter').value;
-    document.querySelectorAll('#leaveTableBody tr[data-status]').forEach(r=>{
-        var matchTab=(currentTab==='all'||r.dataset.status===currentTab);
-        var matchType=(!t||r.dataset.type===t);
-        var matchSearch=(!s||r.textContent.toLowerCase().includes(s));
-        r.style.display=(matchTab&&matchType&&matchSearch)?'':'none';
+    var s = document.getElementById('searchLeave').value.toLowerCase();
+    var t = document.getElementById('leaveTypeFilter').value;
+    document.querySelectorAll('#leaveTableBody tr[data-status]').forEach(r => {
+        var matchTab = (currentTab === 'all' || r.dataset.status === currentTab);
+        var matchType = (!t || r.dataset.type === t);
+        var matchSearch = (!s || r.textContent.toLowerCase().includes(s));
+        r.style.display = (matchTab && matchType && matchSearch) ? '' : 'none';
     });
 }
 
 function openApplyLeave() {
     document.getElementById('leaveForm').reset();
-    document.getElementById('leaveError').style.display='none';
+    document.getElementById('leaveError').style.display = 'none';
     document.getElementById('applyLeaveModal').classList.add('active');
 }
 
 function calcDays() {
-    var from=document.getElementById('leaveFrom').value;
-    var to=document.getElementById('leaveTo').value;
-    if(from&&to){
-        var diff=Math.ceil((new Date(to)-new Date(from))/(1000*60*60*24))+1;
-        document.getElementById('leaveDays').value=diff>0?diff:0;
+    var from = document.getElementById('leaveFrom').value;
+    var to = document.getElementById('leaveTo').value;
+    if (from && to) {
+        var diff = Math.ceil((new Date(to) - new Date(from)) / (1000 * 60 * 60 * 24)) + 1;
+        document.getElementById('leaveDays').value = diff > 0 ? diff : 0;
     }
 }
 
 function checkBalance() {
-    var type=parseInt(document.getElementById('leaveType').value);
-    var balMap={0:'homeLeaveBalance',1:'sickLeaveBalance',2:'maternityLeaveBalance',3:'paternityLeaveBalance',4:'mourningLeaveBalance'};
-    var bal=leaveBalance[balMap[type]]||0;
-    if(bal<=0){
-        document.getElementById('leaveError').style.display='block';
-        document.getElementById('leaveErrorText').textContent='You do not have sufficient balance for this leave type. Balance: '+bal+' days.';
-        document.getElementById('submitLeaveBtn').disabled=true;
+    var type = parseInt(document.getElementById('leaveType').value);
+    var balMap = { 0: 'homeLeaveBalance', 1: 'sickLeaveBalance', 2: 'maternityLeaveBalance', 3: 'paternityLeaveBalance', 4: 'mourningLeaveBalance' };
+    var bal = leaveBalance[balMap[type]] || 0;
+    if (bal <= 0) {
+        document.getElementById('leaveError').style.display = 'block';
+        document.getElementById('leaveErrorText').textContent = 'You do not have sufficient balance for this leave type. Balance: ' + bal + ' days.';
+        document.getElementById('submitLeaveBtn').disabled = true;
     } else {
-        document.getElementById('leaveError').style.display='none';
-        document.getElementById('submitLeaveBtn').disabled=false;
+        document.getElementById('leaveError').style.display = 'none';
+        document.getElementById('submitLeaveBtn').disabled = false;
     }
 }
 
 function submitLeave() {
-    var type=document.getElementById('leaveType').value;
-    var from=document.getElementById('leaveFrom').value;
-    var to=document.getElementById('leaveTo').value;
-    var days=document.getElementById('leaveDays').value;
-    var reason=document.getElementById('leaveReason').value;
-    if(!type||!from||!to||!reason){alert('Please fill all required fields.');return;}
+    var type = document.getElementById('leaveType').value;
+    var from = document.getElementById('leaveFrom').value;
+    var to = document.getElementById('leaveTo').value;
+    var days = document.getElementById('leaveDays').value;
+    var reason = document.getElementById('leaveReason').value;
+    if (!type || !from || !to || !reason) { alert('Please fill all required fields.'); return; }
+    if (!currentEmployeeId) { alert('Employee profile not found.'); return; }
 
-    fetch('/api/leave/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({leaveType:parseInt(type),startDate:from,endDate:to,numberOfDays:parseInt(days),reason:reason})}).then(r=>{
-        if(r.ok){closeModal('applyLeaveModal');loadLeaveRequests();loadLeaveBalance();alert('Leave request submitted! Your supervisor and HR have been notified.');}
-        else r.text().then(t=>alert('Error: '+t));
-    }).catch(()=>alert('Failed to submit'));
+    // Backend: POST /api/leave/request with LeaveRequestViewModel
+    fetch('/api/leave/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            employeeId: currentEmployeeId,
+            leaveType: parseInt(type),
+            startDate: from,
+            endDate: to,
+            numberOfDays: parseInt(days),
+            reason: reason
+        })
+    }).then(r => {
+        if (r.ok) { closeModal('applyLeaveModal'); loadLeaveRequests(); loadLeaveBalance(); alert('Leave request submitted! Your supervisor and HR have been notified.'); }
+        else r.text().then(t => alert('Error: ' + t));
+    }).catch(() => alert('Failed to submit'));
 }
 
 function reviewLeave(id) {
-    currentLeaveId=id;
+    currentLeaveId = id;
     document.getElementById('actionLeaveModal').classList.add('active');
 }
 
 function approveLeave() {
-    if(!currentLeaveId)return;
-    var remarks=document.getElementById('actionRemarks').value;
-    fetch(`/api/leave/${currentLeaveId}/approve`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({remarks})}).then(r=>{
-        if(r.ok){closeModal('actionLeaveModal');loadLeaveRequests();alert('Leave approved!');}
+    if (!currentLeaveId) return;
+    var remarks = document.getElementById('actionRemarks').value;
+    // Backend: POST /api/leave/approve with LeaveApprovalViewModel { LeaveRequestId, Remarks }
+    fetch('/api/leave/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leaveRequestId: currentLeaveId, remarks: remarks })
+    }).then(r => {
+        if (r.ok) { closeModal('actionLeaveModal'); loadLeaveRequests(); alert('Leave approved!'); }
         else alert('Failed to approve');
-    }).catch(()=>alert('Error'));
+    }).catch(() => alert('Error'));
 }
 
 function rejectLeave() {
-    if(!currentLeaveId)return;
-    var remarks=document.getElementById('actionRemarks').value;
-    if(!remarks){alert('Please provide a reason for rejection.');return;}
-    fetch(`/api/leave/${currentLeaveId}/reject`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rejectionReason:remarks})}).then(r=>{
-        if(r.ok){closeModal('actionLeaveModal');loadLeaveRequests();alert('Leave rejected.');}
+    if (!currentLeaveId) return;
+    var remarks = document.getElementById('actionRemarks').value;
+    if (!remarks) { alert('Please provide a reason for rejection.'); return; }
+    // Backend: POST /api/leave/reject/{id}?reason=...
+    fetch('/api/leave/reject/' + currentLeaveId + '?reason=' + encodeURIComponent(remarks), {
+        method: 'POST'
+    }).then(r => {
+        if (r.ok) { closeModal('actionLeaveModal'); loadLeaveRequests(); alert('Leave rejected.'); }
         else alert('Failed to reject');
-    }).catch(()=>alert('Error'));
+    }).catch(() => alert('Error'));
 }
 
-function closeModal(id){document.getElementById(id).classList.remove('active');}
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 </script>
 }

@@ -3,10 +3,14 @@ using Microsoft.AspNetCore.Authorization;
 using HR_Management_System.Models.ViewModels;
 using HR_Management_System.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
+using System.Linq.Expressions;
+using Microsoft.AspNetCore.Identity;
+using HR_Management_System.Models.Identity;
+using HR_Management_System.Models;
 
 namespace HR_Management_System.Controllers
 {
-    [Authorize(Roles = "Admin,HRManager")]
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class EmployeeController : ControllerBase
@@ -14,14 +18,17 @@ namespace HR_Management_System.Controllers
         private readonly IEmployeeService _employeeService;
         private readonly IFileUploadService _fileUploadService;
         private readonly ILogger<EmployeeController> _logger;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public EmployeeController(IEmployeeService employeeService, IFileUploadService fileUploadService, ILogger<EmployeeController> logger)
+        public EmployeeController(IEmployeeService employeeService, IFileUploadService fileUploadService, ILogger<EmployeeController> logger, UserManager<ApplicationUser> userManager)
         {
             _employeeService = employeeService;
             _fileUploadService = fileUploadService;
             _logger = logger;
+            _userManager = userManager;
         }
 
+        [Authorize(Roles = "Admin,HRManager")]
         [HttpGet]
         public async Task<IActionResult> GetAllEmployees()
         {
@@ -42,6 +49,14 @@ namespace HR_Management_System.Controllers
         {
             try
             {
+                // If not admin/HR, check if viewing own profile
+                if (!User.IsInRole("Admin") && !User.IsInRole("HRManager"))
+                {
+                    var myEmp = await _employeeService.GetEmployeeByUserIdAsync(User.Identity.Name);
+                    if (myEmp == null || myEmp.Id != id)
+                        return Forbid();
+                }
+
                 var employee = await _employeeService.GetEmployeeByIdAsync(id);
                 if (employee == null)
                     return NotFound($"Employee with ID {id} not found");
@@ -55,6 +70,58 @@ namespace HR_Management_System.Controllers
             }
         }
 
+        [HttpGet("me")]
+        public async Task<IActionResult> GetMyProfile()
+        {
+            try
+            {
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null)
+                {
+                    _logger.LogWarning("GetMyProfile: User is null");
+                    return Unauthorized();
+                }
+
+                _logger.LogInformation("GetMyProfile: Loading for user {Email}, EmployeeId: {EmpId}", user.Email, user.EmployeeId);
+
+                if (user.EmployeeId.HasValue)
+                {
+                    var detail = await _employeeService.GetEmployeeByIdAsync(user.EmployeeId.Value);
+                    if (detail != null) 
+                    {
+                        _logger.LogInformation("GetMyProfile: Found linked employee {Id}", user.EmployeeId.Value);
+                        return Ok(detail);
+                    }
+                }
+
+                // Fallback to email lookup
+                _logger.LogInformation("GetMyProfile: Trying fallback email lookup for {Email}", user.Email);
+                var employee = await _employeeService.GetEmployeeByUserIdAsync(user.Email);
+                if (employee != null)
+                {
+                    // Auto-fix the link if missing
+                    if (!user.EmployeeId.HasValue)
+                    {
+                        user.EmployeeId = employee.Id;
+                        await _userManager.UpdateAsync(user);
+                        _logger.LogInformation("GetMyProfile: Auto-linked user {Email} to employee {Id}", user.Email, employee.Id);
+                    }
+                    
+                    var detail = await _employeeService.GetEmployeeByIdAsync(employee.Id);
+                    return Ok(detail);
+                }
+
+                _logger.LogWarning("GetMyProfile: No employee found for user {Email}", user.Email);
+                return NotFound("Employee profile not found for the current user.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching current user profile");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [Authorize(Roles = "Admin,HRManager")]
         [HttpPost]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> CreateEmployee([FromForm] EmployeeCreateViewModel model,
@@ -93,6 +160,7 @@ namespace HR_Management_System.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin,HRManager")]
         [HttpPut("{id}")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> UpdateEmployee(int id,
@@ -140,8 +208,9 @@ namespace HR_Management_System.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin,HRManager")]
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeactivateEmployee(int id, [FromQuery] string reason)
+        public async Task<IActionResult> DeactivateEmployee(int id, [FromQuery] string reason = "Deactivated by admin")
         {
             try
             {
@@ -161,6 +230,7 @@ namespace HR_Management_System.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin,HRManager")]
         [HttpPatch("{id}/activate")]
         public async Task<IActionResult> ActivateEmployee(int id)
         {
@@ -285,5 +355,6 @@ namespace HR_Management_System.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
+
     }
 }

@@ -126,6 +126,9 @@ namespace HR_Management_System.Models.ViewModels
 
         // Supervisor (optional)
         public int? SupervisorId { get; set; }
+
+        // Linked User Account (optional)
+        public string? UserId { get; set; }
     }
 
     public class EmployeeEditViewModel : EmployeeCreateViewModel
@@ -142,12 +145,22 @@ namespace HR_Management_System.Models.ViewModels
         public int Id { get; set; }
         public string Emp_ID { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
         public string Designation { get; set; } = string.Empty;
+        public int? DepartmentId { get; set; }
         public string Department { get; set; } = string.Empty;
+        public string DepartmentName => Department;
         public string EmploymentType { get; set; } = string.Empty;
         public string ProbationStatus { get; set; } = string.Empty;
+        public decimal BaseSalary { get; set; }
+        public string? SupervisorName { get; set; }
         public bool IsActive { get; set; }
         public DateTime Join_Date { get; set; }
+        public DateTime JoinDate => Join_Date;
+        public string? PhotoPath { get; set; }
+        public string? UserId { get; set; }
         public string? CVPath { get; set; }
         public string? ExperienceCertificatePath { get; set; }
     }
@@ -155,6 +168,7 @@ namespace HR_Management_System.Models.ViewModels
     public class EmployeeDetailViewModel
     {
         public Employee Employee { get; set; } = null!;
+        public string? UserId { get; set; }
         public LeaveBalance? CurrentLeaveBalance { get; set; }
         public EmploymentContract? ActiveContract { get; set; }
         public SSFRecord? LatestSSFRecord { get; set; }
@@ -536,6 +550,8 @@ namespace HR_Management_System.Models.ViewModels
         public int OpenAccidentLogs { get; set; }
         public int PendingInsuranceClaims { get; set; }
         public int UnresolvedDisciplinaryCases { get; set; }
+        public int TotalDepartments { get; set; }
+        public int TotalTeams { get; set; }
         public decimal TotalMonthlyPayroll { get; set; }
         public List<ProbationExpiryViewModel> UpcomingProbationExpiries { get; set; } = new();
     }
@@ -558,7 +574,7 @@ namespace HR_Management_System.Models.ViewModels
         public DateTime? ToDate { get; set; }
         public string? SearchTerm { get; set; }
         public int Page { get; set; } = 1;
-        public int PageSize { get; set; } = 50;
+        public int PageSize { get; set; } = 5000;
     }
 
     public class AuditLogListViewModel

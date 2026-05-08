@@ -41,6 +41,7 @@
                 <th>Probation</th>
                 <th>Status</th>
                 <th>Last Promotion</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody id="masterBody">
@@ -75,7 +76,12 @@ function renderMaster(data) {
         var days=e.joinDate?Math.floor((new Date()-new Date(e.joinDate))/(1000*60*60*24)):0;
         return `<tr data-name="${(e.firstName+' '+e.lastName).toLowerCase()}" data-dept="${e.departmentName||''}" data-status="${e.isActive?'active':'inactive'}">
             <td>${e.emp_ID||'-'}</td>
-            <td style="font-weight:500;white-space:nowrap;">${e.firstName} ${e.lastName||''}</td>
+            <td><div class="d-flex align-items-center gap-2">
+                <div class="avatar avatar-sm" style="width:32px;height:32px;border-radius:50%;background:#eee;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                    ${e.photoPath ? `<img src="${e.photoPath}" style="width:100%;height:100%;object-fit:cover;" />` : (e.firstName||'?')[0]}
+                </div>
+                <div><div style="font-weight:500;white-space:nowrap;"><a href="/Home/Profile?empId=${e.id}" style="color:inherit;text-decoration:none;">${e.firstName} ${e.lastName||''}</a></div></div>
+            </div></td>
             <td>${e.email||'-'}</td>
             <td>${e.departmentName||'-'}</td>
             <td>${e.designation||'-'}</td>
@@ -87,6 +93,12 @@ function renderMaster(data) {
             <td><span class="badge-status ${e.probationStatus===0?'badge-warning':'badge-success'}">${probation[e.probationStatus]||'-'}</span></td>
             <td><span class="badge-status ${e.isActive?'badge-success':'badge-danger'}">${e.isActive?'Active':'Inactive'}</span></td>
             <td>${e.lastPromotionDate?new Date(e.lastPromotionDate).toLocaleDateString():'-'}</td>
+            <td>
+                <div class="d-flex gap-1">
+                    <button class="btn-icon" title="View" onclick="location.href='/Home/Profile?empId=${e.id}'"><i class="fas fa-eye"></i></button>
+                    <button class="btn-icon" title="Edit" onclick="location.href='/Employees?editId=${e.id}'"><i class="fas fa-edit"></i></button>
+                </div>
+            </td>
         </tr>`;
     }).join('');
 }

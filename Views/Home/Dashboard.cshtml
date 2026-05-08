@@ -168,37 +168,43 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function loadDashboardData() {
-    // Call endpoints that work for all authenticated users
-    fetch('/api/attendance/today-count').then(r=>r.json()).then(data => {
-        document.getElementById('presentToday').textContent=data.count || '0';
-    }).catch(()=>{ document.getElementById('presentToday').textContent='0'; });
-
-    // Admin/HR only calls
     if (isAdminOrHR) {
-        fetch('/api/employee/stats').then(r=>r.json()).then(data => {
-            if(data.totalActive!==undefined) document.getElementById('totalEmployees').textContent=data.totalActive;
-            if(data.onProbation!==undefined && document.getElementById('onProbation')) document.getElementById('onProbation').textContent=data.onProbation;
-        }).catch(()=>{ document.getElementById('totalEmployees').textContent='0'; });
-
-        fetch('/api/leave/pending').then(r=>r.json()).then(data => {
-            document.getElementById('pendingLeaves').textContent=Array.isArray(data)?data.length:'0';
-        }).catch(()=>{ document.getElementById('pendingLeaves').textContent='0'; });
-
-        fetch('/api/departments').then(r=>r.json()).then(data => {
-            if(document.getElementById('departments')) document.getElementById('departments').textContent=Array.isArray(data)?data.length:'0';
-        }).catch(()=>{});
-
-        fetch('/api/teams/active-count').then(r=>r.json()).then(data => {
-            if(document.getElementById('totalTeams')) document.getElementById('totalTeams').textContent=data.count || '0';
-        }).catch(()=>{ if(document.getElementById('totalTeams')) document.getElementById('totalTeams').textContent='0'; });
-
-        fetch('/api/payroll/monthly-total').then(r=>r.json()).then(data => {
-            if(document.getElementById('monthlyPayroll')) document.getElementById('monthlyPayroll').textContent='Rs.'+(data.totalPayrollAmount||0).toLocaleString();
-        }).catch(()=>{ if(document.getElementById('monthlyPayroll')) document.getElementById('monthlyPayroll').textContent='Rs.0'; });
+        fetch('/api/dashboard/stats')
+            .then(r => r.json())
+            .then(data => {
+                if (document.getElementById('totalEmployees')) document.getElementById('totalEmployees').textContent = data.totalEmployees || '0';
+                if (document.getElementById('presentToday')) document.getElementById('presentToday').textContent = data.todayAttendance || '0';
+                if (document.getElementById('pendingLeaves')) document.getElementById('pendingLeaves').textContent = data.pendingLeaveRequests || '0';
+                if (document.getElementById('monthlyPayroll')) document.getElementById('monthlyPayroll').textContent = 'Rs.' + (data.totalMonthlyPayroll || 0).toLocaleString();
+                if (document.getElementById('departments')) document.getElementById('departments').textContent = data.totalDepartments || '0';
+                if (document.getElementById('totalTeams')) document.getElementById('totalTeams').textContent = data.totalTeams || '0';
+                if (document.getElementById('onProbation')) document.getElementById('onProbation').textContent = data.employeesOnProbation || '0';
+            })
+            .catch(err => {
+                console.error('Error loading dashboard stats:', err);
+                // Set fallbacks
+                ['totalEmployees', 'presentToday', 'pendingLeaves', 'onProbation', 'departments', 'totalTeams'].forEach(id => {
+                    if (document.getElementById(id)) document.getElementById(id).textContent = '0';
+                });
+            });
     } else {
-        // For non-Admin/HR users, show basic info
-        document.getElementById('totalEmployees').textContent = '--';
-        document.getElementById('pendingLeaves').textContent = '--';
+        // For non-Admin/HR users, show basic info (they might need a different endpoint or specific logic)
+        // For now, keep it simple or call employee-specific dashboard
+        fetch('/api/employee/me').then(r => r.json()).then(emp => {
+            if (emp) {
+                // Load employee specific balances
+                fetch(`/api/leave/balance/${emp.id}/${new Date().getFullYear()}`).then(r => r.json()).then(bal => {
+                    if (document.getElementById('myLeaveBalance')) document.getElementById('myLeaveBalance').textContent = bal.totalBalance || '0';
+                });
+                
+                fetch(`/api/attendance/today/${emp.id}`).then(r => r.ok).then(isPresent => {
+                    if (document.getElementById('presentToday')) document.getElementById('presentToday').textContent = isPresent ? '1' : '0';
+                });
+            }
+        }).catch(() => {
+            document.getElementById('totalEmployees').textContent = '--';
+            document.getElementById('pendingLeaves').textContent = '--';
+        });
     }
 }
 

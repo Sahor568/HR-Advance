@@ -79,6 +79,8 @@
 @section Scripts {
 <script>
 var userLat = null, userLng = null, userLocation = 'Unknown';
+var currentEmployeeId = null;
+var isAdminOrHR = @(isAdminOrHR ? "true" : "false");
 
 document.addEventListener('DOMContentLoaded', function() {
     var today = new Date();
@@ -87,9 +89,29 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('dateTo').value = today.toISOString().split('T')[0];
 
     getLocation();
-    loadTodayAttendance();
-    loadRecords();
+    // First get current employee ID, then load attendance data
+    loadCurrentEmployee();
 });
+
+function loadCurrentEmployee() {
+    // Try to get current employee profile to find employeeId
+    fetch('/api/employee').then(r => {
+        if (!r.ok) throw new Error('Failed');
+        return r.json();
+    }).then(data => {
+        if (data && data.length > 0) {
+            // For non-admin, use first employee (should be self)
+            // For admin, we still need an employee context for clock-in
+            currentEmployeeId = data[0].id;
+        }
+        loadTodayAttendance();
+        loadRecords();
+    }).catch(() => {
+        // Fallback: try loading records anyway
+        loadTodayAttendance();
+        loadRecords();
+    });
+}
 
 function getLocation() {
     if (navigator.geolocation) {
@@ -105,81 +127,128 @@ function getLocation() {
 }
 
 function loadTodayAttendance() {
-    fetch('/api/attendance/today').then(r=>r.json()).then(data => {
-        if (data && data.clockInTime) {
+    if (!currentEmployeeId) return;
+    // Backend: GET /api/attendance/today/{employeeId}
+    fetch('/api/attendance/today/' + currentEmployeeId).then(r => {
+        if (!r.ok) return null;
+        return r.json();
+    }).then(data => {
+        if (data && data.clock_In) {
+            document.getElementById('clockInTime').textContent = formatTime(data.clock_In);
+            document.getElementById('checkInBtn').disabled = true;
+            document.getElementById('checkOutBtn').disabled = false;
+            if (data.clock_Out) {
+                document.getElementById('clockOutTime').textContent = formatTime(data.clock_Out);
+                document.getElementById('checkOutBtn').disabled = true;
+                document.getElementById('totalHours').textContent = (data.totalHours || 0).toFixed(1) + 'h';
+            }
+        } else if (data && data.clockInTime) {
+            // Handle camelCase response
             document.getElementById('clockInTime').textContent = formatTime(data.clockInTime);
             document.getElementById('checkInBtn').disabled = true;
             document.getElementById('checkOutBtn').disabled = false;
             if (data.clockOutTime) {
                 document.getElementById('clockOutTime').textContent = formatTime(data.clockOutTime);
                 document.getElementById('checkOutBtn').disabled = true;
-                document.getElementById('totalHours').textContent = (data.totalHours||0).toFixed(1) + 'h';
+                document.getElementById('totalHours').textContent = (data.totalHours || 0).toFixed(1) + 'h';
             }
         }
-    }).catch(()=>{});
+    }).catch(() => {});
 }
 
 function clockIn() {
-    var body = { latitude: userLat, longitude: userLng, location: userLocation };
-    fetch('/api/attendance/clock-in', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }).then(r=>{
-        if(r.ok) { loadTodayAttendance(); loadRecords(); alert('Checked in successfully!'); }
-        else r.text().then(t=>alert('Error: '+t));
-    }).catch(()=>alert('Failed to check in'));
+    if (!currentEmployeeId) { alert('Employee profile not found. Please contact admin.'); return; }
+    // Backend expects ClockInViewModel: { EmployeeId, IsLocationEnabled, Latitude, Longitude, LocationAddress }
+    var body = {
+        employeeId: currentEmployeeId,
+        isLocationEnabled: userLat !== null,
+        latitude: userLat,
+        longitude: userLng,
+        locationAddress: userLocation
+    };
+    fetch('/api/attendance/clock-in', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    }).then(r => {
+        if (r.ok) { loadTodayAttendance(); loadRecords(); alert('Checked in successfully!'); }
+        else r.text().then(t => alert('Error: ' + t));
+    }).catch(() => alert('Failed to check in'));
 }
 
 function clockOut() {
-    var body = { latitude: userLat, longitude: userLng, location: userLocation };
-    fetch('/api/attendance/clock-out', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }).then(r=>{
-        if(r.ok) { loadTodayAttendance(); loadRecords(); alert('Checked out successfully!'); }
-        else r.text().then(t=>alert('Error: '+t));
-    }).catch(()=>alert('Failed to check out'));
+    if (!currentEmployeeId) { alert('Employee profile not found. Please contact admin.'); return; }
+    // Backend expects ClockOutViewModel: { EmployeeId }
+    var body = { employeeId: currentEmployeeId };
+    fetch('/api/attendance/clock-out', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    }).then(r => {
+        if (r.ok) { loadTodayAttendance(); loadRecords(); alert('Checked out successfully!'); }
+        else r.text().then(t => alert('Error: ' + t));
+    }).catch(() => alert('Failed to check out'));
 }
 
 function loadRecords() {
     var from = document.getElementById('dateFrom').value;
     var to = document.getElementById('dateTo').value;
-    var url = '/api/attendance/range?from='+from+'&to='+to;
-    fetch(url).then(r=>r.json()).then(data => {
+    // Backend: GET /api/attendance with AttendanceFilterViewModel query params
+    var url = '/api/attendance?startDate=' + from + '&endDate=' + to;
+    if (!isAdminOrHR && currentEmployeeId) {
+        url += '&employeeId=' + currentEmployeeId;
+    }
+    fetch(url).then(r => {
+        if (!r.ok) throw new Error('Failed');
+        return r.json();
+    }).then(data => {
         renderRecords(data);
         updateStats(data);
-    }).catch(()=>{ document.getElementById('attendanceBody').innerHTML='<tr><td colspan="9" class="text-center">Failed to load</td></tr>'; });
+    }).catch(() => {
+        document.getElementById('attendanceBody').innerHTML = '<tr><td colspan="9" class="text-center">No attendance records found</td></tr>';
+    });
 }
 
 function renderRecords(data) {
     var tbody = document.getElementById('attendanceBody');
-    var isHR = @(isAdminOrHR ? "true" : "false");
-    if(!data||data.length===0){tbody.innerHTML='<tr><td colspan="9"><div class="empty-state"><i class="fas fa-clock"></i><h4>No records</h4></div></td></tr>';return;}
-    var statuses=['Present','Absent','HalfDay','OnLeave','Holiday','Weekend'];
-    tbody.innerHTML=data.map(a=>{
-        var status=statuses[a.status]||'Unknown';
-        var badge=a.status===0?'badge-success':a.status===1?'badge-danger':a.status===4?'badge-info':'badge-warning';
+    if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><i class="fas fa-clock"></i><h4>No records</h4></div></td></tr>';
+        return;
+    }
+    var statuses = ['Present', 'Absent', 'HalfDay', 'OnLeave', 'Holiday', 'Weekend'];
+    tbody.innerHTML = data.map(a => {
+        var status = statuses[a.status] || 'Unknown';
+        var badge = a.status === 0 ? 'badge-success' : a.status === 1 ? 'badge-danger' : a.status === 4 ? 'badge-info' : 'badge-warning';
+        var clockIn = a.clock_In || a.clockInTime;
+        var clockOut = a.clock_Out || a.clockOutTime;
+        var recordDate = a.date || a.Date;
         return `<tr>
-            <td>${a.date?new Date(a.date).toLocaleDateString():'-'}</td>
-            <td style="font-size:0.75rem;">${a.nepaliDate||'-'}</td>
-            ${isHR?'<td>'+(a.employeeName||'-')+'</td>':''}
-            <td>${a.clockInTime?formatTime(a.clockInTime):'-'}</td>
-            <td>${a.clockOutTime?formatTime(a.clockOutTime):'-'}</td>
-            <td>${a.totalHours?(a.totalHours).toFixed(1)+'h':'-'}</td>
-            <td>${a.otHours?(a.otHours).toFixed(1)+'h':'0'}</td>
-            <td style="font-size:0.75rem;">${a.remarks||'-'}</td>
+            <td>${recordDate ? new Date(recordDate).toLocaleDateString() : '-'}</td>
+            <td style="font-size:0.75rem;">${a.nepaliDate || '-'}</td>
+            ${isAdminOrHR ? '<td>' + (a.employeeName || '-') + '</td>' : ''}
+            <td>${clockIn ? formatTime(clockIn) : '-'}</td>
+            <td>${clockOut ? formatTime(clockOut) : '-'}</td>
+            <td>${a.totalHours ? (a.totalHours).toFixed(1) + 'h' : '-'}</td>
+            <td>${a.oT_Hours || a.otHours ? ((a.oT_Hours || a.otHours)).toFixed(1) + 'h' : '0'}</td>
+            <td style="font-size:0.75rem;">${a.remarks || a.locationAddress || '-'}</td>
             <td><span class="badge-status ${badge}">${status}</span></td>
         </tr>`;
     }).join('');
 }
 
 function updateStats(data) {
-    if(!data)return;
-    document.getElementById('statPresent').textContent = data.filter(a=>a.status===0).length;
-    document.getElementById('statAbsent').textContent = data.filter(a=>a.status===1).length;
-    document.getElementById('statLate').textContent = data.filter(a=>a.status===2).length;
-    var totalH = data.reduce((s,a)=>s+(a.totalHours||0),0);
-    document.getElementById('statHours').textContent = totalH.toFixed(0)+'h';
+    if (!data) return;
+    document.getElementById('statPresent').textContent = data.filter(a => a.status === 0).length;
+    document.getElementById('statAbsent').textContent = data.filter(a => a.status === 1).length;
+    document.getElementById('statLate').textContent = data.filter(a => a.status === 2).length;
+    var totalH = data.reduce((s, a) => s + (a.totalHours || 0), 0);
+    document.getElementById('statHours').textContent = totalH.toFixed(0) + 'h';
 }
 
 function formatTime(t) {
-    if(!t) return '--:--';
+    if (!t) return '--:--';
     var d = new Date(t);
-    return d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
 </script>
 }

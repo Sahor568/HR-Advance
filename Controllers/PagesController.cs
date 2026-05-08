@@ -7,6 +7,7 @@ namespace HR_Management_System.Controllers
     [Route("[controller]/[action]")]
     public class PagesController : Controller
     {
+        [Authorize(Roles = "Admin,HRManager")]
         [Route("~/Users")]
         [Route("~/Users/Index")]
         public IActionResult Users() => View("~/Views/Users/Index.cshtml");

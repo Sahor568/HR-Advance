@@ -42,6 +42,25 @@ namespace HR_Management_System.Controllers
             return Ok(result);
         }
 
+        [HttpGet("/api/users/{id}")]
+        public async Task<IActionResult> GetById(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            var roles = await _userManager.GetRolesAsync(user);
+            return Ok(new
+            {
+                user.Id,
+                user.Email,
+                user.FullName,
+                user.IsActive,
+                user.CreatedAt,
+                user.EmployeeId,
+                Role = roles.FirstOrDefault() ?? "No Role"
+            });
+        }
+
         [HttpPost("/api/users/create")]
         public async Task<IActionResult> Create([FromBody] CreateUserRequest request)
         {
@@ -116,6 +135,22 @@ namespace HR_Management_System.Controllers
             return Ok(new { message = "User updated successfully" });
         }
 
+        [HttpPost("/api/users/{id}/reset-password")]
+        public async Task<IActionResult> ResetPassword(string id, [FromBody] ResetPasswordRequest request)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            // Generate a reset token and set new password
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var result = await _userManager.ResetPasswordAsync(user, token, request.NewPassword);
+            
+            if (!result.Succeeded)
+                return BadRequest(new { message = string.Join(", ", result.Errors.Select(e => e.Description)) });
+
+            return Ok(new { message = "Password reset successfully" });
+        }
+
         [HttpDelete("/api/users/{id}")]
         public async Task<IActionResult> Delete(string id)
         {
@@ -148,5 +183,10 @@ namespace HR_Management_System.Controllers
         public string? Email { get; set; }
         public string? FullName { get; set; }
         public string? Role { get; set; }
+    }
+
+    public class ResetPasswordRequest
+    {
+        public string NewPassword { get; set; } = "";
     }
 }

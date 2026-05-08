@@ -23,6 +23,7 @@ builder.Services.AddControllersWithViews()
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
 
 // Configure Entity Framework with MSSQL
@@ -118,18 +119,19 @@ else
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-// Add custom audit logging middleware BEFORE routing to catch all requests
-app.UseMiddleware<HR_Management_System.Middleware.WorkingAuditLoggingMiddleware>();
-
 app.UseRouting();
 
-// Use Serilog request logging
 app.UseSerilogRequestLogging();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Add custom audit logging middleware AFTER authentication to capture the correct user
+app.UseMiddleware<HR_Management_System.Middleware.WorkingAuditLoggingMiddleware>();
+
 app.UseSession();
+
+app.MapControllers();
 
 app.MapControllerRoute(
     name: "default",

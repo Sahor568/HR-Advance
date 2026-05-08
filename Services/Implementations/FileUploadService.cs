@@ -35,8 +35,8 @@ namespace HR_Management_System.Services.Implementations
                 await file.CopyToAsync(stream);
             }
 
-            // Return relative path for database storage
-            return Path.Combine("uploads", subDirectory, fileName).Replace("\\", "/");
+            // Return relative path for database storage with leading slash
+            return "/" + Path.Combine("uploads", subDirectory, fileName).Replace("\\", "/");
         }
 
         public async Task<bool> DeleteFileAsync(string filePath)
