@@ -46,6 +46,13 @@ namespace HR_Management_System.Models
         [StringLength(500)]
         public string? Remarks { get; set; }
 
+        [Required]
+        public string NepaliDate { get; set; } = string.Empty;
+
+        public bool IsHoliday { get; set; } = false;
+        public bool IsWeekend { get; set; } = false;
+        public string? HolidayName { get; set; }
+
         // Tracking
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }

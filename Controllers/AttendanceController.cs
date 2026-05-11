@@ -146,7 +146,6 @@ namespace HR_Management_System.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin,HRManager")]
         public async Task<IActionResult> GetAttendance([FromQuery] AttendanceFilterViewModel filter)
         {
             try
@@ -157,6 +156,32 @@ namespace HR_Management_System.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching attendance records");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpGet("export")]
+        public async Task<IActionResult> ExportAttendance([FromQuery] AttendanceFilterViewModel filter)
+        {
+            try
+            {
+                var data = await _attendanceService.GetAttendanceByDateRangeAsync(filter);
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("Date,Nepali Date,Employee ID,Employee Name,Clock In,Clock Out,Total Hours,OT Hours,Status,IsHoliday,Holiday Name,IsWeekend,Location,Remarks");
+                foreach (var a in data)
+                {
+                    var remarks = a.Remarks?.Replace(",", ";").Replace("\n", " ") ?? "";
+                    var location = a.LocationAddress?.Replace(",", ";").Replace("\n", " ") ?? "";
+                    var clockIn = a.Clock_In != TimeSpan.Zero ? a.Clock_In.ToString(@"hh\:mm") : "";
+                    var clockOut = a.Clock_Out.HasValue && a.Clock_Out.Value != TimeSpan.Zero ? a.Clock_Out.Value.ToString(@"hh\:mm") : "";
+                    
+                    sb.AppendLine($"{a.Date:yyyy-MM-dd},{a.NepaliDate},{a.Emp_ID},{a.EmployeeName},{clockIn},{clockOut},{a.TotalHours},{a.OT_Hours},{a.Status},{(a.IsHoliday ? "Yes" : "No")},{a.HolidayName ?? ""},{(a.IsWeekend ? "Yes" : "No")},{location},{remarks}");
+                }
+                return File(System.Text.Encoding.UTF8.GetBytes(sb.ToString()), "text/csv", $"Attendance_{DateTime.UtcNow:yyyyMMdd}.csv");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting attendance");
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -238,6 +263,81 @@ namespace HR_Management_System.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error checking and marking absences");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpGet("pending")]
+        [Authorize(Roles = "Admin,HRManager")]
+        public async Task<IActionResult> GetPendingAttendances([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+        {
+            try
+            {
+                var pendingAttendances = await _attendanceService.GetPendingAttendancesAsync(fromDate, toDate);
+                return Ok(pendingAttendances);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching pending attendance records");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpPost("approve/{attendanceId}")]
+        [Authorize(Roles = "Admin,HRManager")]
+        public async Task<IActionResult> ApproveAttendance(int attendanceId, [FromBody] ApproveAttendanceViewModel model)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var result = await _attendanceService.ApproveAttendanceAsync(attendanceId, model.ApprovedBy, model.Remarks);
+                if (!result)
+                    return BadRequest("Attendance could not be approved");
+
+                return Ok(new { message = "Attendance approved successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error approving attendance ID: {AttendanceId}", attendanceId);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpPost("reject/{attendanceId}")]
+        [Authorize(Roles = "Admin,HRManager")]
+        public async Task<IActionResult> RejectAttendance(int attendanceId, [FromBody] RejectAttendanceViewModel model)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var result = await _attendanceService.RejectAttendanceAsync(attendanceId, model.RejectedBy, model.Remarks);
+                if (!result)
+                    return BadRequest("Attendance could not be rejected");
+
+                return Ok(new { message = "Attendance rejected and marked as absent" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error rejecting attendance ID: {AttendanceId}", attendanceId);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpGet("is-holiday")]
+        public async Task<IActionResult> IsTodayHoliday()
+        {
+            try
+            {
+                var result = await _attendanceService.IsTodayHolidayOrWeekendAsync();
+                return Ok(new { isHoliday = result });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking holiday status");
                 return StatusCode(500, "Internal server error");
             }
         }

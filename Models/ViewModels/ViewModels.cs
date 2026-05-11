@@ -220,19 +220,30 @@ namespace HR_Management_System.Models.ViewModels
         public DateTime? ToDate { get; set; }
         public int? Status { get; set; }
         public string? Department { get; set; }
+        public bool IncludeWeekends { get; set; } = true;
+        public bool IncludeHolidays { get; set; } = true;
     }
 
     public class AttendanceListViewModel
     {
         public int Id { get; set; }
+        public int EmployeeId { get; set; }
         public string Emp_ID { get; set; } = string.Empty;
         public string EmployeeName { get; set; } = string.Empty;
         public DateTime Date { get; set; }
+        public string NepaliDate { get; set; } = string.Empty;
         public TimeSpan Clock_In { get; set; }
         public TimeSpan? Clock_Out { get; set; }
         public decimal TotalHours { get; set; }
         public decimal OT_Hours { get; set; }
         public string Status { get; set; } = string.Empty;
+        public string? Remarks { get; set; }
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+        public string? LocationAddress { get; set; }
+        public bool IsHoliday { get; set; }
+        public bool IsWeekend { get; set; }
+        public string? HolidayName { get; set; }
     }
 
     public class WeeklyWorkHoursViewModel
@@ -550,6 +561,7 @@ namespace HR_Management_System.Models.ViewModels
         public int OpenAccidentLogs { get; set; }
         public int PendingInsuranceClaims { get; set; }
         public int UnresolvedDisciplinaryCases { get; set; }
+        public int PendingAttendanceRequests { get; set; }
         public int TotalDepartments { get; set; }
         public int TotalTeams { get; set; }
         public decimal TotalMonthlyPayroll { get; set; }
@@ -850,6 +862,28 @@ namespace HR_Management_System.Models.ViewModels
         [StringLength(500)]
         [Display(Name = "Comments")]
         public string? Comments { get; set; }
+    }
+
+    // ViewModel for approving pending attendance
+    public class ApproveAttendanceViewModel
+    {
+        [Required]
+        [StringLength(100)]
+        public string ApprovedBy { get; set; } = string.Empty;
+
+        [StringLength(500)]
+        public string? Remarks { get; set; }
+    }
+
+    // ViewModel for rejecting pending attendance
+    public class RejectAttendanceViewModel
+    {
+        [Required]
+        [StringLength(100)]
+        public string RejectedBy { get; set; } = string.Empty;
+
+        [StringLength(500)]
+        public string? Remarks { get; set; }
     }
 }
 

@@ -22,7 +22,41 @@ namespace HR_Management_System.Services.Implementations
         {
             _logger.LogInformation("Clock-in for employee ID: {EmployeeId}", employeeId);
 
-            var today = DateTime.UtcNow.Date;
+            // Get Nepal time (UTC+5:45)
+            var nepalTime = GetNepalTime();
+            var today = nepalTime.Date;
+            var clockInTime = nepalTime.TimeOfDay;
+
+            // Check if today is weekend (Saturday or Sunday)
+            if (IsWeekend(today))
+            {
+                _logger.LogWarning("Employee {EmployeeId} attempted to clock in on weekend: {DayOfWeek}", employeeId, today.DayOfWeek);
+                throw new InvalidOperationException("Attendance cannot be marked on weekends (Saturday/Sunday)");
+            }
+
+            // Check if today is a public holiday
+            try
+            {
+                if (await IsPublicHolidayAsync(today))
+                {
+                    _logger.LogWarning("Employee {EmployeeId} attempted to clock in on public holiday: {Date}", employeeId, today);
+                    throw new InvalidOperationException("Attendance cannot be marked on public holidays");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking public holiday for date {Date}. Continuing with clock-in.", today);
+                // Continue with clock-in if we can't check holiday status
+            }
+
+            // Check if employee exists
+            var employeeExists = await _context.Employees.AnyAsync(e => e.Id == employeeId);
+            if (!employeeExists)
+            {
+                _logger.LogWarning("Employee {EmployeeId} not found", employeeId);
+                throw new InvalidOperationException($"Employee with ID {employeeId} not found");
+            }
+
             var existingAttendance = await _context.Attendances
                 .FirstOrDefaultAsync(a => a.EmployeeId == employeeId && a.Date == today);
 
@@ -32,24 +66,51 @@ namespace HR_Management_System.Services.Implementations
                 throw new InvalidOperationException("Already clocked in today");
             }
 
+            // Check if location is enabled (required for attendance)
+            bool isLocationEnabled = latitude.HasValue && longitude.HasValue || !string.IsNullOrEmpty(locationAddress);
+            if (!isLocationEnabled)
+            {
+                _logger.LogWarning("Employee {EmployeeId} attempted to clock in without location enabled", employeeId);
+                throw new InvalidOperationException("Location must be enabled to mark attendance");
+            }
+
+            // Determine status based on clock-in time
+            // Office starts at 9:00 AM, 30 minutes grace period until 9:30 AM
+            var officeStartTime = new TimeSpan(9, 0, 0); // 9:00 AM
+            var lateThreshold = new TimeSpan(9, 30, 0); // 9:30 AM
+            
+            AttendanceStatus status;
+            if (clockInTime <= lateThreshold)
+            {
+                status = AttendanceStatus.Present;
+            }
+            else
+            {
+                // More than 30 minutes late, requires HR/admin approval
+                status = AttendanceStatus.Pending;
+                _logger.LogInformation("Employee {EmployeeId} clocked in late at {ClockInTime}. Status set to Pending for approval.", employeeId, clockInTime);
+            }
+
             var attendance = new Attendance
             {
                 EmployeeId = employeeId,
                 Date = today,
-                Clock_In = DateTime.UtcNow.TimeOfDay,
-                Status = AttendanceStatus.Present,
+                Clock_In = clockInTime,
+                Status = status,
                 OT_Hours = 0,
                 TotalHours = 0,
                 CreatedAt = DateTime.UtcNow,
                 Latitude = latitude,
                 Longitude = longitude,
                 LocationAddress = locationAddress,
-                IsLocationEnabled = latitude.HasValue && longitude.HasValue || !string.IsNullOrEmpty(locationAddress)
+                IsLocationEnabled = isLocationEnabled,
+                NepaliDate = GetNepalDate(today),
+                Remarks = status == AttendanceStatus.Pending ? $"Late arrival at {clockInTime}. Requires HR/Admin approval." : null
             };
 
             _context.Attendances.Add(attendance);
             await _context.SaveChangesAsync();
-            _logger.LogInformation("Clock-in successful for employee ID: {EmployeeId} with location enabled: {LocationEnabled}", employeeId, attendance.IsLocationEnabled);
+            _logger.LogInformation("Clock-in successful for employee ID: {EmployeeId} with status: {Status}", employeeId, status);
             return attendance;
         }
 
@@ -57,7 +118,10 @@ namespace HR_Management_System.Services.Implementations
         {
             _logger.LogInformation("Clock-out for employee ID: {EmployeeId}", employeeId);
 
-            var today = DateTime.UtcNow.Date;
+            // Get Nepal time for clock-out
+            var nepalTime = GetNepalTime();
+            var today = nepalTime.Date;
+            
             var attendance = await _context.Attendances
                 .FirstOrDefaultAsync(a => a.EmployeeId == employeeId && a.Date == today);
 
@@ -73,10 +137,12 @@ namespace HR_Management_System.Services.Implementations
                 throw new InvalidOperationException("Already clocked out today");
             }
 
-            attendance.Clock_Out = DateTime.UtcNow.TimeOfDay;
+            // Use Nepal time for clock-out
+            attendance.Clock_Out = nepalTime.TimeOfDay;
             attendance.TotalHours = (decimal)(attendance.Clock_Out.Value - attendance.Clock_In).TotalHours;
 
-            // Calculate overtime: standard 8 hours/day
+            // Calculate overtime: standard 8 hours/day (office hours 9:00 AM to 5:30 PM = 8.5 hours)
+            // But overtime calculation starts after 8 hours of work
             if (attendance.TotalHours > 8)
             {
                 attendance.OT_Hours = attendance.TotalHours - 8;
@@ -85,7 +151,9 @@ namespace HR_Management_System.Services.Implementations
 
             attendance.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
-            _logger.LogInformation("Clock-out successful for employee ID: {EmployeeId}, Total Hours: {TotalHours}", employeeId, attendance.TotalHours);
+            
+            _logger.LogInformation("Clock-out successful for employee ID: {EmployeeId}, Total Hours: {TotalHours}, Status: {Status}",
+                employeeId, attendance.TotalHours, attendance.Status);
             return attendance;
         }
 
@@ -112,6 +180,12 @@ namespace HR_Management_System.Services.Implementations
             if (!string.IsNullOrEmpty(filter.Department))
                 query = query.Where(a => a.Employee.Department == filter.Department);
 
+            if (!filter.IncludeWeekends)
+                query = query.Where(a => !a.IsWeekend);
+
+            if (!filter.IncludeHolidays)
+                query = query.Where(a => !a.IsHoliday);
+
             return await query
                 .OrderByDescending(a => a.Date)
                 .ThenBy(a => a.EmployeeId)
@@ -121,11 +195,16 @@ namespace HR_Management_System.Services.Implementations
                     Emp_ID = a.Employee.Emp_ID,
                     EmployeeName = a.Employee.FullName,
                     Date = a.Date,
+                    NepaliDate = a.NepaliDate,
                     Clock_In = a.Clock_In,
                     Clock_Out = a.Clock_Out,
                     TotalHours = a.TotalHours,
                     OT_Hours = a.OT_Hours,
-                    Status = a.Status.ToString()
+                    Status = a.Status.ToString(),
+                    Remarks = a.Remarks,
+                    IsHoliday = a.IsHoliday,
+                    IsWeekend = a.IsWeekend,
+                    HolidayName = a.HolidayName
                 })
                 .Take(500)
                 .ToListAsync();
@@ -133,14 +212,18 @@ namespace HR_Management_System.Services.Implementations
 
         public async Task<Attendance?> GetTodayAttendanceAsync(int employeeId)
         {
-            var today = DateTime.UtcNow.Date;
+            // Use Nepal time for today's date
+            var nepalTime = GetNepalTime();
+            var today = nepalTime.Date;
             return await _context.Attendances
                 .FirstOrDefaultAsync(a => a.EmployeeId == employeeId && a.Date == today);
         }
 
         public async Task<IEnumerable<AttendanceListViewModel>> GetTodayAttendancesAsync()
         {
-            var today = DateTime.UtcNow.Date;
+            // Use Nepal time for today's date
+            var nepalTime = GetNepalTime();
+            var today = nepalTime.Date;
             
             return await _context.Attendances
                 .Where(a => a.Date == today)
@@ -151,11 +234,16 @@ namespace HR_Management_System.Services.Implementations
                     Emp_ID = a.EmployeeId.ToString(),
                     EmployeeName = a.Employee.FullName,
                     Date = a.Date,
+                    NepaliDate = a.NepaliDate,
                     Clock_In = a.Clock_In,
                     Clock_Out = a.Clock_Out,
                     Status = a.Status.ToString(),
                     TotalHours = a.TotalHours,
-                    OT_Hours = a.OT_Hours
+                    OT_Hours = a.OT_Hours,
+                    Remarks = a.Remarks,
+                    IsHoliday = a.IsHoliday,
+                    IsWeekend = a.IsWeekend,
+                    HolidayName = a.HolidayName
                 })
                 .ToListAsync();
         }
@@ -246,6 +334,9 @@ namespace HR_Management_System.Services.Implementations
 
             if (existing) return false;
 
+            var isWeekend = IsWeekend(date);
+            var holiday = await GetHolidayAsync(date);
+
             var attendance = new Attendance
             {
                 EmployeeId = employeeId,
@@ -254,7 +345,11 @@ namespace HR_Management_System.Services.Implementations
                 Status = AttendanceStatus.Absent,
                 OT_Hours = 0,
                 TotalHours = 0,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                NepaliDate = GetNepalDate(date),
+                IsWeekend = isWeekend,
+                IsHoliday = holiday != null,
+                HolidayName = holiday?.HolidayName
             };
 
             _context.Attendances.Add(attendance);
@@ -284,19 +379,19 @@ namespace HR_Management_System.Services.Implementations
         {
             _logger.LogInformation("Running absence check for today");
 
-            var today = DateTime.UtcNow.Date;
-            var dayOfWeek = today.DayOfWeek;
+            // Use Nepal time for today's date
+            var nepalTime = GetNepalTime();
+            var today = nepalTime.Date;
 
-            // Skip weekends
-            if (dayOfWeek == DayOfWeek.Saturday || dayOfWeek == DayOfWeek.Sunday)
+            // Skip weekends using helper method
+            if (IsWeekend(today))
             {
                 _logger.LogInformation("Today is a weekend, skipping absence check");
                 return;
             }
 
             // Check if today is a public holiday
-            var isHoliday = await _context.PublicHolidays
-                .AnyAsync(ph => ph.HolidayDate.Date == today && ph.IsActive);
+            var isHoliday = await IsPublicHolidayAsync(today);
 
             if (isHoliday)
             {
@@ -322,6 +417,211 @@ namespace HR_Management_System.Services.Implementations
             }
 
             _logger.LogInformation("Marked {Count} employees as absent", absentEmployees.Count);
+        }
+
+        // Get pending attendances that require HR/admin approval
+        public async Task<IEnumerable<AttendanceListViewModel>> GetPendingAttendancesAsync(DateTime? fromDate = null, DateTime? toDate = null)
+        {
+            _logger.LogInformation("Fetching pending attendance records");
+            
+            var query = _context.Attendances
+                .Include(a => a.Employee)
+                .Where(a => a.Status == AttendanceStatus.Pending)
+                .AsQueryable();
+
+            if (fromDate.HasValue)
+                query = query.Where(a => a.Date >= fromDate.Value);
+
+            if (toDate.HasValue)
+                query = query.Where(a => a.Date <= toDate.Value);
+
+            return await query
+                .OrderByDescending(a => a.Date)
+                .ThenBy(a => a.EmployeeId)
+                .Select(a => new AttendanceListViewModel
+                {
+                    Id = a.Id,
+                    EmployeeId = a.EmployeeId,
+                    Emp_ID = a.Employee.Emp_ID,
+                    EmployeeName = a.Employee.FullName,
+                    Date = a.Date,
+                    NepaliDate = a.NepaliDate,
+                    Clock_In = a.Clock_In,
+                    Clock_Out = a.Clock_Out,
+                    TotalHours = a.TotalHours,
+                    OT_Hours = a.OT_Hours,
+                    Status = a.Status.ToString(),
+                    Remarks = a.Remarks,
+                    Latitude = a.Latitude,
+                    Longitude = a.Longitude,
+                    LocationAddress = a.LocationAddress,
+                    IsHoliday = a.IsHoliday,
+                    IsWeekend = a.IsWeekend,
+                    HolidayName = a.HolidayName
+                })
+                .Take(100)
+                .ToListAsync();
+        }
+
+        // Get count of pending attendance requests
+        public async Task<int> GetPendingAttendanceCountAsync()
+        {
+            return await _context.Attendances
+                .Where(a => a.Status == AttendanceStatus.Pending)
+                .CountAsync();
+        }
+
+        // Approve a pending attendance
+        public async Task<bool> ApproveAttendanceAsync(int attendanceId, string approvedBy, string? remarks = null)
+        {
+            _logger.LogInformation("Approving attendance ID: {AttendanceId} by {ApprovedBy}", attendanceId, approvedBy);
+
+            var attendance = await _context.Attendances.FindAsync(attendanceId);
+            if (attendance == null)
+            {
+                _logger.LogWarning("Attendance record not found: {AttendanceId}", attendanceId);
+                return false;
+            }
+
+            if (attendance.Status != AttendanceStatus.Pending)
+            {
+                _logger.LogWarning("Attendance ID {AttendanceId} is not pending (current status: {Status})", attendanceId, attendance.Status);
+                return false;
+            }
+
+            attendance.Status = AttendanceStatus.Present;
+            attendance.Remarks = $"Approved by {approvedBy} on {DateTime.UtcNow:yyyy-MM-dd HH:mm}" +
+                                (string.IsNullOrEmpty(remarks) ? "" : $". Remarks: {remarks}");
+            attendance.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Attendance ID {AttendanceId} approved successfully", attendanceId);
+            return true;
+        }
+
+        // Reject a pending attendance (mark as absent)
+        public async Task<bool> RejectAttendanceAsync(int attendanceId, string rejectedBy, string? remarks = null)
+        {
+            _logger.LogInformation("Rejecting attendance ID: {AttendanceId} by {RejectedBy}", attendanceId, rejectedBy);
+
+            var attendance = await _context.Attendances.FindAsync(attendanceId);
+            if (attendance == null)
+            {
+                _logger.LogWarning("Attendance record not found: {AttendanceId}", attendanceId);
+                return false;
+            }
+
+            if (attendance.Status != AttendanceStatus.Pending)
+            {
+                _logger.LogWarning("Attendance ID {AttendanceId} is not pending (current status: {Status})", attendanceId, attendance.Status);
+                return false;
+            }
+
+            attendance.Status = AttendanceStatus.Absent;
+            attendance.Remarks = $"Rejected by {rejectedBy} on {DateTime.UtcNow:yyyy-MM-dd HH:mm}" +
+                                (string.IsNullOrEmpty(remarks) ? "" : $". Remarks: {remarks}");
+            attendance.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Attendance ID {AttendanceId} rejected and marked as absent", attendanceId);
+            return true;
+        }
+
+        public async Task<bool> IsTodayHolidayOrWeekendAsync()
+        {
+            var nepalTime = GetNepalTime();
+            var today = nepalTime.Date;
+            
+            if (IsWeekend(today)) return true;
+            
+            return await IsPublicHolidayAsync(today);
+        }
+
+        // Helper method to get current Nepal time (UTC+5:45)
+        private DateTime GetNepalTime()
+        {
+            var utcNow = DateTime.UtcNow;
+            
+            try
+            {
+                // Try to get Nepal timezone - different names on different systems
+                TimeZoneInfo nepalTimeZone = null;
+                
+                // Try common timezone IDs for Nepal
+                string[] timezoneIds = new[]
+                {
+                    "Nepal Standard Time",
+                    "Asia/Katmandu",
+                    "Asia/Kathmandu",
+                    "Nepal Time"
+                };
+                
+                foreach (var tzId in timezoneIds)
+                {
+                    try
+                    {
+                        nepalTimeZone = TimeZoneInfo.FindSystemTimeZoneById(tzId);
+                        if (nepalTimeZone != null)
+                            break;
+                    }
+                    catch { }
+                }
+                
+                if (nepalTimeZone != null)
+                {
+                    return TimeZoneInfo.ConvertTimeFromUtc(utcNow, nepalTimeZone);
+                }
+                
+                // If no timezone found, use manual offset UTC+5:45
+                return utcNow.AddHours(5).AddMinutes(45);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to get Nepal timezone, using manual offset UTC+5:45");
+                // Fallback: manually add 5 hours 45 minutes
+                return utcNow.AddHours(5).AddMinutes(45);
+            }
+        }
+
+        // Helper method to check if a date is weekend (Saturday or Sunday)
+        private bool IsWeekend(DateTime date)
+        {
+            return date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday;
+        }
+
+        // Helper method to check if a date is a public holiday
+        private async Task<bool> IsPublicHolidayAsync(DateTime date)
+        {
+            return await _context.PublicHolidays
+                .AnyAsync(ph => ph.HolidayDate.Date == date && ph.IsActive);
+        }
+
+        // Helper method to get Nepali date (BS calendar)
+        private string GetNepalDate(DateTime englishDate)
+        {
+            // BS calendar reference: 2000/01/01 BS = 1943/04/14 AD
+            var bsYear = englishDate.Year - 56;
+            var bsMonth = englishDate.Month;
+            var bsDay = englishDate.Day;
+
+            // Rough Nepali date conversion (more accurate conversion would need lookup table)
+            // Approximate: Baisakh approx March/April, Jestha May/June, etc.
+            if (englishDate.Month <= 3)
+                bsMonth = englishDate.Month + 9; // Jan-Mar = 10-12 BS months
+            else if (englishDate.Month <= 12)
+                bsMonth = englishDate.Month - 3; // Apr-Dec = 1-9 BS months
+
+            // Handle day adjustments
+            bsDay = Math.Min(bsDay, 32); // Cap at reasonable day
+
+            return $"{bsYear}/{bsMonth:D2}/{bsDay:D2}";
+        }
+
+        // Helper method to check if a date is a holiday
+        private async Task<PublicHoliday?> GetHolidayAsync(DateTime date)
+        {
+            return await _context.PublicHolidays
+                .FirstOrDefaultAsync(ph => ph.HolidayDate.Date == date && ph.IsActive);
         }
     }
 
