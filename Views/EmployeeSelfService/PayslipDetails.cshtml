@@ -1,0 +1,203 @@
+@model HR_Management_System.Models.ViewModels.PayslipViewModel
+
+@{
+    ViewData["Title"] = "Payslip Details";
+    var nepaliMonths = new[] { "", "Baishakh", "Jestha", "Ashadh", "Shrawan", "Bhadra", "Ashwin", "Kartik", "Mangsir", "Poush", "Magh", "Falgun", "Chaitra" };
+    var monthName = Model.Month >= 1 && Model.Month <= 12 ? nepaliMonths[Model.Month] : "";
+}
+
+<div class="page-header" style="display:flex;justify-content:space-between;align-items:center;">
+    <div>
+        <h1 class="page-title">Payslip - @monthName @Model.Year</h1>
+        <p class="page-subtitle">Detailed breakdown of your salary</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="@Url.Action("DownloadPayslip", "EmployeeSelfService", new { id = Model.PayrollId })" class="btn-primary" target="_blank">
+            <i class="fas fa-download"></i> Download PDF
+        </a>
+        <a href="@Url.Action("Payslips", "EmployeeSelfService")" class="btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
+</div>
+
+<div class="payslip-container">
+    <!-- Header -->
+    <div class="payslip-header">
+        <div class="company-info">
+            <h2>HRMS Nepal</h2>
+            <p>Salary Slip for @monthName @Model.Year</p>
+        </div>
+        <div class="employee-info">
+            <div class="info-row"><span class="label">Employee Name:</span><span class="value">@Model.EmployeeName</span></div>
+            <div class="info-row"><span class="label">Employee ID:</span><span class="value">@Model.Emp_ID</span></div>
+            <div class="info-row"><span class="label">Designation:</span><span class="value">@Model.Designation</span></div>
+            <div class="info-row"><span class="label">Department:</span><span class="value">@Model.Department</span></div>
+        </div>
+    </div>
+
+    <!-- Working Days -->
+    <div class="working-days-card">
+        <h4><i class="fas fa-calendar-check"></i> Working Information</h4>
+        <div class="days-grid">
+            <div class="day-item"><span class="day-label">Working Days</span><span class="day-value">@Model.WorkingDays</span></div>
+            <div class="day-item"><span class="day-label">Days Worked</span><span class="day-value">@Model.DaysWorked</span></div>
+            <div class="day-item"><span class="day-label">Overtime Hours</span><span class="day-value">@Model.OvertimeHours hrs</span></div>
+            <div class="day-item"><span class="day-label">Hourly Rate</span><span class="day-value">Rs. @Model.HourlyRate.ToString("N2")</span></div>
+        </div>
+    </div>
+
+    <!-- Earnings & Deductions -->
+    <div class="salary-breakdown">
+        <!-- Earnings -->
+        <div class="breakdown-section">
+            <h4 class="section-title earnings"><i class="fas fa-plus-circle"></i> Earnings</h4>
+            <table class="breakdown-table">
+                <tr>
+                    <td>Base Salary</td>
+                    <td class="amount">Rs. @Model.BaseSalary.ToString("N2")</td>
+                </tr>
+                @if (Model.GradeAmount > 0)
+                {
+                    <tr>
+                        <td>Grade Amount</td>
+                        <td class="amount">Rs. @Model.GradeAmount.ToString("N2")</td>
+                    </tr>
+                }
+                @if (Model.OvertimeAmount > 0)
+                {
+                    <tr>
+                        <td>Overtime Pay</td>
+                        <td class="amount">Rs. @Model.OvertimeAmount.ToString("N2")</td>
+                    </tr>
+                }
+                @if (Model.FestivalAllowance > 0)
+                {
+                    <tr>
+                        <td>Festival Allowance</td>
+                        <td class="amount">Rs. @Model.FestivalAllowance.ToString("N2")</td>
+                    </tr>
+                }
+                @if (Model.OtherAllowances > 0)
+                {
+                    <tr>
+                        <td>Other Allowances</td>
+                        <td class="amount">Rs. @Model.OtherAllowances.ToString("N2")</td>
+                    </tr>
+                }
+                <tr class="total-row">
+                    <td><strong>Gross Earnings</strong></td>
+                    <td class="amount"><strong>Rs. @Model.GrossEarnings.ToString("N2")</strong></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Deductions -->
+        <div class="breakdown-section">
+            <h4 class="section-title deductions"><i class="fas fa-minus-circle"></i> Deductions</h4>
+            <table class="breakdown-table">
+                <tr>
+                    <td>SSF Contribution (Employee)</td>
+                    <td class="amount">Rs. @Model.SSFEmployeeContribution.ToString("N2")</td>
+                </tr>
+                @if (Model.TaxDeduction > 0)
+                {
+                    <tr>
+                        <td>TDS / Tax</td>
+                        <td class="amount">Rs. @Model.TaxDeduction.ToString("N2")</td>
+                    </tr>
+                }
+                @if (Model.OtherDeductions > 0)
+                {
+                    <tr>
+                        <td>Other Deductions</td>
+                        <td class="amount">Rs. @Model.OtherDeductions.ToString("N2")</td>
+                    </tr>
+                }
+                <tr class="total-row">
+                    <td><strong>Total Deductions</strong></td>
+                    <td class="amount"><strong>Rs. @Model.TotalDeductions.ToString("N2")</strong></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Net Pay -->
+    <div class="net-pay-section">
+        <div class="net-pay-label">Net Pay</div>
+        <div class="net-pay-amount">Rs. @Model.NetPay.ToString("N2")</div>
+        <div class="net-pay-words">@NumberToWords(Model.NetPay)</div>
+    </div>
+
+    <!-- Status -->
+    <div class="payslip-footer">
+        <div class="status-badge">
+            <span class="status-label">Payment Status:</span>
+            <span class="status-value status-@Model.PayrollStatus.ToLower()">@Model.PayrollStatus</span>
+        </div>
+    </div>
+</div>
+
+@{
+    string NumberToWords(decimal number)
+    {
+        if (number == 0) return "Zero";
+        var words = "";
+        var n = (long)number;
+        if (n >= 100000) words += NumberToWords(n / 100000) + " Lakh ";
+        n = n % 100000;
+        if (n >= 1000) words += NumberToWords(n / 1000) + " Thousand ";
+        n = n % 1000;
+        if (n >= 100) words += NumberToWords(n / 100) + " Hundred ";
+        n = n % 100;
+        var units = new[] { "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen" };
+        var tens = new[] { "", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety" };
+        if (n < 20) words += units[n];
+        else words += tens[n / 10] + (n % 10 > 0 ? "-" + units[n % 10] : "");
+        return words.Trim() + " Rupees Only";
+    }
+}
+
+<style>
+    .payslip-container { background:white;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden; }
+    .payslip-header { background:linear-gradient(135deg,var(--primary),#1e3a8a);color:white;padding:2rem;display:flex;justify-content:space-between;flex-wrap:wrap;gap:1rem; }
+    .company-info h2 { margin:0;font-size:1.5rem; }
+    .company-info p { margin:0.25rem 0 0;opacity:0.9; }
+    .employee-info { text-align:right; }
+    .info-row { margin-bottom:0.25rem; }
+    .info-row .label { opacity:0.8; }
+    .info-row .value { font-weight:600;margin-left:0.5rem; }
+    .working-days-card { padding:1.5rem;border-bottom:1px solid var(--border); }
+    .working-days-card h4 { margin:0 0 1rem;font-size:0.9rem;color:var(--text-secondary);display:flex;align-items:center;gap:0.5rem; }
+    .days-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1rem; }
+    .day-item { background:var(--surface);padding:0.75rem;border-radius:var(--radius);text-align:center; }
+    .day-label { display:block;font-size:0.75rem;color:var(--text-secondary); }
+    .day-value { display:block;font-weight:600;font-size:1.1rem;margin-top:0.25rem; }
+    .salary-breakdown { display:grid;grid-template-columns:1fr 1fr;gap:0; }
+    .breakdown-section { padding:1.5rem; }
+    .breakdown-section:first-child { border-right:1px solid var(--border); }
+    .section-title { font-size:0.9rem;font-weight:600;margin:0 0 1rem;display:flex;align-items:center;gap:0.5rem; }
+    .section-title.earnings { color:#166534; }
+    .section-title.deductions { color:#991b1b; }
+    .breakdown-table { width:100%; }
+    .breakdown-table td { padding:0.5rem 0;border-bottom:1px solid var(--border); }
+    .breakdown-table .amount { text-align:right;font-weight:500; }
+    .breakdown-table .total-row td { border-top:2px solid var(--border);border-bottom:none;padding-top:0.75rem; }
+    .net-pay-section { background:var(--surface);padding:2rem;text-align:center;border-top:1px solid var(--border); }
+    .net-pay-label { font-size:0.9rem;color:var(--text-secondary); }
+    .net-pay-amount { font-size:2.5rem;font-weight:700;color:var(--primary);margin:0.5rem 0; }
+    .net-pay-words { font-size:0.85rem;color:var(--text-secondary); }
+    .payslip-footer { padding:1.5rem;text-align:center;border-top:1px solid var(--border); }
+    .status-badge { display:inline-flex;align-items:center;gap:0.5rem; }
+    .status-label { color:var(--text-secondary); }
+    .status-value { padding:0.25rem 1rem;border-radius:999px;font-weight:500;font-size:0.85rem; }
+    .status-draft { background:#f3f4f6;color:#6b7280; }
+    .status-generated { background:#fef3c7;color:#92400e; }
+    .status-approved { background:#dbeafe;color:#1e40af; }
+    .status-paid { background:#dcfce7;color:#166534; }
+    .btn-primary, .btn-secondary { padding:0.5rem 1rem;border-radius:var(--radius);display:inline-flex;align-items:center;gap:0.5rem;font-weight:500;cursor:pointer;border:none; }
+    .btn-primary { background:var(--primary);color:white; }
+    .btn-secondary { background:var(--surface);color:var(--text);border:1px solid var(--border); }
+    .btn-primary:hover { background:#1e3a8a; }
+    .btn-secondary:hover { background:var(--border); }
+</style>

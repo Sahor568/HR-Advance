@@ -1,0 +1,152 @@
+@model IEnumerable<HR_Management_System.Models.ViewModels.PayslipViewModel>
+
+@{
+    ViewData["Title"] = "My Payslips";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">My Payslips</h1>
+        <p class="page-subtitle">View and download your salary slips</p>
+    </div>
+</div>
+
+<!-- Filter -->
+<div class="card mb-3">
+    <div class="card-body" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+        <form method="get" style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
+            <div class="form-group" style="margin:0;">
+                <select name="year" class="form-select">
+                    @{
+                        var currentYear = DateTime.Now.Year;
+                        for (int y = currentYear; y >= currentYear - 3; y--)
+                        {
+                            <option value="@y" selected="@(Context.Request.Query["year"].ToString() == y.ToString())">@y</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <select name="month" class="form-select">
+                    <option value="">All Months</option>
+                    <option value="1" selected="@(Context.Request.Query["month"].ToString() == "1")">Baishakh</option>
+                    <option value="2" selected="@(Context.Request.Query["month"].ToString() == "2")">Jestha</option>
+                    <option value="3" selected="@(Context.Request.Query["month"].ToString() == "3")">Ashadh</option>
+                    <option value="4" selected="@(Context.Request.Query["month"].ToString() == "4")">Shrawan</option>
+                    <option value="5" selected="@(Context.Request.Query["month"].ToString() == "5")">Bhadra</option>
+                    <option value="6" selected="@(Context.Request.Query["month"].ToString() == "6")">Ashwin</option>
+                    <option value="7" selected="@(Context.Request.Query["month"].ToString() == "7")">Kartik</option>
+                    <option value="8" selected="@(Context.Request.Query["month"].ToString() == "8")">Mangsir</option>
+                    <option value="9" selected="@(Context.Request.Query["month"].ToString() == "9")">Poush</option>
+                    <option value="10" selected="@(Context.Request.Query["month"].ToString() == "10")">Magh</option>
+                    <option value="11" selected="@(Context.Request.Query["month"].ToString() == "11")">Falgun</option>
+                    <option value="12" selected="@(Context.Request.Query["month"].ToString() == "12")">Chaitra</option>
+                </select>
+            </div>
+            <button type="submit" class="btn-secondary"><i class="fas fa-filter"></i> Filter</button>
+        </form>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle"></i> @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Payslips Table -->
+<div class="table-container">
+    <div class="table-header">
+        <h3 style="font-size:1rem;font-weight:600;margin:0;">Salary History</h3>
+    </div>
+    @if (Model != null && Model.Any())
+    {
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Period</th>
+                    <th>Base Salary</th>
+                    <th>Allowances</th>
+                    <th>Deductions</th>
+                    <th>Net Pay</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    var nepaliMonths = new[] { "", "Baishakh", "Jestha", "Ashadh", "Shrawan", "Bhadra", "Ashwin", "Kartik", "Mangsir", "Poush", "Magh", "Falgun", "Chaitra" };
+                    var statusColors = new Dictionary<string, string> {
+                        { "Draft", "badge-secondary" },
+                        { "Generated", "badge-warning" },
+                        { "Approved", "badge-info" },
+                        { "Paid", "badge-success" }
+                    };
+                }
+                @foreach (var payslip in Model)
+                {
+                    var monthName = payslip.Month >= 1 && payslip.Month <= 12 ? nepaliMonths[payslip.Month] : "";
+                    var statusBadge = statusColors.ContainsKey(payslip.PayrollStatus) ? statusColors[payslip.PayrollStatus] : "badge-secondary";
+                    var allowances = payslip.GradeAmount + payslip.OvertimeAmount + payslip.FestivalAllowance + payslip.OtherAllowances;
+
+                    <tr>
+                        <td>
+                            <div style="font-weight:500;">@monthName @payslip.Year</div>
+                        </td>
+                        <td>Rs. @payslip.BaseSalary.ToString("N2")</td>
+                        <td>Rs. @allowances.ToString("N2")</td>
+                        <td>Rs. @payslip.TotalDeductions.ToString("N2")</td>
+                        <td style="font-weight:600;color:var(--primary);">Rs. @payslip.NetPay.ToString("N2")</td>
+                        <td><span class="badge-status @statusBadge">@payslip.PayrollStatus</span></td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="@Url.Action("PayslipDetails", "EmployeeSelfService", new { id = payslip.PayrollId })" class="btn-icon" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="@Url.Action("DownloadPayslip", "EmployeeSelfService", new { id = payslip.PayrollId })" class="btn-icon" title="Download PDF" target="_blank">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="fas fa-file-invoice-dollar"></i>
+            <h4>No Payslips Found</h4>
+            <p>Your salary slips will appear here once processed by HR</p>
+        </div>
+    }
+</div>
+
+<style>
+    .btn-icon {
+        width:32px;height:32px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--border);
+        display:inline-flex;align-items:center;justify-content:center;color:var(--text-secondary);
+        transition:all 0.2s;
+    }
+    .btn-icon:hover {
+        background:var(--primary);color:white;border-color:var(--primary);
+    }
+    .badge-status {
+        padding:0.25rem 0.75rem;border-radius:999px;font-size:0.75rem;font-weight:500;
+    }
+    .badge-success { background:#dcfce7;color:#166534; }
+    .badge-warning { background:#fef3c7;color:#92400e; }
+    .badge-info { background:#dbeafe;color:#1e40af; }
+    .badge-secondary { background:#f3f4f6;color:#6b7280; }
+</style>
