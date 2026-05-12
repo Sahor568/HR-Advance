@@ -345,6 +345,7 @@ function openAddEmployee() {
     document.getElementById('empModalTitle').textContent='Add Employee';
     document.getElementById('empForm').reset();
     document.getElementById('empId').value='';
+    document.getElementById('empCode').value='';
     document.getElementById('statusGroup').style.display = 'none';
     document.getElementById('probationGroup').style.display = 'none';
     
@@ -373,6 +374,7 @@ function editEmployee(id) {
 
         document.getElementById('empModalTitle').textContent = 'Edit Employee';
         document.getElementById('empId').value = emp.id || emp.Id || '';
+        document.getElementById('empCode').value = emp.emp_ID || emp.Emp_ID || '';
         
         // Map fields with safety checks for camelCase vs PascalCase vs underscore
         document.getElementById('firstName').value = emp.firstName || '';
@@ -601,11 +603,14 @@ function saveEmployee() {
         formData.append('ProbationStatus', '0');
     }
     
-    // For update, need to add the ID to the model
+    // Add the ID to the model
     if (id) {
         formData.append('Id', id);
-        var empCode = document.getElementById('empCode');
-        if (empCode) formData.append('Emp_ID', empCode.value);
+    }
+    
+    var empCodeField = document.getElementById('empCode');
+    if (empCodeField && empCodeField.value) {
+        formData.append('Emp_ID', empCodeField.value);
     }
     
     var url = id ? `/api/employee/${id}` : '/api/employee';

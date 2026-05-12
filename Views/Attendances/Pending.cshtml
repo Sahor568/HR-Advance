@@ -1,0 +1,298 @@
+@{
+    ViewData["Title"] = "Pending Attendance Requests";
+    var pendingAttendances = Model as IEnumerable<HR_Management_System.Models.ViewModels.AttendanceListViewModel> ?? new List<HR_Management_System.Models.ViewModels.AttendanceListViewModel>();
+}
+
+<div class="page-header">
+    <h1 class="page-title">Pending Attendance Requests</h1>
+    <p class="page-subtitle">Review and approve/reject late attendance submissions</p>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i> @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i> @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Stats -->
+<div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+    <div class="kpi-card">
+        <div class="kpi-icon orange"><i class="fas fa-clock"></i></div>
+        <div class="kpi-info">
+            <div class="kpi-value">@pendingAttendances.Count()</div>
+            <div class="kpi-label">Pending Requests</div>
+        </div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon blue"><i class="fas fa-user-clock"></i></div>
+        <div class="kpi-info">
+            <div class="kpi-value">@pendingAttendances.Select(a => a.EmployeeId).Distinct().Count()</div>
+            <div class="kpi-label">Employees</div>
+        </div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon purple"><i class="fas fa-calendar-day"></i></div>
+        <div class="kpi-info">
+            <div class="kpi-value">@pendingAttendances.Select(a => a.Date.Date).Distinct().Count()</div>
+            <div class="kpi-label">Days</div>
+        </div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-icon teal"><i class="fas fa-map-marker-alt"></i></div>
+        <div class="kpi-info">
+            <div class="kpi-value">@pendingAttendances.Count(a => !string.IsNullOrEmpty(a.LocationAddress))</div>
+            <div class="kpi-label">With Location</div>
+        </div>
+    </div>
+</div>
+
+<!-- Pending Attendance Table -->
+<div class="table-container">
+    <div class="table-header">
+        <h3 style="font-size:1rem;font-weight:600;margin:0;">Pending Attendance Requests</h3>
+        <div class="filter-bar">
+            <input type="date" class="form-control" id="dateFrom" />
+            <input type="date" class="form-control" id="dateTo" />
+            <button class="btn-secondary btn-sm" onclick="filterPending()"><i class="fas fa-filter"></i> Filter</button>
+            <button class="btn-primary btn-sm" onclick="refreshPending()"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+    </div>
+
+    @if (!pendingAttendances.Any())
+    {
+        <div class="empty-state">
+            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+            <h4>No Pending Requests</h4>
+            <p>There are no pending attendance requests at the moment.</p>
+            <a href="/Attendance" class="btn btn-primary mt-2"><i class="fas fa-arrow-left me-2"></i>Back to Attendance</a>
+        </div>
+    }
+    else
+    {
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Date</th>
+                    <th>Clock In Time</th>
+                    <th>Late By</th>
+                    <th>Location</th>
+                    <th>Remarks</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var attendance in pendingAttendances)
+                {
+                    // Calculate clock in time as DateTime for display
+                    var clockInDateTime = attendance.Date.Date.Add(attendance.Clock_In);
+                    var lateBy = attendance.Clock_In - TimeSpan.FromHours(9); // 9 AM start time
+                    var lateMinutes = lateBy.TotalMinutes > 30 ? lateBy.TotalMinutes - 30 : 0;
+                    
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-sm me-2">
+                                    <div class="avatar-initials">@(attendance.EmployeeName?[0] ?? 'E')</div>
+                                </div>
+                                <div>
+                                    <div class="fw-semibold">@attendance.EmployeeName</div>
+                                    <small class="text-muted">@attendance.Emp_ID</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div>@attendance.Date.ToString("dd MMM yyyy")</div>
+                            <small class="text-muted">@(attendance.NepaliDate ?? "Nepal date not available")</small>
+                        </td>
+                        <td>
+                            <div class="fw-semibold">@clockInDateTime.ToString("hh:mm tt")</div>
+                            <small class="text-muted">Nepal Time</small>
+                        </td>
+                        <td>
+                            @if (lateMinutes > 0)
+                            {
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-clock me-1"></i>@Math.Round(lateMinutes) min late
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-info">On time</span>
+                            }
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(attendance.LocationAddress))
+                            {
+                                <div><i class="fas fa-map-marker-alt text-primary me-1"></i>@attendance.LocationAddress</div>
+                                <small class="text-muted">Lat: @attendance.Latitude, Lng: @attendance.Longitude</small>
+                            }
+                            else
+                            {
+                                <span class="text-muted">No location</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="remarks-text">@(attendance.Remarks ?? "No remarks")</div>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-success btn-sm" onclick="showApproveModal(@attendance.Id, '@attendance.EmployeeName')">
+                                    <i class="fas fa-check"></i> Approve
+                                </button>
+                                <button class="btn-danger btn-sm" onclick="showRejectModal(@attendance.Id, '@attendance.EmployeeName')">
+                                    <i class="fas fa-times"></i> Reject
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+<!-- Approve Modal -->
+<div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Approve Attendance</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="approveForm" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <p>Approve attendance for <strong id="approveEmployeeName"></strong>?</p>
+                    <div class="mb-3">
+                        <label for="approveRemarks" class="form-label">Remarks (Optional)</label>
+                        <textarea class="form-control" id="approveRemarks" name="remarks" rows="3" placeholder="Add any remarks..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Approve</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reject Attendance</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="rejectForm" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <p>Reject attendance for <strong id="rejectEmployeeName"></strong>?</p>
+                    <div class="mb-3">
+                        <label for="rejectRemarks" class="form-label">Remarks (Required)</label>
+                        <textarea class="form-control" id="rejectRemarks" name="remarks" rows="3" placeholder="Reason for rejection..." required></textarea>
+                        <div class="invalid-feedback">Please provide a reason for rejection.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let currentAttendanceId = null;
+
+    function showApproveModal(id, employeeName) {
+        currentAttendanceId = id;
+        document.getElementById('approveEmployeeName').textContent = employeeName;
+        document.getElementById('approveForm').action = `/Attendance/Approve/${id}`;
+        const modal = new bootstrap.Modal(document.getElementById('approveModal'));
+        modal.show();
+    }
+
+    function showRejectModal(id, employeeName) {
+        currentAttendanceId = id;
+        document.getElementById('rejectEmployeeName').textContent = employeeName;
+        document.getElementById('rejectForm').action = `/Attendance/Reject/${id}`;
+        const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+        modal.show();
+    }
+
+    function filterPending() {
+        const fromDate = document.getElementById('dateFrom').value;
+        const toDate = document.getElementById('dateTo').value;
+        
+        if (fromDate && toDate) {
+            window.location.href = `/Attendance/Pending?fromDate=${fromDate}&toDate=${toDate}`;
+        } else {
+            window.location.href = `/Attendance/Pending`;
+        }
+    }
+
+    function refreshPending() {
+        window.location.reload();
+    }
+
+    // Set default date range (last 7 days)
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date();
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(today.getDate() - 7);
+        
+        document.getElementById('dateFrom').value = sevenDaysAgo.toISOString().split('T')[0];
+        document.getElementById('dateTo').value = today.toISOString().split('T')[0];
+    });
+</script>
+
+<style>
+    .avatar-sm {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+    
+    .remarks-text {
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        background-color: var(--card-bg);
+        border-radius: 8px;
+        margin-top: 1rem;
+    }
+</style>
+}

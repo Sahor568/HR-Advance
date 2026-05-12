@@ -285,11 +285,11 @@
                     <p>Review leave requests and attendance</p>
                 </div>
             </a>
-            <a href="/Payrolls" class="cmd-card" style="text-decoration: none; color: inherit;">
-                <div class="cmd-icon" style="background: #f0fdf4; color: #10b981;"><i class="fas fa-money-check-alt"></i></div>
+            <a href="/Attendance/Pending" class="cmd-card" style="text-decoration: none; color: inherit;">
+                <div class="cmd-icon" style="background: #fdf2f8; color: #db2777;"><i class="fas fa-user-clock"></i></div>
                 <div class="cmd-info">
-                    <h3>Payroll Center</h3>
-                    <p>Process salaries and generate reports</p>
+                    <h3>Attendance Approval</h3>
+                    <p id="pendingAttendanceCount">Review late clock-in requests</p>
                 </div>
             </a>
         </div>
@@ -355,6 +355,7 @@
         <div class="premium-tabs">
             <button class="p-tab active" onclick="switchPremiumTab('p-personal')">Personal Info</button>
             <button class="p-tab" onclick="switchPremiumTab('p-employment')">Employment</button>
+            <button class="p-tab" onclick="switchPremiumTab('p-attendance')">Attendance</button>
             <button class="p-tab" onclick="switchPremiumTab('p-leave')">Leave Balance</button>
             <button class="p-tab" onclick="switchPremiumTab('p-payroll')">Payroll</button>
         </div>
@@ -368,6 +369,53 @@
         <div id="p-employment" class="tab-pane">
             <div class="card">
                 <div class="card-body" id="employmentGrid"></div>
+            </div>
+        </div>
+
+        <div id="p-attendance" class="tab-pane">
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 style="font-size:1.1rem; font-weight:700;"><i class="fas fa-clock" style="margin-right:0.5rem; color:var(--primary);"></i> Daily Attendance</h3>
+                    </div>
+                    <div class="card-body" style="text-align: center; padding: 2.5rem;">
+                        <div id="nepalTimeDisplay" style="font-size: 3rem; font-weight: 800; color: var(--dark); margin-bottom: 0.5rem;">00:00:00</div>
+                        <div id="nepalDateDisplay" style="font-size: 1.1rem; color: var(--secondary); margin-bottom: 2rem;">Loading date...</div>
+                        
+                        <div id="attendanceStatusBadge" class="mb-4">
+                            <span class="badge-status" style="padding: 0.5rem 1.5rem; font-size: 1rem;">Checking status...</span>
+                        </div>
+
+                        <div id="locationStatus" style="font-size: 0.85rem; margin-bottom: 1.5rem; color: var(--secondary);">
+                            <i class="fas fa-map-marker-alt"></i> <span id="locationText">Detecting location...</span>
+                        </div>
+
+                        <div class="d-flex justify-center gap-3">
+                            <button id="btnClockIn" class="btn-primary" style="padding: 0.75rem 2.5rem; font-size: 1.1rem; border-radius: 1rem;" onclick="handleClockIn()" disabled>
+                                <i class="fas fa-sign-in-alt mr-2"></i> Clock In
+                            </button>
+                            <button id="btnClockOut" class="btn-secondary" style="padding: 0.75rem 2.5rem; font-size: 1.1rem; border-radius: 1rem;" onclick="handleClockOut()" disabled>
+                                <i class="fas fa-sign-out-alt mr-2"></i> Clock Out
+                            </button>
+                        </div>
+                        
+                        <p style="font-size: 0.8rem; color: var(--secondary); margin-top: 1.5rem;">
+                            <i class="fas fa-info-circle"></i> Office hours: 9:00 AM - 5:30 PM. 
+                            <br/>Arrival after 9:30 AM requires HR/Admin approval.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 style="font-size:1.1rem; font-weight:700;"><i class="fas fa-history" style="margin-right:0.5rem; color:var(--primary);"></i> Recent Attendance</h3>
+                    </div>
+                    <div class="card-body" style="padding:0;">
+                        <div id="attendanceHistory">
+                            <div class="loading-spinner">Loading history...</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -400,8 +448,20 @@
             
             if (isAdminView) {
                 initAdminCharts();
+                loadPendingCounts();
             }
         });
+
+        function loadPendingCounts() {
+            fetch('/api/dashboard/admin')
+                .then(r => r.ok ? r.json() : null)
+                .then(data => {
+                    if (data && data.pendingAttendanceRequests > 0) {
+                        document.getElementById('pendingAttendanceCount').innerHTML = 
+                            `<strong style="color:var(--danger)">${data.pendingAttendanceRequests} pending</strong> requests to review`;
+                    }
+                });
+        }
 
         function switchPremiumTab(tabId) {
             const pane = document.getElementById(tabId);
@@ -555,6 +615,254 @@
             var dbId = emp.id || emp.Id;
             loadLeaveBalance(dbId);
             loadPayslips(dbId);
+            loadAttendanceStatus(dbId);
+            initNepalClock();
+            updateLocationStatus();
+        }
+
+        // --- Attendance Features ---
+        let currentPosition = null;
+        let nepalTimeInterval = null;
+
+        function initNepalClock() {
+            if (nepalTimeInterval) clearInterval(nepalTimeInterval);
+            
+            const updateClock = () => {
+                const now = new Date();
+                // Nepal is UTC+5:45
+                const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+                const nepalTime = new Date(utc + (3600000 * 5.75));
+                
+                const hours = nepalTime.getHours();
+                const minutes = nepalTime.getMinutes();
+                const seconds = nepalTime.getSeconds();
+                
+                const display = 
+                    (hours % 12 || 12).toString().padStart(2, '0') + ":" + 
+                    minutes.toString().padStart(2, '0') + ":" + 
+                    seconds.toString().padStart(2, '0') + " " + 
+                    (hours >= 12 ? 'PM' : 'AM');
+                
+                if (document.getElementById('nepalTimeDisplay')) {
+                    document.getElementById('nepalTimeDisplay').textContent = display;
+                }
+                
+                if (document.getElementById('nepalDateDisplay')) {
+                    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                    document.getElementById('nepalDateDisplay').textContent = nepalTime.toLocaleDateString('en-US', options);
+                }
+            };
+            
+            updateClock();
+            nepalTimeInterval = setInterval(updateClock, 1000);
+        }
+
+        function updateLocationStatus() {
+            if (!navigator.geolocation) {
+                document.getElementById('locationText').textContent = "Geolocation not supported";
+                document.getElementById('locationText').style.color = "var(--danger)";
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    currentPosition = pos;
+                    document.getElementById('locationText').textContent = "Location detected: Ready";
+                    document.getElementById('locationText').style.color = "var(--success)";
+                    checkButtonState();
+                },
+                (err) => {
+                    console.error("Location error:", err);
+                    document.getElementById('locationText').textContent = "Location access denied. Please enable location.";
+                    document.getElementById('locationText').style.color = "var(--danger)";
+                    checkButtonState();
+                }
+            );
+        }
+
+        function checkButtonState() {
+            const hasLocation = currentPosition !== null;
+            const btnIn = document.getElementById('btnClockIn');
+            const btnOut = document.getElementById('btnClockOut');
+            
+            // Further logic depends on today's attendance status which is loaded in loadAttendanceStatus
+        }
+
+        async function loadAttendanceStatus(empId) {
+            if (!empId) return;
+            
+            try {
+                // Check if today is holiday or weekend first
+                const holidayResp = await fetch('/api/attendance/is-holiday');
+                const holidayData = await holidayResp.json();
+                
+                const badge = document.getElementById('attendanceStatusBadge');
+                const btnIn = document.getElementById('btnClockIn');
+                const btnOut = document.getElementById('btnClockOut');
+
+                if (holidayData.isHoliday) {
+                    badge.innerHTML = '<span class="badge-status" style="background:#fef2f2; color:#ef4444;"><i class="fas fa-calendar-times"></i> Closed (Holiday/Weekend)</span>';
+                    btnIn.disabled = true;
+                    btnOut.disabled = true;
+                    document.getElementById('locationText').textContent = "Attendance is closed for today.";
+                    return;
+                }
+
+                const response = await fetch(`/api/attendance/today/${empId}`);
+
+                if (response.status === 404) {
+                    badge.innerHTML = '<span class="badge-status" style="background:#f1f5f9; color:#64748b;">Not Clocked In</span>';
+                    btnIn.disabled = false;
+                    btnOut.disabled = true;
+                } else if (response.ok) {
+                    const data = await response.json();
+                    // Properties are camelCased in JSON (clockIn, clockOut)
+                    const inTime = formatTimeSpan(data.clockIn || data.clock_In);
+                    const outTime = (data.clockOut || data.clock_Out) ? formatTimeSpan(data.clockOut || data.clock_Out) : null;
+                    
+                    if (data.clockOut || data.clock_Out) {
+                        badge.innerHTML = `<span class="badge-status badge-info">Work Completed (In: ${inTime}, Out: ${outTime})</span>`;
+                        btnIn.disabled = true;
+                        btnOut.disabled = true;
+                    } else if (data.status === 7 || data.status === 'Pending') {
+                        badge.innerHTML = `<span class="badge-status badge-warning">Pending Approval (Clocked In: ${inTime})</span>`;
+                        btnIn.disabled = true;
+                        btnOut.disabled = false;
+                    } else {
+                        badge.innerHTML = `<span class="badge-status badge-success">Currently Working (Clocked In: ${inTime})</span>`;
+                        btnIn.disabled = true;
+                        btnOut.disabled = false;
+                    }
+                }
+                
+                loadAttendanceHistory(empId);
+            } catch (err) {
+                console.error("Status check error:", err);
+            }
+        }
+
+        async function handleClockIn() {
+            if (!currentPosition) {
+                alert("Location is required for attendance. Please enable location services.");
+                return;
+            }
+
+            const empId = initialSelfData.id || initialSelfData.Id;
+            const model = {
+                employeeId: empId,
+                isLocationEnabled: true,
+                latitude: currentPosition.coords.latitude,
+                longitude: currentPosition.coords.longitude,
+                locationAddress: "GPS Location"
+            };
+
+            try {
+                const response = await fetch('/api/attendance/clock-in', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(model)
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    loadAttendanceStatus(empId);
+                } else {
+                    alert(result || result.message || "Clock-in failed");
+                }
+            } catch (err) {
+                console.error("Clock-in error:", err);
+                alert("An error occurred during clock-in.");
+            }
+        }
+
+        async function handleClockOut() {
+            const empId = initialSelfData.id || initialSelfData.Id;
+            
+            if (!confirm("Are you sure you want to clock out?")) return;
+
+            try {
+                const response = await fetch('/api/attendance/clock-out', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ employeeId: empId })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    loadAttendanceStatus(empId);
+                } else {
+                    alert(result || result.message || "Clock-out failed");
+                }
+            } catch (err) {
+                console.error("Clock-out error:", err);
+                alert("An error occurred during clock-out.");
+            }
+        }
+
+        function formatTimeSpan(ts) {
+            if (!ts || typeof ts !== 'string') return '--';
+            const parts = ts.split(':');
+            if (parts.length < 2) return ts; // Return as is if format is unexpected
+            
+            let h = parseInt(parts[0]);
+            let m = parts[1];
+            if (isNaN(h)) return '--';
+            
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12 || 12;
+            return `${h.toString().padStart(2, '0')}:${m} ${ampm}`;
+        }
+
+        async function loadAttendanceHistory(empId) {
+            try {
+                const response = await fetch(`/api/attendance?employeeId=${empId}`);
+                if (!response.ok) return;
+                
+                const data = await response.json();
+                const container = document.getElementById('attendanceHistory');
+                
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><p>No attendance history found.</p></div>';
+                    return;
+                }
+
+                const statusBadges = {
+                    'Present': '<span class="badge-status badge-success">Present</span>',
+                    'Absent': '<span class="badge-status badge-danger">Absent</span>',
+                    'Pending': '<span class="badge-status badge-warning">Pending</span>',
+                    'Holiday': '<span class="badge-status badge-info">Holiday</span>',
+                    'Weekend': '<span class="badge-status" style="background:#e2e8f0; color:#64748b;">Weekend</span>'
+                };
+
+                container.innerHTML = `
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>In</th>
+                                <th>Out</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.slice(0, 10).map(a => `
+                                <tr>
+                                    <td>${new Date(a.date).toLocaleDateString()}</td>
+                                    <td>${formatTimeSpan(a.clockIn || a.clock_In)}</td>
+                                    <td>${formatTimeSpan(a.clockOut || a.clock_Out)}</td>
+                                    <td>${a.totalHours > 0 ? a.totalHours.toFixed(2) + 'h' : '--'}</td>
+                                    <td>${statusBadges[a.status] || a.status}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (err) {
+                console.error("History load error:", err);
+            }
         }
 
         function loadLeaveBalance(empId) {

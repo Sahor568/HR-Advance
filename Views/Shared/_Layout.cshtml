@@ -84,12 +84,27 @@ else
             <a href="/Attendances" class="sidebar-nav-item @(Context.Request.Path.StartsWithSegments("/Attendances") ? "active" : "")">
                 <i class="fas fa-clock"></i> Attendance
             </a>
+            @if (User.IsInRole("Admin") || User.IsInRole("HRManager"))
+            {
+                <a href="/Attendance/Pending" class="sidebar-nav-item @(Context.Request.Path.StartsWithSegments("/Attendance/Pending") ? "active" : "")">
+                    <i class="fas fa-hourglass-half"></i> Pending Requests
+                </a>
+            }
             <a href="/Leaves" class="sidebar-nav-item @(Context.Request.Path.StartsWithSegments("/Leaves") ? "active" : "")">
                 <i class="fas fa-calendar-minus"></i> Leave
             </a>
-            <a href="/Payrolls" class="sidebar-nav-item @(Context.Request.Path.StartsWithSegments("/Payrolls") ? "active" : "")">
-                <i class="fas fa-money-bill-wave"></i> Payroll
-            </a>
+            @if (User.IsInRole("Admin") || User.IsInRole("HRManager"))
+            {
+                <a href="/Payrolls" class="sidebar-nav-item @(Context.Request.Path.StartsWithSegments("/Payrolls") ? "active" : "")">
+                    <i class="fas fa-money-bill-wave"></i> Payroll
+                </a>
+            }
+            else
+            {
+                <a href="/EmployeeSelfService/Payslips" class="sidebar-nav-item @(Context.Request.Path.StartsWithSegments("/EmployeeSelfService/Payslips") ? "active" : "")">
+                    <i class="fas fa-money-bill-wave"></i> My Payslips
+                </a>
+            }
             <a href="/Holidays" class="sidebar-nav-item @(Context.Request.Path.StartsWithSegments("/Holidays") ? "active" : "")">
                 <i class="fas fa-umbrella-beach"></i> Holidays
             </a>

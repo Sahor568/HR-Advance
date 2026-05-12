@@ -31,7 +31,8 @@ namespace HR_Management_System.Models.Enums
         HalfDay = 3,
         OnLeave = 4,
         Holiday = 5,
-        Weekend = 6
+        Weekend = 6,
+        Pending = 7
     }
 
     public enum LeaveStatus

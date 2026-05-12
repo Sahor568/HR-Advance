@@ -16,5 +16,12 @@ namespace HR_Management_System.Services.Interfaces
         Task<decimal> CalculateOvertimeAsync(int employeeId, DateTime date);
         Task<Dictionary<int, decimal>> GetMonthlyOTSummaryAsync(int month, int year);
         Task CheckAndMarkAbsencesAsync();
+        
+        // New methods for pending attendance approval
+        Task<IEnumerable<AttendanceListViewModel>> GetPendingAttendancesAsync(DateTime? fromDate = null, DateTime? toDate = null);
+        Task<int> GetPendingAttendanceCountAsync();
+        Task<bool> ApproveAttendanceAsync(int attendanceId, string approvedBy, string? remarks = null);
+        Task<bool> RejectAttendanceAsync(int attendanceId, string rejectedBy, string? remarks = null);
+        Task<bool> IsTodayHolidayOrWeekendAsync();
     }
 }

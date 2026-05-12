@@ -52,6 +52,7 @@ namespace HR_Management_System.Controllers
                 var openAccidents = await _complianceService.GetOpenAccidentCountAsync();
                 var pendingInsuranceClaims = await _complianceService.GetPendingInsuranceClaimCountAsync();
                 var unresolvedDisciplinaryCases = await _complianceService.GetUnresolvedDisciplinaryCountAsync();
+                var pendingAttendanceRequests = await _attendanceService.GetPendingAttendanceCountAsync();
                 
                 var todayAttendances = await _attendanceService.GetTodayAttendancesAsync();
                 var departments = await _departmentService.GetAllDepartmentsAsync();
@@ -74,6 +75,7 @@ namespace HR_Management_System.Controllers
                     OpenAccidentLogs = openAccidents,
                     PendingInsuranceClaims = pendingInsuranceClaims,
                     UnresolvedDisciplinaryCases = unresolvedDisciplinaryCases,
+                    PendingAttendanceRequests = pendingAttendanceRequests,
                     TotalDepartments = departments.Count(),
                     TotalTeams = teams.Count(),
                     TotalMonthlyPayroll = totalMonthlyPayroll,
@@ -129,6 +131,7 @@ namespace HR_Management_System.Controllers
                 var pendingLeaveRequests = await _leaveService.GetPendingLeaveCountAsync();
                 var pendingPayrolls = await _payrollService.GetPendingPayrollCountAsync();
                 var openAccidents = await _complianceService.GetOpenAccidentCountAsync();
+                var pendingAttendanceRequests = await _attendanceService.GetPendingAttendanceCountAsync();
                 var todayAttendances = await _attendanceService.GetTodayAttendancesAsync();
                 var departments = await _departmentService.GetAllDepartmentsAsync();
                 var teams = await _teamService.GetAllTeamsAsync();
@@ -144,6 +147,7 @@ namespace HR_Management_System.Controllers
                     PendingLeaveRequests = pendingLeaveRequests,
                     PendingPayrolls = pendingPayrolls,
                     OpenAccidents = openAccidents,
+                    PendingAttendanceRequests = pendingAttendanceRequests,
                     TodayAttendance = todayAttendances.Count(),
                     TotalDepartments = departments.Count(),
                     TotalTeams = teams.Count(),
